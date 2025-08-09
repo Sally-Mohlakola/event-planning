@@ -26,7 +26,7 @@ export default function Login() {
                 await signInWithPopup(auth, provider);
                 navigate('/home');
             } catch (error) {
-                console.error("Error signing up with Google:", error);
+                console.error("Error signing in with Google:", error);
             }
         }
 
