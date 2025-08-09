@@ -11,7 +11,7 @@ on:
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     permissions:
@@ -22,8 +22,10 @@ jobs:
         with:
           submodules: true
           lfs: false
+
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
+
       - name: Get Id Token
         uses: actions/github-script@v6
         id: idtoken
@@ -32,29 +34,35 @@ jobs:
                const coredemo = require('@actions/core')
                return await coredemo.getIDToken()
            result-encoding: string
+
       - name: Install Dependencies
         run: npm install
+        working-directory: ./my-app
 
       - name: Build
         run: npm run build
+        working-directory: ./my-app
         env:
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
           VITE_AUTH_DOMAIN: ${{ secrets.VITE_AUTH_DOMAIN }}
           VITE_PROJECT_ID: ${{ secrets.VITE_PROJECT_ID }}
           VITE_STORAGE_BUCKET: ${{ secrets.VITE_STORAGE_BUCKET }}
           VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
-          VITE_APP_ID: ${{ secrets.VITE_APP_ID }} 
+          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
           VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WITTY_STONE_03009B61E }}
           action: "upload"
+
           
           app_location: "./my-app"
           api_location: "" 
           output_location: "dist" 
+
           github_id_token: ${{ steps.idtoken.outputs.result }}
         env:
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
@@ -62,9 +70,8 @@ jobs:
           VITE_PROJECT_ID: ${{ secrets.VITE_PROJECT_ID }}
           VITE_STORAGE_BUCKET: ${{ secrets.VITE_STORAGE_BUCKET }}
           VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
-          VITE_APP_ID: ${{ secrets.VITE_APP_ID }} 
+          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
           VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
-          ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -76,3 +83,4 @@ jobs:
         uses: Azure/static-web-apps-deploy@v1
         with:
           action: "close"
+
