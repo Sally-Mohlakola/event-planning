@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   CalendarDays, 
   Users, 
@@ -14,8 +15,10 @@ import {
 } from 'lucide-react';
 
 const Index = () => {
+const navigate = useNavigate();
   const userTypes = [
     {
+      id: 'planner', // Add this
       title: "Event Planner",
       description: "Plan, organize and manage events with powerful tools",
       features: ["Event Creation", "Vendor Management", "Guest Lists", "RSVP Tracking"],
@@ -24,6 +27,7 @@ const Index = () => {
       gradient: "bg-gradient-primary"
     },
     {
+      id: 'vendor', // Add this
       title: "Vendor",
       description: "Showcase your services and manage bookings",
       features: ["Profile Management", "Booking Calendar", "Reviews", "Contracts"],
@@ -32,6 +36,7 @@ const Index = () => {
       gradient: "bg-gradient-hero"
     },
     {
+      id: 'admin', // Add this
       title: "Administrator",
       description: "Oversee platform operations and user management",
       features: ["User Verification", "Reports", "Platform Analytics", "User Management"],
@@ -40,6 +45,11 @@ const Index = () => {
       gradient: "bg-gradient-secondary"
     }
   ];
+
+  // Add this function
+  const handleNavigation = (userType: string) => {
+    navigate('/login', { state: { userType } });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,8 +74,9 @@ const Index = () => {
               Create memorable events with powerful tools and seamless collaboration.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-gradient-primary hover:opacity-90">
-                <Zap className="h-5 w-5 mr-2" />
+              <Button size="lg" className="bg-gradient-primary hover:opacity-90"
+                onClick={() => handleNavigation('planner')}> {/*Updated */}
+                <Zap className="h-5 w-5 mr-2" /> here
                 Get Started
               </Button>
               <Button size="lg" variant="outline">
@@ -107,7 +118,9 @@ const Index = () => {
                     ))}
                   </div>
                   <Link to={type.link}>
-                    <Button className="w-full group-hover:scale-105 transition-transform duration-300">
+                   <Button 
+                  className="w-full group-hover:scale-105 transition-transform duration-300"
+                  onClick={() => handleNavigation(type.id)}> {/*Updated */}
                       Enter Dashboard
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
@@ -164,13 +177,19 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/dashboard">
-              <Button size="lg" className="bg-gradient-primary hover:opacity-90">
-                Start Planning
+               <Button 
+          size="lg" 
+          className="bg-gradient-primary hover:opacity-90"
+          onClick={() => handleNavigation('planner')}> {/*Updated */}
+                       Start Planning
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
             </Link>
             <Link to="/vendor/profile">
-              <Button size="lg" variant="outline">
+              <Button 
+          size="lg" 
+          variant="outline"
+          onClick={() => handleNavigation('vendor')}> {/*Updated */}
                 Join as Vendor
               </Button>
             </Link>
