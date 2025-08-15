@@ -6,6 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
+//login page
+import Login from "./pages/Login";
+
+
 // Planner Pages
 import Dashboard from "./pages/planner/Dashboard";
 import EventEditor from "./pages/planner/EventEditor";
@@ -38,7 +42,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Index />} /> 
+    
+
+          <Route path="/login" element={<Login />} /> {/*
           
           {/* Planner Routes */}
           <Route path="/dashboard" element={<Dashboard />} />
