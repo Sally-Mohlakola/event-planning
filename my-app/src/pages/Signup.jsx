@@ -25,8 +25,8 @@ export default function Signup() {
         } catch (error) {
             console.error("Error signing up:", error);
             let message = "Something went wrong";
-                if(error.code == "auth/invalid-credential"){
-                    message = "Invalid credential";
+                if(error.code == "auth/email-already-in-use"){
+                    message = "Account with this email already exists, log in instead.";
                 }      
                 setError(message);
         }
@@ -41,10 +41,11 @@ export default function Signup() {
         } catch (error) {
             console.error("Error signing up with Google:", error);
             let message = "Something went wrong";
-                if(error.code == "auth/invalid-credential"){
-                    message = "Invalid credential";
+                if(error.code == "auth/email-already-in-use"){
+                    message = "Account with this email already exists, log in instead.";
                 }      
-                setError(message);
+                setError(message);    
+        
         }
     }
     return (
