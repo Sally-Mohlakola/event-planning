@@ -4,7 +4,7 @@ import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { FcGoogle } from 'react-icons/fc';
-//What I added
+
 import { HiOutlineMail } from 'react-icons/hi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { FaRegHandPaper } from 'react-icons/fa';
@@ -103,7 +103,7 @@ export default function Login() {
         </form>
 
         <p className="muted center">
-          Don’t have an account? <a className="link" href="#signup">Sign up here</a>
+          Don’t have an account? <a className="link" href="signup">Sign up here</a>
         </p>
       </section>
     </main>
