@@ -19,11 +19,16 @@ export default function Login() {
     const onSubmit = async (e) => {
         e.preventDefault();
         try {
-            
+            setError("")
             await signInWithEmailAndPassword(auth, email, password);
             navigate('/home'); 
         } catch (error) {
             console.error("Error logging in:", error.message);
+             let message = "Something went wrong";
+                if(error.code == "auth/invalid-credential"){
+                    message = "Invalid credential";
+                }      
+                setError(message); 
         }
     }
     const handleGoogleSignin = async () => {
