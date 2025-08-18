@@ -84,6 +84,30 @@ body {
 .divider span {
   padding: 0 0.5rem;
 }
+.reset {
+  color: #4ce53e;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(17, 207, 33, 0.69);
+  border-radius: 8px;
+  border: 1px solid rgba(13, 69, 4, 0.2);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  animation: shake 0.5s ease-in-out;
+}
+.error {
+  color: #e53e3e;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(229, 62, 62, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(229, 62, 62, 0.2);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  animation: shake 0.5s ease-in-out;
+}
 
 /* Buttons */
 .btn {
