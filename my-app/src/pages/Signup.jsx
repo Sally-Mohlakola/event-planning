@@ -52,22 +52,14 @@ export default function Signup() {
             <section className="login-card">
         <header className="login-header">
           <h1 className="login-title">
-            let's Get you signed up! <FaRegHandPaper className="wave-icon" />
+            Sign UP! <FaRegHandPaper className="wave-icon" />
           </h1>
           <p className="login-subtitle">Please enter your details</p>
         </header>
 
-{/* Google Sign-in */}
-    <button className="btn google-btn" type="button" onClick={handleGoogleSignup}>
-        Sign up with Google <FcGoogle />
-    </button>
 
-        {/* Divider under subtitle */}
-          <div className="divider">
-            <hr />
-            <span>or</span>
-            <hr />
-          </div>
+
+        
           {error && <p className="error">{error}</p>}
             <form onSubmit={onSubmit}>
                 <label htmlFor="email" className="input-label">Email</label>
@@ -98,13 +90,19 @@ export default function Signup() {
                 />
               </div>
 
-                <div className="center-link">
-            <a className="link subtle" href="#forgot">Forgot Password?</a>
-          </div>
-
                 
                 <button type="submit">Sign Up</button>
             </form>
+                {/* Divider under subtitle */}
+          <div className="divider">
+            <hr />
+            <span>or</span>
+            <hr />
+          </div>
+                {/* Google Sign-in */}
+    <button className="btn google-btn" type="button" onClick={handleGoogleSignup}>
+        Sign up with Google <FcGoogle />
+    </button>
             
             <p className="muted center">Already have an account? <a href="/login">Login</a></p>
                 </section>
