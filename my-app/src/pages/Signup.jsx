@@ -48,11 +48,11 @@ export default function Signup() {
         }
     }
     return (
-        <main className="login-container">
+        <main className="login-page">
             <section className="login-card">
         <header className="login-header">
           <h1 className="login-title">
-            Welcome Back! <FaRegHandPaper className="wave-icon" />
+            let's Get you signed up! <FaRegHandPaper className="wave-icon" />
           </h1>
           <p className="login-subtitle">Please enter your details</p>
         </header>
