@@ -11,7 +11,7 @@ import {
   FileText,
   Star,
   Menu,
-  X, Edit, Star,
+  X, Edit,
   Badge
 } from "lucide-react";
 
@@ -19,10 +19,10 @@ export default function VendorDashboard(){
      const [isOpen, setIsOpen] = useState(true);
 
     const navigationItems = [
-        {id: 'profile', label: 'Profile', icon: BarChart3},
+        {id: 'profile', label: 'Profile', icon: Users},
         {id: 'bookings', label: 'Bookings', icon: Calendar},
-        {id: 'floorplan view', label: 'Floorplan View', icon: Users},
-        {id: 'reviews', label: 'Reviews', icon: MapPin},
+        {id: 'floorplan view', label: 'Floorplan View', icon: MapPin},
+        {id: 'reviews', label: 'Reviews', icon: Star},
         {id: 'contracts', label: 'Contracts', icon: FileText},
     ]
 
@@ -36,38 +36,40 @@ export default function VendorDashboard(){
 
 return(<section className = 'vendor-page-container'>
             <aside className={`side-bar ${isOpen ? 'open' : 'closed'}`}>
-                <section className='sidebar-header'>
-                    {isOpen && (<h2>Event Hub</h2>)}
+                <section className='vendor-sidebar-header'>
+                    {isOpen && (<h2 style={{color:"black"}}>Event Hub</h2>)}
                     <button className='toggle-button'onClick={() => setIsOpen(!isOpen)}>
                         <X/>
                     </button>
                 </section>
-                
-                <nav className='sidebar-navigation'>
-    
+               
+                <nav className='vendor-sidebar-navigation'>
+                    
                      {navigationItems.map((item) => {
                         const Icon = item.icon
                         return (
                             <button key={item.id} className={'nav-button'}>
                                 <Icon size={16} />
-                                {isOpen && <section>{item.label}</section>}
+                                {isOpen && <section>{ item.label}</section>}
                             </button>
                         )
                     })}
                 </nav>
             </aside>
-            <section className='main'>
-                <section className = "dashboard-intro">
-                    
+            <section className='vendor-main'>
+                <p>Vendor Portal</p>
+                <button>← Back to Home</button>
+                <section className = "vendor-dashboard-intro">
+                     
                     <h1>Vendor Profile</h1>
                    <br></br>
                     <p>Manage your business profile and services</p>
-                    <button className='page-button'> <Edit size={16} />Edit Profile</button>
+                    <button className='edit-button'> <Edit size={16} />Edit Profile</button>
                 </section>
 
                 
 
-                <section className='main-content'>
+                <section className='vendor-main-content'>
                     <section className='business-card-summary'>
                         <h2>Business Information</h2>
                         <h2>--Business Name Appears Here--</h2>
