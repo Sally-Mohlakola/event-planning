@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import {auth} from '../firebase';
+import "./login.css":
 
 import { FcGoogle } from 'react-icons/fc';
 
