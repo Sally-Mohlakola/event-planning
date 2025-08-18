@@ -91,7 +91,7 @@ export default function Signup() {
               </div>
 
                 
-                <button type="submit">Sign Up</button>
+                <button type="submit" className="btn primary">Sign Up</button>
             </form>
                 {/* Divider under subtitle */}
           <div className="divider">
