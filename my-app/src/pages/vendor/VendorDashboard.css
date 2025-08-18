@@ -1,23 +1,4 @@
-html, body{
-    width: auto;
-    min-height: 100vh;
-    margin: 0; 
-    padding: 0;
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    overscroll-behavior: none;
-   
-}
 
-:root {
-  --blue-700: #1e3a8a;
-  --purple-700: #6d28d9;
-  --white: #ffffff;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --field: #f8fafc;
-}
 
 
 .vendor-page-container {
