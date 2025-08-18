@@ -84,7 +84,7 @@ body {
 .divider span {
   padding: 0 0.5rem;
 }
-.error {
+.reset {
   color: #4ce53e;
   font-size: 0.9rem;
   margin-top: 0.5rem;
@@ -96,7 +96,7 @@ body {
   backdrop-filter: blur(10px);
   animation: shake 0.5s ease-in-out;
 }
-.reset {
+.error {
   color: #e53e3e;
   font-size: 0.9rem;
   margin-top: 0.5rem;
