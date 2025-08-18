@@ -14,12 +14,14 @@ export default function Login() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [error, setError] = useState(null);
+    const [resetMessage, setResetMessage] = useState(null);
     const [password, setPassword] = useState('');
 
     const onSubmit = async (e) => {
         e.preventDefault();
         try {
-            setError("")
+            setError("");
+            
             await signInWithEmailAndPassword(auth, email, password);
             navigate('/home'); 
         } catch (error) {
@@ -54,8 +56,9 @@ const handleForgotPassword = async () => {
     return setError("Enter your email first");
   }
   try {
+      setResetMessage("");
     await sendPasswordResetEmail(auth, email);
-    alert("Password reset email sent");
+    setResetMessage("Password reset email sent");
   } catch (err) {
     console.error(err);
     setError(err.message);
@@ -88,6 +91,7 @@ const handleForgotPassword = async () => {
             <hr />
           </div>
           {error && <p className="error">{error}</p>}
+          {resetMessage && <p className="reset">{resetMessage}</p>}
 
         <form className="login-form" onSubmit={onSubmit} noValidate>
           {/* Email */}
@@ -125,13 +129,18 @@ const handleForgotPassword = async () => {
           </div>
 
           <div className="center-link">
-            <button
-  type="button"
+         
+              <a
+  href="#"
   className="link subtle"
-  onClick={handleForgotPassword}
+  onClick={(e) => {
+    e.preventDefault();
+    handleForgotPassword();
+  }}
 >
   Forgot Password?
-</button>
+</a>
+
 
           </div>
 
