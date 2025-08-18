@@ -4,7 +4,7 @@ import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { FcGoogle } from 'react-icons/fc';
-//What I added
+
 import { HiOutlineMail } from 'react-icons/hi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { FaRegHandPaper } from 'react-icons/fa';
@@ -13,16 +13,22 @@ import './Login.css';
 export default function Login() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
+    const [error, setError] = useState(null);
     const [password, setPassword] = useState('');
 
     const onSubmit = async (e) => {
         e.preventDefault();
         try {
-            
+            setError("")
             await signInWithEmailAndPassword(auth, email, password);
             navigate('/home'); 
         } catch (error) {
             console.error("Error logging in:", error.message);
+             let message = "Something went wrong";
+                if(error.code == "auth/invalid-credential"){
+                    message = "Invalid credential";
+                }      
+                setError(message); 
         }
     }
     const handleGoogleSignin = async () => {
@@ -32,6 +38,13 @@ export default function Login() {
                 navigate('/home');
             } catch (error) {
                 console.error("Error signing in with Google:", error);
+                let message = "Something went wrong";
+                if(error.code == "auth/invalid-credential"){
+                    message = "Invalid credential";
+                }
+        
+          
+                setError(message); 
             }
         }
 
@@ -59,6 +72,7 @@ export default function Login() {
             <span>or</span>
             <hr />
           </div>
+          {error && <p className="error">{error}</p>}
 
         <form className="login-form" onSubmit={onSubmit} noValidate>
           {/* Email */}
@@ -88,7 +102,7 @@ export default function Login() {
               id="password"
               type="password"
               autoComplete="current-password"
-              placeholder="••••••••"
+              placeholder="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -103,7 +117,7 @@ export default function Login() {
         </form>
 
         <p className="muted center">
-          Don’t have an account? <a className="link" href="#signup">Sign up here</a>
+          Don’t have an account? <a className="link" href="signup">Sign up here</a>
         </p>
       </section>
     </main>
