@@ -37,6 +37,7 @@ export default function PlannerDashboard(){
                 </section>
                 
                 <nav className='sidebar-navigation'>
+    
                      {navigationItems.map((item) => {
                         const Icon = item.icon
                         return (
