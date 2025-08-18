@@ -28,7 +28,7 @@ export default function Signup() {
                 if(error.code == "auth/email-already-in-use"){
                     message = "Account with this email already exists, log in instead.";
                 }
-                }else if(error.code =="auth/weak-password"){
+                else if(error.code =="auth/weak-password"){
                     message = "Password should be at least 6 characters long";
                 }
                 setError(message);
