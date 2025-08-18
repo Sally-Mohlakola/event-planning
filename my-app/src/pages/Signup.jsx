@@ -58,7 +58,7 @@ export default function Signup() {
         </header>
 
 {/* Google Sign-in */}
-    <button className="btn google-btn" type="button" onClick={handleGoogleSignin}>
+    <button className="btn google-btn" type="button" onClick={handleGoogleSignup}>
         Sign up with Google <FcGoogle />
     </button>
 
