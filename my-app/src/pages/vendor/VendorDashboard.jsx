@@ -16,7 +16,12 @@ import {
 } from "lucide-react";
 
 export default function VendorDashboard(){
+    const navigate = useNavigate();
      const [isOpen, setIsOpen] = useState(true);
+
+     const navHome =()=>{
+        navigate("/home");
+     }
 
     const navigationItems = [
         {id: 'profile', label: 'Profile', icon: Users},
@@ -58,7 +63,7 @@ return(<section className = 'vendor-page-container'>
             </aside>
             <section className='vendor-main'>
                 <p>Vendor Portal</p>
-                <button>← Back to Home</button>
+                <button onClick={navHome}>← Back to Home</button>
                 <section className = "vendor-dashboard-intro">
                      
                     <h1>Vendor Profile</h1>
