@@ -21,6 +21,7 @@ export default function Login() {
         e.preventDefault();
         try {
             setError("");
+            setResetMessage("");
             
             await signInWithEmailAndPassword(auth, email, password);
             navigate('/home'); 
