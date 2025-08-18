@@ -90,7 +90,9 @@ export default function Signup() {
                 />
               </div>
 
-                
+                <div className="center-link">
+            <a className="link subtle" href="#forgot"></a>
+          </div>
                 <button type="submit" className="btn primary">Sign Up</button>
             </form>
                 {/* Divider under subtitle */}
