@@ -13,6 +13,8 @@ import './Login.css';
 export default function Login() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
+    const [error, setError] = useState(null);
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const onSubmit = async (e) => {
@@ -32,6 +34,13 @@ export default function Login() {
                 navigate('/home');
             } catch (error) {
                 console.error("Error signing in with Google:", error);
+                let message = "Something went wrong";
+                if(error.code == "auth/invalid-credential"){
+                    message = "Invalid credential";
+                }
+        
+          
+                setError(message); 
             }
         }
 
@@ -59,6 +68,7 @@ export default function Login() {
             <span>or</span>
             <hr />
           </div>
+          {error && <p className="error">{error}</p>}
 
         <form className="login-form" onSubmit={onSubmit} noValidate>
           {/* Email */}
@@ -88,7 +98,7 @@ export default function Login() {
               id="password"
               type="password"
               autoComplete="current-password"
-              placeholder="••••••••"
+              placeholder="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
