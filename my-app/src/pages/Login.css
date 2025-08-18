@@ -23,10 +23,12 @@ body {
   width: 100%;
   max-width: 420px;
   padding: 1rem;
+  margin: 0 auto; /* This ensures horizontal centering */
 }
 
 /* Sparkly card inside gradient background */
 .login-card {
+  
   background: linear-gradient(135deg, #1938d2, #a18cd1, #6a11cb);
   border-radius: 20px;
   padding: 2rem;
@@ -158,3 +160,15 @@ body {
 .center {
   text-align: center;
 }
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .login-page {
+    padding: 1rem 0.5rem;
+  }
+  
+  .login-card {
+    padding: 1.5rem;
+  }
+}
+
