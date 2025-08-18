@@ -16,6 +16,12 @@ body {
   align-items: center;
   min-height: 100vh;
   margin: 0;
+
+  /* ✅ fixes background cut-off */
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  overflow-x: hidden;
 }
 
 /* Centered card container */
@@ -23,16 +29,18 @@ body {
   width: 100%;
   max-width: 420px;
   padding: 1rem;
-  margin: 0 auto; /* This ensures horizontal centering */
+  margin: 0 auto;
+  box-sizing: border-box; /* ✅ prevents overflow */
 }
 
 /* Sparkly card inside gradient background */
 .login-card {
-  
   background: linear-gradient(135deg, #1938d2, #a18cd1, #6a11cb);
   border-radius: 20px;
   padding: 2rem;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  width: 100%; /* ✅ fit inside container */
+  box-sizing: border-box;
 }
 
 /* Card header text */
@@ -128,7 +136,7 @@ body {
   border: none;
   outline: none;
   background: var(--field);
-  box-sizing: border-box; /* ensures it stays inside card */
+  box-sizing: border-box; /* ✅ stays inside card */
 }
 
 .input-icon {
@@ -161,14 +169,43 @@ body {
   text-align: center;
 }
 
-/* Responsive adjustments */
+/* --- RESPONSIVE BREAKPOINTS --- */
+
+/* Small devices (phones) */
 @media (max-width: 480px) {
   .login-page {
-    padding: 1rem 0.5rem;
+    padding: 0.5rem;
   }
   
   .login-card {
-    padding: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 15px;
+  }
+
+  .login-title {
+    font-size: 1.4rem;
+  }
+
+  .btn {
+    height: 44px;
+    font-size: 0.9rem;
   }
 }
+
+/* Extra small devices (very small phones < 360px) */
+@media (max-width: 360px) {
+  .login-card {
+    padding: 1rem;
+  }
+
+  .login-title {
+    font-size: 1.2rem;
+  }
+
+  .input-with-icon input {
+    padding: 0.6rem 0.6rem 0.6rem 2rem;
+    font-size: 0.9rem;
+  }
+}
+
 
