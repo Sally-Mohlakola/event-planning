@@ -1,6 +1,6 @@
 import React,{useState} from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup ,sendPasswordResetEmail} from 'firebase/auth';
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { FcGoogle } from 'react-icons/fc';
@@ -47,6 +47,21 @@ export default function Login() {
                 setError(message); 
             }
         }
+    
+
+const handleForgotPassword = async () => {
+  if (!email) {
+    return setError("Enter your email first");
+  }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    alert("Password reset email sent");
+  } catch (err) {
+    console.error(err);
+    setError(err.message);
+  }
+};
+
 
         
        
@@ -110,7 +125,14 @@ export default function Login() {
           </div>
 
           <div className="center-link">
-            <a className="link subtle" href="#forgot">Forgot Password?</a>
+            <button
+  type="button"
+  className="link subtle"
+  onClick={handleForgotPassword}
+>
+  Forgot Password?
+</button>
+
           </div>
 
           <button type="submit" className="btn primary">Log in</button>
