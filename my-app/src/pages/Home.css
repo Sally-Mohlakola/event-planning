@@ -1,0 +1,154 @@
+:root {
+  --blue-700: #0948f4;
+  --purple-700: #6d28d9;
+  --white: #ffffff;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --field: #f8fafc;
+}
+
+/* Scope all styles under .home-page */
+.home-page {
+  max-width: 1000px;
+  margin: 3rem auto;
+  padding: 0 1rem;
+  text-align: center;
+  color: var(--white);
+  justify-content: center;
+}
+
+/* Page headings */
+.home-page h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  margin: 0 auto;
+}
+
+.home-page h4 {
+  font-weight: 400;
+  color: var(--line);
+  margin-bottom: 2rem;
+}
+
+/* Role selection area */
+.home-page .role-tile {
+  background: var(--white);
+  color: #111;
+  border-radius: 20px;
+  padding: 2rem;
+  margin: 1rem auto;
+  max-width: 400px;
+  text-align: left;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-page .role-tile:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Event Manager centered */
+.home-page .center-tile {
+  text-align: center;
+}
+
+/* Icon circle above tiles */
+.home-page .icon-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--purple-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* Tile headings */
+.home-page .role-tile h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--blue-700);
+}
+
+/* Lists inside tiles */
+.home-page .role-tile ul {
+  list-style-position: inside;
+  padding-left: 1.2rem;
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.home-page .role-tile li {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+/* Buttons */
+.home-page button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.home-page button:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+/* Specific themed buttons */
+.home-page .center-tile button {
+  background: var(--blue-700);
+  color: var(--white);
+}
+
+.home-page .role-tile:not(.center-tile) button {
+  background: var(--purple-700);
+  color: var(--white);
+}
+
+/* Trusted by section */
+.home-page .trusted-section {
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.home-page .trusted-section p {
+  color: var(--line);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .home-page .role-tile {
+    max-width: 90%;
+  }
+
+  .home-page h1 {
+    font-size: 1.6rem;
+  }
+
+  .home-page h4 {
+    font-size: 0.95rem;
+  }
+}
+#logout {
+  position: absolute;
+  left: 30px;
+  background: var(--purple-700);
+  color: var(--white);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}

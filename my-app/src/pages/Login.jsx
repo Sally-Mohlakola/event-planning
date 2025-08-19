@@ -1,10 +1,10 @@
 import React,{useState} from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup ,sendPasswordResetEmail} from 'firebase/auth';
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { FcGoogle } from 'react-icons/fc';
-//What I added
+
 import { HiOutlineMail } from 'react-icons/hi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { FaRegHandPaper } from 'react-icons/fa';
@@ -13,16 +13,25 @@ import './Login.css';
 export default function Login() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
+    const [error, setError] = useState(null);
+    const [resetMessage, setResetMessage] = useState(null);
     const [password, setPassword] = useState('');
 
     const onSubmit = async (e) => {
         e.preventDefault();
         try {
+            setError("");
+            setResetMessage("");
             
             await signInWithEmailAndPassword(auth, email, password);
             navigate('/home'); 
         } catch (error) {
             console.error("Error logging in:", error.message);
+             let message = "Something went wrong";
+                if(error.code == "auth/invalid-credential"){
+                    message = "Invalid credential";
+                }      
+                setError(message); 
         }
     }
     const handleGoogleSignin = async () => {
@@ -32,8 +41,31 @@ export default function Login() {
                 navigate('/home');
             } catch (error) {
                 console.error("Error signing in with Google:", error);
+                let message = "Something went wrong";
+                if(error.code == "auth/invalid-credential"){
+                    message = "Invalid credential";
+                }
+        
+          
+                setError(message); 
             }
         }
+    
+
+const handleForgotPassword = async () => {
+  if (!email) {
+    return setError("Enter your email first");
+  }
+  try {
+      setResetMessage("");
+    await sendPasswordResetEmail(auth, email);
+    setResetMessage("Password reset email sent");
+  } catch (err) {
+    console.error(err);
+    setError(err.message);
+  }
+};
+
 
         
        
@@ -59,6 +91,8 @@ export default function Login() {
             <span>or</span>
             <hr />
           </div>
+          {error && <p className="error">{error}</p>}
+          {resetMessage && <p className="reset">{resetMessage}</p>}
 
         <form className="login-form" onSubmit={onSubmit} noValidate>
           {/* Email */}
@@ -88,7 +122,7 @@ export default function Login() {
               id="password"
               type="password"
               autoComplete="current-password"
-              placeholder="••••••••"
+              placeholder="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -96,14 +130,26 @@ export default function Login() {
           </div>
 
           <div className="center-link">
-            <a className="link subtle" href="#forgot">Forgot Password?</a>
+         
+              <a
+  href="#"
+  className="link subtle"
+  onClick={(e) => {
+    e.preventDefault();
+    handleForgotPassword();
+  }}
+>
+  Forgot Password?
+</a>
+
+
           </div>
 
           <button type="submit" className="btn primary">Log in</button>
         </form>
 
         <p className="muted center">
-          Don’t have an account? <a className="link" href="#signup">Sign up here</a>
+          Don’t have an account? <a className="link" href="signup">Sign up here</a>
         </p>
       </section>
     </main>

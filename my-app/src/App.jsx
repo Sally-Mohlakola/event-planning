@@ -6,6 +6,7 @@ import Home from './pages/Home.jsx';
 import PlannerDashboard from './pages/planner/PlannerDashboard.jsx';
 
 import './App.css'
+import VendorApp from './pages/vendor/vendorApp.jsx';
 
 function App() {
   
@@ -13,9 +14,11 @@ function App() {
     <Router>
       <Routes>
         <Route path='/signup' element={<Signup />} />
+        <Route path='/' element={<Login />} />
         <Route path='/login' element={<Login />} />
         <Route path='/home' element={<Home />} />
-        <Route path='/' element={<PlannerDashboard />} />
+        <Route path='/planner-dashboard' element={<PlannerDashboard />} />
+        <Route path='/vendor-app' element={<VendorApp />}/>
       </Routes>
     </Router>
   )

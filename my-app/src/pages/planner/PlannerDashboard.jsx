@@ -30,13 +30,14 @@ export default function PlannerDashboard(){
         <section className = 'page-container'>
             <aside className={`side-bar ${isOpen ? 'open' : 'closed'}`}>
                 <section className='sidebar-header'>
-                    {isOpen && (<h2>PlanIT</h2>)}
+                    {isOpen && (<h2>PLANiT</h2>)}
                     <button className='toggle-button'onClick={() => setIsOpen(!isOpen)}>
                         <X/>
                     </button>
                 </section>
                 
                 <nav className='sidebar-navigation'>
+    
                      {navigationItems.map((item) => {
                         const Icon = item.icon
                         return (
