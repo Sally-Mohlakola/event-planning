@@ -35,6 +35,8 @@ function App() {
         <Route path='/planner-dashboard' element={<PlannerDashboard />} />
         <Route path='/vendor-app' element={<VendorApp />}/>
         <Route path='/admin/admin-home' element ={<Admin />} />
+
+        
       </Routes>
     </Router>
   )
