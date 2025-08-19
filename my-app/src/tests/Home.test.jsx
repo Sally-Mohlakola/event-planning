@@ -1,17 +1,23 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
-import { expect, test } from 'vitest'
-import { MemoryRouter } from 'react-router-dom' // <— import this
+import { expect, test, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import Home from '../pages/Home'
 
-test('renders sign-in success message', () => {
+
+
+test('renders home page with welcome message', () => {
   render(
-    <MemoryRouter> {/* <— wrap component in a router */}
+    <MemoryRouter>
       <Home />
     </MemoryRouter>
   )
 
-  expect(
-    screen.getByRole('heading', { name: /sign in works/i })
-  ).toBeInTheDocument()
+  
+  expect(screen.getByRole('heading', { name: /welcome to PLANiT/i })).toBeInTheDocument()
+
+  
+  expect(screen.getByRole('heading', { name: /choose your experience/i })).toBeInTheDocument()
+
+  
 })
