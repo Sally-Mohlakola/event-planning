@@ -9,6 +9,7 @@ import PlannerManagement from './pages/adminDashboard/PlannerManagement.jsx';
 import EventManagement from './pages/adminDashboard/EventManagement.jsx';
 import VendorManagement from './pages/adminDashboard/VendorManagement.jsx';
 import Reports from './pages/adminDashboard/Reports.jsx';
+import Admin from './pages/adminDashboard/Admin.jsx';
 
 
 import './App.css'
@@ -31,6 +32,7 @@ function App() {
         <Route path='/admin' element={<Admin />} />
         <Route path='/planner-dashboard' element={<PlannerDashboard />} />
         <Route path='/vendor-app' element={<VendorApp />}/>
+        <Route path='/admin/admin-home' element ={<Admin />} />
       </Routes>
     </Router>
   )
