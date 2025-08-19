@@ -18,22 +18,22 @@ function Sidebar({openSidebarToggle, OpenSidebar}) {
                 </Link>
             </li>
             <li className='sidebar-list-item'>
-                <Link to="planner-management">
+                <Link to="/planner-management">
                     <BsClipboard2Check className='icon'/> Planner Management
                 </Link>
             </li>
             <li className='sidebar-list-item'>
-                <Link to="vendor-management">
+                <Link to="/vendor-management">
                     <BsCart4 className='icon'/> Vendor Management 
                 </Link>
             </li>
             <li className='sidebar-list-item'>
-                <Link to="event-management">
+                <Link to="/event-management">
                     <BsCalendar2DateFill className='icon'/> Event Management
                 </Link>
             </li>
             <li className='sidebar-list-item'>
-                <Link to="reports">
+                <Link to="/reports">
                     <BsBarChartFill className='icon'/> Detailed reports & analytics
                 </Link>
             </li>
