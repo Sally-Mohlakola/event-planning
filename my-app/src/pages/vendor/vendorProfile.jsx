@@ -12,7 +12,7 @@ import {
   Calendar,
   Image
 } from "lucide-react";
-import "./VendorProfile.css";
+import "./vendorProfile.css";
 
 const VendorProfile = () => {
   return (
