@@ -9,7 +9,7 @@ import PlannerManagement from './pages/adminDashboard/PlannerManagement.jsx';
 import EventManagement from './pages/adminDashboard/EventManagement.jsx';
 import VendorManagement from './pages/adminDashboard/VendorManagement.jsx';
 import Reports from './pages/adminDashboard/Reports.jsx';
-import Admin from './pages/adminDashboard/Admin.jsx';
+
 
 
 import './App.css'
