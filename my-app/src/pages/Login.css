@@ -16,6 +16,8 @@ body {
   align-items: center;
   min-height: 100vh;
   margin: 0;
+  height:720px;
+
 
   /* ✅ fixes background cut-off */
   background-size: cover;
@@ -41,6 +43,7 @@ body {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
   width: 100%; /* ✅ fit inside container */
   box-sizing: border-box;
+  margin-top:60px;
 }
 
 /* Card header text */
