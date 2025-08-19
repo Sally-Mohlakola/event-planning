@@ -1,0 +1,510 @@
+/* src/vendor/VendorDashboard.css */
+
+.vendor-dashboard {
+  padding: 0;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.dashboard-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-subtitle {
+  color: #6b7280;
+  margin: 0;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(100deg, #1d4ed8, #7c3aed);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 2px solid #1d4ed8;
+  color: #1d4ed8;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #dbeafe;
+}
+
+/* Summary Cards */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  height: 200px;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s ease;
+  height: 80%;
+}
+
+.summary-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.summary-icon {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  color: white;
+}
+
+.summary-icon.blue {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.summary-icon.green {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.summary-icon.yellow {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.summary-icon.purple {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.summary-change {
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.summary-label {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.summary-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+  margin-top: 0.25rem;
+  /* height: 0.1rem; */
+}
+
+.summary-subtext {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Main Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 350px;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Cards */
+.dashboard-card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.card-header h3 {
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.view-all-link {
+  color: #1d4ed8;
+  font-weight: 500;
+  font-size: 0.875rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.view-all-link:hover {
+  color: #7c3aed;
+}
+
+.card-content {
+  padding: 1.5rem;
+}
+
+/* Booking Items */
+.booking-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.booking-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.booking-item:hover {
+  background-color: #f9fafb;
+  margin: 0 -1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  border-radius: 0.5rem;
+}
+
+.booking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.booking-header h4 {
+  font-weight: 500;
+  color: #1f2937;
+  margin: 0;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-badge.confirmed {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.review {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.booking-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.booking-footer .amount {
+  font-weight: 600;
+}
+
+/* Review Items */
+.review-item {
+  border-left: 4px solid #dbeafe;
+  padding-left: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.review-item:last-child {
+  margin-bottom: 0;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.review-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.review-user h4 {
+  font-weight: 500;
+  color: #1f2937;
+  margin: 0;
+}
+
+.rating {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.star {
+  color: #d1d5db;
+}
+
+.star.filled {
+  color: #fbbf24;
+  fill: currentColor;
+}
+
+.review-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.review-comment {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Contract Items */
+.contract-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.contract-item:last-child {
+  margin-bottom: 0;
+}
+
+.contract-item h4 {
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 0.875rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.contract-item p {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.contract-details {
+  text-align: right;
+}
+
+.contract-value {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin: 0 0 0.25rem 0;
+}
+
+/* Venue Items */
+.venue-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.venue-item:last-child {
+  margin-bottom: 0;
+}
+
+.venue-icon.available {
+  color: #10b981;
+}
+
+.venue-icon.booked {
+  color: #f59e0b;
+}
+
+.venue-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #1f2937;
+  margin: 0 0 0.125rem 0;
+}
+
+.venue-details {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Quick Actions */
+.quick-actions {
+  margin-top: 2rem;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.action-card {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.action-card:hover {
+  transform: scale(1.05);
+}
+
+.action-card.blue {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.action-card.blue:hover {
+  background: #bfdbfe;
+}
+
+.action-card.green {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.action-card.green:hover {
+  background: #a7f3d0;
+}
+
+.action-card.purple {
+  background: #e9d5ff;
+  color: #6b21a8;
+}
+
+.action-card.purple:hover {
+  background: #ddd6fe;
+}
+
+.action-card.orange {
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+.action-card.orange:hover {
+  background: #fdba74;
+}
+
+.action-card p {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0.5rem 0 0 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-sidebar {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
