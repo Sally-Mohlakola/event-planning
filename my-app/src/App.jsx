@@ -3,7 +3,7 @@ import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import Signup from './pages/Signup.jsx';
 import Login from './pages/Login.jsx';
 import Home from './pages/Home.jsx';
-import PlannerDashboard from './pages/planner/PlannerDashboard.jsx';
+import PlannerApp from './pages/planner/PlannerApp.jsx'
 
 import './App.css'
 import VendorApp from './pages/vendor/vendorApp.jsx';
@@ -17,7 +17,7 @@ function App() {
         <Route path='/' element={<Login />} />
         <Route path='/login' element={<Login />} />
         <Route path='/home' element={<Home />} />
-        <Route path='/planner-dashboard' element={<PlannerDashboard />} />
+        <Route path='/planner-dashboard' element={<PlannerApp />} />
         <Route path='/vendor-app' element={<VendorApp />}/>
       </Routes>
     </Router>
