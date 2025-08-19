@@ -41,6 +41,8 @@ export default function Home() {
           </ul>
           <button id="dashboard" onClick={navPlannerDashboard}>Enter Event Dashboard <ArrowRight size={20} /></button>
         </section>
+    
+
 
         {/* Vendor Tile */}
         <section className="role-tile center-tile">
@@ -76,3 +78,4 @@ export default function Home() {
 
   );
 }
+
