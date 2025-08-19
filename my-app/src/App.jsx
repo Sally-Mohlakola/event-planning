@@ -5,9 +5,9 @@ import Login from './pages/Login.jsx';
 import Home from './pages/Home.jsx';
 import Admin from './pages/adminDashboard/Admin.jsx';
 import PlannerDashboard from './pages/planner/PlannerDashboard.jsx';
-import PlannerManagement from './pages/adminDashboard/PlannerManagement.jsx;
-import EventManagement from './pages/adminDashboard/EventManagement.jsx;
-import VendorManagement from './pages/adminDashboard/VendorManagement.jsx;
+import PlannerManagement from './pages/adminDashboard/PlannerManagement.jsx';
+import EventManagement from './pages/adminDashboard/EventManagement.jsx';
+import VendorManagement from './pages/adminDashboard/VendorManagement.jsx';
 
 
 import './App.css'
