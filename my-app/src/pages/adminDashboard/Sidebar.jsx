@@ -13,22 +13,22 @@ function Sidebar({openSidebarToggle, OpenSidebar}) {
 
         <ul className='sidebar-list'>
             <li className='sidebar-list-item'>
-               <Link to="/admin-home">
+               <Link to="/admin/admin-home">
                     <BsFillHouseDoorFill className='icon'/> Home
                 </Link>
             </li>
             <li className='sidebar-list-item'>
-                <Link to="/planner-management">
+                <Link to="/admin/planner-management">
                     <BsClipboard2Check className='icon'/> Planner Management
                 </Link>
             </li>
             <li className='sidebar-list-item'>
-                <Link to="/vendor-management">
+                <Link to="/admin/vendor-management">
                     <BsCart4 className='icon'/> Vendor Management 
                 </Link>
             </li>
             <li className='sidebar-list-item'>
-                <Link to="/event-management">
+                <Link to="/admin/event-management">
                     <BsCalendar2DateFill className='icon'/> Event Management
                 </Link>
             </li>
