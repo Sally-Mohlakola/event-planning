@@ -33,7 +33,7 @@ function Sidebar({openSidebarToggle, OpenSidebar}) {
                 </Link>
             </li>
             <li className='sidebar-list-item'>
-                <Link to="/reports">
+                <Link to="/admin/reports">
                     <BsBarChartFill className='icon'/> Detailed reports & analytics
                 </Link>
             </li>
