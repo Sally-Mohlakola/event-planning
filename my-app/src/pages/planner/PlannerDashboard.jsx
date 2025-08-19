@@ -51,7 +51,7 @@ export default function PlannerDashboard(){
             <section className='main'>
                 <section className = "dashboard-intro">
                     <section>
-                        <h2>Planner Dashboard</h2>
+                        <h1>Planner Dashboard</h1>
                         <p>Welcome back, here's what's happening with your events</p>
                     </section>
 
