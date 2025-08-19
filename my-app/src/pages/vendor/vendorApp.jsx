@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import VendorDashboard from "./VendorDashboard";
 import VendorProfile from "./vendorProfile";
-import "./VendorApp.css";
+import "./vendorApp.css";
 
 const VendorApp = () => {
   const [activePage, setActivePage] = useState("dashboard");
