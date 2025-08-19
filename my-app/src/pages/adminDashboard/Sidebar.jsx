@@ -13,7 +13,7 @@ function Sidebar({openSidebarToggle, OpenSidebar}) {
 
         <ul className='sidebar-list'>
             <li className='sidebar-list-item'>
-               <Link to="admin-home">
+               <Link to="/admin-home">
                     <BsFillHouseDoorFill className='icon'/> Home
                 </Link>
             </li>
