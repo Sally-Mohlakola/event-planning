@@ -8,6 +8,7 @@ import PlannerDashboard from './pages/planner/PlannerDashboard.jsx';
 import PlannerManagement from './pages/adminDashboard/PlannerManagement.jsx';
 import EventManagement from './pages/adminDashboard/EventManagement.jsx';
 import VendorManagement from './pages/adminDashboard/VendorManagement.jsx';
+import Reports from './pages/adminDashboard/Reports.jsx';
 
 
 import './App.css'
@@ -21,9 +22,10 @@ function App() {
         
         <Route path='/signup' element={<Signup />} />
         <Route path='/' element={<Login />} />
-        <Route path='/planner-management' element ={<PlannerManagement/>} />\
-        <Route path='/event-management' element ={<EventManagement/>} />
-        <Route path='/vendor-management' element ={<VendorManagement/>} />
+        <Route path='/admin/planner-management' element ={<PlannerManagement/>} />\
+        <Route path='/admin/event-management' element ={<EventManagement/>} />
+        <Route path='/admin/vendor-management' element ={<VendorManagement/>} />
+        <Route path="/admin/reports" element={<Reports />} />
         <Route path='/login' element={<Login />} />
         <Route path='/home' element={<Home />} />
         <Route path='/admin' element={<Admin />} />
