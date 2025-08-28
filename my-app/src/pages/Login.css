@@ -10,7 +10,7 @@
 /* Page background: Elegant gradient */
 body {
   font-family: system-ui, sans-serif;
-  background: linear-gradient(135deg, var(--blue-700), var(--purple-700));
+  background: "white";
   display: flex;
   justify-content: center;
   align-items: center;

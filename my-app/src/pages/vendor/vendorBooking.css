@@ -1,0 +1,185 @@
+/* src/vendor/bookingManagement.css */
+
+/* Page Container */
+.booking-page {
+  min-height: 100vh;
+  padding: 2rem;
+  color: #1f2937; /* dark text, same as profile page */
+  font-family: "Inter", sans-serif;
+
+}
+
+
+/* Header */
+.booking-page header {
+  margin-bottom: 2rem;
+  margin-left: -2rem; /* shift a bit to the left */
+  margin-top: -2.5rem;  /* shift a bit upward */
+}
+
+.booking-page header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color:black; 
+  margin-bottom: 0.25rem;
+}
+
+
+.booking-page header p {
+  font-size: 1rem;
+  margin-top: -0.1rem;
+  color: #6b7280; /* muted gray */
+}
+
+/* Filter Section */
+.booking-page .filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  margin-left: -2rem;
+
+}
+
+.booking-page .filters select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  outline: none;
+  background-color: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: black;
+  transition: all 0.2s ease;
+}
+
+.booking-page .filters select:hover {
+  border-color: #7c3aed; 
+}
+
+
+.booking-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-left: -2rem;
+  margin-bottom: 100px;
+}
+
+
+.booking-card {
+  background-color: #fff;
+  border-radius: 0.75rem; 
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.booking-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.booking-card h2 {
+  font-size: 1.25rem; 
+  font-weight: 600;
+  color: black; 
+  margin-bottom: 0.75rem;
+}
+
+.booking-card .details p {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-confirmed {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Action Buttons */
+.booking-card .actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.booking-card .actions button {
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 44px;          /* slightly bigger */
+  height: 44px;
+  
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.booking-card .actions .approve-btn {
+    margin-top:10px;
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.booking-card .actions .approve-btn:hover {
+  background-color: #a7f3d0;
+}
+
+.booking-card .actions .cancel-btn {
+margin-top:10px;
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.booking-card .actions .cancel-btn:hover {
+  background-color: #fca5a5;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .booking-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .booking-page header h1 {
+    font-size: 1.5rem;
+  }
+
+  .booking-card {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-page {
+    padding: 1rem;
+  }
+
+  .booking-card h2 {
+    font-size: 1.125rem;
+  }
+}
