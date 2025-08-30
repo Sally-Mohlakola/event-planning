@@ -12,7 +12,7 @@ const VendorProfileEdit = () => {
 
   const [profilePic, setProfilePic] = useState(null);
   const [description, setDescription] = useState(
-    "We specialize in high-quality catering for corporate events and weddings with international cuisine and elegant presentation."
+    "We specialize in high-quality catering for corporate events and weddings with international cuisine and elegant presentation"
   );
   const [address, setAddress] = useState("123 Event Street, Johannesburg");
   const [phone, setPhone] = useState("+27 71 234 5678");
