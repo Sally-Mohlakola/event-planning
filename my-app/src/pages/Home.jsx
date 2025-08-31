@@ -11,7 +11,7 @@ export default function Home() {
   }
 
   const navVendorDashboard = () => {
-    navigate("/vendor-app");
+    navigate("/vendorApp");
   }
 
   const navLogout=()=>{

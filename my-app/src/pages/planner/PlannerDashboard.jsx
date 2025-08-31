@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './PlannerDashboard.css';
 import { 
   Calendar, 
   Users, 
-  PanelLeft, 
+  Plus,
   BarChart3, 
   MapPin, 
-  MessageSquare, 
   FileText,
-  Star,
-  Menu,
-  X
+  Store,
+  CalendarDays,
+  Building 
 } from "lucide-react";
 
 
-export default function PlannerDashboard(){
+export default function PlannerDashboard({setActivePage}){
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(true);
+
+    const navNewEvent = () => {
+        navigate("/new-event");
+    }
 
     const navigationItems = [
         {id: 'dashboard', label: 'Dashboard', icon: BarChart3},
@@ -26,61 +31,159 @@ export default function PlannerDashboard(){
         {id: 'reports', label: 'Reports', icon: FileText},
     ]
 
+    const upcomingEvents = [
+    { id: 1, title: "Annual Tech Conference", date: "Sep 25, 2025", time: "10:00 AM", attendees: 120, status: "Confirmed" },
+    { id: 2, title: "Marketing Workshop", date: "Sep 28, 2025", time: "2:00 PM", attendees: 85, status: "Pending" },
+    { id: 3, title: "Community Meetup", date: "Oct 2, 2025", time: "6:00 PM", attendees: 50, status: "Pending" }
+    ];
+
+    const pendingVendors = [
+    { id: 1, name: "ABC Catering", event: "Annual Tech Conference", contact: "abc@catering.com", status: "Confirmed" },
+    { id: 2, name: "SoundWorks", event: "Marketing Workshop", contact: "contact@soundworks.co.za", status: "Pending" },
+    { id: 3, name: "VenueCo", event: "Community Meetup", contact: "info@venueco.com", status: "Confirmed" }
+    ];
+
+
     return(
         <section className = 'page-container'>
-            <aside className={`side-bar ${isOpen ? 'open' : 'closed'}`}>
-                <section className='sidebar-header'>
-                    {isOpen && (<h2>PLANiT</h2>)}
-                    <button className='toggle-button'onClick={() => setIsOpen(!isOpen)}>
-                        <X/>
-                    </button>
-                </section>
-                
-                <nav className='sidebar-navigation'>
-    
-                     {navigationItems.map((item) => {
-                        const Icon = item.icon
-                        return (
-                            <button key={item.id} className={'nav-button'}>
-                                <Icon size={16} />
-                                {isOpen && <section>{item.label}</section>}
-                            </button>
-                        )
-                    })}
-                </nav>
-            </aside>
-            <section className='main'>
+
+                {/* Header Section */}
                 <section className = "dashboard-intro">
                     <section>
-                        <h2>Planner Dashboard</h2>
-                        <p>Welcome back, here's what's happening with your events</p>
+                        <h1 className="dashboard-title">Planner Dashboard</h1>
+                        <p className="dashboard-subtitle">Welcome back, here's what's happening with your events.</p>
                     </section>
 
-                    <button className='page-button'>+ New Event</button>
-                </section>
-
-                <section className="summary-cards-section">
-                    <section className='summary-card'><p>Guest RSVPs</p></section>
-                    <section className='summary-card'><p>Active Events</p></section>
-                    <section className='summary-card'><p>Confirmed Vendors</p></section>
-                    <section className='summary-card'><p>Total Guests</p></section>                 
-                </section>
-
-                <section className='main-content'>
-                    <section className='upcoming-events'>
-                        <h2>Upcoming Events</h2>
+                    <section className='actions'>
+                        <button className='page-button' onClick={navNewEvent}><Plus size={16}/> New Event</button>
                     </section>
-                    <section className='quick-actions'>
-                        <button className='page-button'> + Create Event</button>
-                        <button className='page-button'>Browse Vendors</button>
-                        <button className='page-button'>Manage Guests</button>
-                        <button className='page-button'> All Events </button>
-                        <button className='page-button'>All Vendors</button>
+
+                </section>
+
+            <section className="summary-cards-section">
+                {/* Upcoming Events */}
+                <section className="summary-card blue">
+                    <section className="summary-card-header">
+                    <Calendar size={40} />
+                    <section className="summary-change positive">+2 Upcoming</section>
+                    </section>
+                    <section className="summary-card-body">
+                    <h3 className="summary-label">Upcoming Events</h3>
+                    <p className="summary-value">8</p>
+                    <p className="summary-subtext">Next 30 days</p>
                     </section>
                 </section>
 
-                   
+                {/* Average Attendance */}
+                <section className="summary-card green">
+                    <section className="summary-card-header">
+                    <Users size={40} />
+                    <section className="summary-change positive">+5%</section>
+                    </section>
+                    <section className="summary-card-body">
+                    <h3 className="summary-label">Avg Attendance</h3>
+                    <p className="summary-value">320</p>
+                    <p className="summary-subtext">Per Event</p>
+                    </section>
+                </section>
+
+                {/* New Guests */}
+                <section className="summary-card purple">
+                    <section className="summary-card-header">
+                    <Users size={40} />
+                    <section className="summary-change positive">+12%</section>
+                    </section>
+                    <section className="summary-card-body">
+                    <h3 className="summary-label">New Guests</h3>
+                    <p className="summary-value">450</p>
+                    <p className="summary-subtext">This month</p>
+                    </section>
+                </section>
+
+                {/* Pending Vendor Confirmations */}
+                <section className="summary-card orange">
+                    <section className="summary-card-header">
+                    <Users size={40} />
+                    <section className="summary-change negative">-3 Pending</section>
+                    </section>
+                    <section className="summary-card-body">
+                    <h3 className="summary-label">Pending Vendors</h3>
+                    <p className="summary-value">4</p>
+                    <p className="summary-subtext">Awaiting confirmation</p>
+                    </section>
+                </section>               
             </section>
+
+            <section className='main-content'>
+                <section className='main-content-info'>
+                    {/* Upcoming Events */}
+                    <section className="dashboard-card">
+                        <section className="card-header">
+                            <h3>Upcoming Events</h3>
+                            <button onClick={() => setActivePage("events")} className="view-all-link">
+                            View All
+                            </button>
+                        </section>
+                        <section className="upcoming-events">
+                            {upcomingEvents.map((event) => (
+                            <section key={event.id} className="upcoming-event event-item">
+                                <section className="event-header">
+                                <section><h4>{event.title}</h4></section>
+                                </section>
+                                <section className="event-footer">
+                                <section>{event.date} | {event.time}</section>
+                                <section> {event.attendees} attending</section>
+                                </section>
+                            </section>
+                            ))}
+                        </section>
+                    </section>
+
+                    {/* Pending Vendors */}
+                    <section className="dashboard-card">
+                        <section className="card-header">
+                            <h3>Vendors</h3>
+                            <button onClick={() => setActivePage("vendor")} className="view-all-link">
+                            View All
+                            </button>
+                        </section>
+                        <section className="upcoming-events">
+                            {pendingVendors.map((vendor) => (
+                            <section key={vendor.id} className="upcoming-event event-item">
+                                <section className="vendor-header">
+                                <h4>{vendor.name}</h4>
+                                <span className={`status-badge ${vendor.status.toLowerCase()}`}>
+                                    {vendor.status}
+                                </span>
+                                </section>
+                                <section className="vendor-footer">
+                                <section>{vendor.event}</section>
+                                <section>{vendor.contact}</section>
+                                </section>
+                            </section>
+                            ))}
+                        </section>
+                    </section>
+                </section>
+
+
+                <section className='dashboard-card'>
+                        <section className='card-header'>
+                            <h2>Quick Actions</h2>
+                        </section>
+                        <section className='actions-grid'>
+                            <button onClick={() => setActivePage("vendor")} className='action-button'><Store/>Browse Vendors</button>
+                            <button onClick={() => setActivePage("guest management")} className='action-button'><Users/>Manage Guests</button>
+                            <button onClick={() => setActivePage("events")} className='action-button'><CalendarDays/>All Events </button>
+                            <button onClick={() => setActivePage("vendor")} className='action-button'><Building/>All Vendors</button>
+                        </section>
+
+                </section>
+
+
+            </section>
+
+
         </section>
     );
 }
