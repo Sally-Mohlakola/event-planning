@@ -1,8 +1,8 @@
-// src/vendor/VendorProfileEdit.jsx
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../firebase";
-import "./VendorProfile.css"; // Use the same CSS as VendorProfile
+import "./vendorProfileEdit.css"; 
 
 export default function VendorProfileEdit() {
   const navigate = useNavigate();
