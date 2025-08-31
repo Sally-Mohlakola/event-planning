@@ -1,8 +1,7 @@
 module.exports = {
-  root: true,
   env: {
+    node: true,
     es2021: true,
-    node: true,   // Node globals like require/module
   },
   parserOptions: {
     ecmaVersion: 12,
@@ -14,16 +13,11 @@ module.exports = {
   rules: {
     "no-restricted-globals": ["error", "name", "length"],
     "prefer-arrow-callback": "error",
-    "quotes": ["error", "double", { "allowTemplateLiterals": true }],
-    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }], 
+    "quotes": ["error", "double", {"allowTemplateLiterals": true}],
   },
-  overrides: [
-    {
-      files: ["**/*.spec.*"],
-      env: {
-        mocha: true,
-      },
-    },
-  ],
+  globals: {
+    module: "readonly",
+    require: "readonly",
+    exports: "readonly",
+  },
 };
-
