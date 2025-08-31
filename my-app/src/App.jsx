@@ -11,6 +11,7 @@ import EventManagement from './pages/adminDashboard/EventManagement.jsx';
 import VendorManagement from './pages/adminDashboard/VendorManagement.jsx';
 import VendorProfileEdit from './pages/vendor/vendorProfileEdit.jsx';
 import VendorProfile from './pages/vendor/vendorProfile.jsx';
+import VendorApply from './pages/vendor/vendorApply.jsx';
 import Reports from './pages/adminDashboard/Reports.jsx';
 
 
@@ -37,8 +38,10 @@ function App() {
         <Route path='/planner-dashboard' element={<PlannerDashboard />} />
         <Route path='/vendor-app' element={<VendorApp />}/>
         <Route path='/admin/admin-home' element ={<Admin />} />
+        <Route path='/vendor/vendor-dashboard' element ={<VendorProfile />} />
         <Route path='/vendor/vendor-edit-profile' element ={<VendorProfileEdit />} />
         <Route path='/vendor/vendor-profile' element ={<VendorProfile />} />
+        <Route path='/vendor/vendor-apply' element ={<VendorApply />} />
      
 
         
