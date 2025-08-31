@@ -1,62 +1,104 @@
-import functions from "firebase-functions";
-import admin from "firebase-admin";
+// index.js
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
 
-// If you want to use dotenv locally (not in Firebase deploy)
-import dotenv from "dotenv";
-dotenv.config();
-
-// Build service account object from env vars
-const serviceAccount = {
-  type: "service_account",
-  project_id: process.env.PROJECT_ID,
-  private_key_id: process.env.PRIVATE_KEY_ID,
-  private_key: process.env.PRIVATE_KEY?.replace(/\\n/g, "\n"),
-  client_email: process.env.CLIENT_EMAIL,
-  client_id: process.env.CLIENT_ID,
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url: ""
-};
-
-// Initialize Firebase Admin with service account
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+admin.initializeApp();
 
 const db = admin.firestore();
+const bucket = admin.storage().bucket();
 
-// Example Cloud Function: Get vendor data
-export const getVendor = functions.https.onRequest(async (req, res) => {
+const app = express();
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://purple-flower-02549321e.6.azurestaticapps.net'
+  ]
+}));
+app.use(express.json());
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Auth middleware
+async function authenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ message: 'No token provided' });
+
   try {
-    const id = req.query.id;
-    if (!id) return res.status(400).send("Vendor ID is required");
+    const token = authHeader.split('Bearer ')[1];
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.uid = decoded.uid;
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'Invalid token' });
+  }
+}
 
-    const doc = await db.collection("Vendor").doc(id).get();
-    if (!doc.exists) return res.status(404).send("Vendor not found");
+// Vendor apply
+app.post('/vendor/apply', authenticate, upload.single('profilePic'), async (req, res) => {
+  try {
+    const { businessName, phone, email, description, category, address } = req.body;
+    let profilePicURL = '';
 
+    if (req.file) {
+      const fileRef = bucket.file(`Vendor/${req.uid}/profile.jpg`);
+      await fileRef.save(req.file.buffer, { contentType: req.file.mimetype });
+      await fileRef.makePublic();
+      profilePicURL = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+    }
+
+    await db.collection('Vendor').doc(req.uid).set({
+      businessName,
+      phone,
+      email,
+      description,
+      category,
+      address: address || 'None',
+      profilePic: profilePicURL,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({ message: 'Vendor application submitted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get vendor
+app.get('/vendor/me', authenticate, async (req, res) => {
+  try {
+    const doc = await db.collection('Vendor').doc(req.uid).get();
+    if (!doc.exists) return res.status(404).json({ message: 'Vendor not found' });
     res.json(doc.data());
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Example Cloud Function: Update vendor profile
-export const updateVendor = functions.https.onRequest(async (req, res) => {
+// Update vendor
+app.put('/vendor/me', authenticate, upload.single('profilePic'), async (req, res) => {
   try {
-    const id = req.query.id;
-    if (!id) return res.status(400).send("Vendor ID is required");
-
     const { description, address, phone, email } = req.body;
-    await db.collection("Vendor").doc(id).set(
-      { description, address, phone, email },
-      { merge: true }
-    );
+    const updateData = { description, address, phone, email };
 
-    res.json({ message: "Profile updated successfully" });
+    if (req.file) {
+      const fileRef = bucket.file(`Vendor/${req.uid}/profile.jpg`);
+      await fileRef.save(req.file.buffer, { contentType: req.file.mimetype });
+      updateData.profilePic = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+    }
+
+    await db.collection('Vendor').doc(req.uid).set(updateData, { merge: true });
+    res.json({ message: 'Profile updated successfully' });
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: 'Server error' });
   }
 });
+
+exports.api = functions.https.onRequest(app);
