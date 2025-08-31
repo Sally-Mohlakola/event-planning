@@ -10,8 +10,15 @@ import {
   Building2,
   BarChart3
 } from "lucide-react";
+
+//Paging imports
 import PlannerDashboard from "./PlannerDashboard";
+import PlannerVendorMarketplace from "./PlannerVendorMarketplace";
+
+//css import
 import "./PlannerApp.css";
+import PlannerViewEvent from "./PlannerViewEvent";
+
 
 const PlannerApp = () => {
 
@@ -55,15 +62,13 @@ const PlannerApp = () => {
       case "dashboard":
         return <PlannerDashboard setActivePage={setActivePage} />;
       case "events":
-        return renderPlaceholderPage("Event Management");
+        return <PlannerViewEvent />;
       case "vendor":
-        return renderPlaceholderPage("Vendor Marketplace");
+        return <PlannerVendorMarketplace setActivePage={setActivePage}/>;
       case "floorplan":
         return renderPlaceholderPage("Floorplan View");
       case "guest management":
         return renderPlaceholderPage("Guest Management");
-      case "floorplan":
-        return renderPlaceholderPage("FloorPlan View");
       case "documents":
         return renderPlaceholderPage("Document Management");
       default:
