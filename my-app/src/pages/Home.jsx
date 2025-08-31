@@ -14,6 +14,10 @@ export default function Home() {
     navigate("/vendor-app");
   }
 
+  const navVendorApply=()=>{
+    navigate("/vendor/vendor-apply");
+  }
+
   const navLogout=()=>{
     navigate("/");
   }
@@ -55,7 +59,7 @@ export default function Home() {
             <li  style={{color:"grey"}}>Booking calendar</li>
             <li  style={{color:"grey"}}>Ratings & reviews</li>
           </ul>
-          <button id="dashboard" onClick={navVendorDashboard}>Enter Vendor Dashboard <ArrowRight size={20}></ArrowRight></button>
+          <button id="dashboard" onClick={navVendorApply}>Enter Vendor Dashboard <ArrowRight size={20}></ArrowRight></button>
         </section>
       </section>
 
