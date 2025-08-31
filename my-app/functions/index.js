@@ -14,8 +14,7 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://localhost:5174',
-    'https://purple-flower-02549321e.6.azurestaticapps.net'
+    'https://witty-stone-03009b61e.1.azurestaticapps.net'
   ]
 }));
 app.use(express.json());
@@ -38,7 +37,7 @@ async function authenticate(req, res, next) {
   }
 }
 
-// Vendor apply
+
 app.post('/vendor/apply', authenticate, upload.single('profilePic'), async (req, res) => {
   try {
     const { businessName, phone, email, description, category, address } = req.body;
@@ -97,7 +96,7 @@ app.put('/vendor/me', authenticate, upload.single('profilePic'), async (req, res
     res.json({ message: 'Profile updated successfully' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server Error ' });
   }
 });
 
