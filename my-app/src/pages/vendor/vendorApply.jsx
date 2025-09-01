@@ -39,10 +39,10 @@ export default function VendorApply() {
     formData.append("address", address || "None");
     if (profilePic) formData.append("profilePic", profilePic);
 
-    const res = await fetch("http://localhost:5000/api/vendor/apply", {
+    const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/apply", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}` // DO NOT set Content-Type manually for FormData
+        Authorization: `Bearer ${token}`
       },
       body: formData
     });

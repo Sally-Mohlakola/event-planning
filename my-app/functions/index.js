@@ -38,7 +38,7 @@ async function authenticate(req, res, next) {
 }
 
 
-app.post('/vendor/apply', authenticate, upload.single('profilePic'), async (req, res) => {
+app.post('/vendor/apply', upload.single('profilePic'), async (req, res) => {
   try {
     const { businessName, phone, email, description, category, address } = req.body;
     let profilePicURL = '';
