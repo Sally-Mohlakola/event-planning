@@ -203,6 +203,9 @@ app.post('/planner/signup', async (req, res) => {
     res.json({message: "Planner successfully created"});
 
   }
+
+
+  
   catch(err){
     console.error(err);
     res.status(500).json({ message: 'Server error' });
