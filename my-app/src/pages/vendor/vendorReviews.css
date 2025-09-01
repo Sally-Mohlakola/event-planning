@@ -1,0 +1,180 @@
+/* src/vendor/vendorReviews.css */
+
+/* Page Container */
+.vendor-reviews-page {
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: "Inter", sans-serif;
+  color: #1f2937; /* dark text to match profile page */
+  
+}
+
+.review-page-title{
+    margin-bottom: 4rem;
+    padding-bottom: 2rem;
+}
+/* Page Title */
+.review-page-title h2{
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  margin-left: -2rem; 
+  margin-top: -2rem;
+}
+
+.review-page-title p{
+font-size: 1rem;
+  margin-top: -1.5rem;
+  color: #6b7280;
+  margin-left: -2rem; 
+}
+/* Overall Rating */
+.overall-rating {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.overall-rating p {
+  font-size: 1rem;
+  color: #6b7280; 
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+}
+
+
+.overall-rating h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #fff; 
+  margin: 0 auto;
+  width: 100px;      
+  height: 100px;    
+  line-height: 100px;
+  border-radius: 50%;  
+  background-color: #000; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.rating-bars {
+  max-width: 500px;
+  margin: 1rem auto 3rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rating-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rating-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  width: 80px;
+}
+
+.rating-progress {
+  flex-grow: 1;
+  height: 12px;
+  background-color: #e5e7eb; 
+  border-radius: 999px;
+  overflow: hidden;
+  margin-left: 0.5rem;
+}
+
+.rating-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.rating-excellent {
+  background-color: #22c55e; 
+}
+
+.rating-good {
+  background-color: #3b82f6; 
+}
+
+.rating-average {
+  background-color: #facc15;
+}
+
+.rating-poor {
+  background-color: #ef4444; 
+}
+
+
+.review-list {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+
+.review-card {
+  background-color: #fff;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.review-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
+.review-stars {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.review-comment {
+  font-size: 0.875rem;
+  color: #374151; 
+  margin-bottom: 0.75rem;
+}
+
+.review-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-align: right;
+  margin-bottom: 0.5rem;
+}
+
+
+@media (max-width: 1024px) {
+  .review-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .overall-rating h1 {
+    font-size: 2.5rem;
+  }
+
+  .review-card {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .vendor-reviews-page {
+    padding: 1rem;
+  }
+
+  .review-card {
+    padding: 0.75rem;
+  }
+
+  .review-comment {
+    font-size: 0.8rem;
+  }
+}

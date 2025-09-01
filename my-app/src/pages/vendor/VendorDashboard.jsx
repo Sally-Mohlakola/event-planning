@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { FaArrowLeft, FaBuilding } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import "./VendorDashboard.css";
-
-// src/vendor/VendorDashboard.jsx  
+ 
 
 import {
   Calendar,

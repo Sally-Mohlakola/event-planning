@@ -34,13 +34,15 @@ export default function Home() {
             <Calendar size={40} color="white" />
           </div>
           <h2>Event Manager</h2>
-          <ul>
-            <li>Event creation & management</li>
-            <li>Guest list management</li>
-            <li>Vendor marketplace access</li>
+          <ul >
+            <li style={{color:"grey"}}>Event creation & management</li>
+            <li  style={{color:"grey"}}>Guest list management</li>
+            <li  style={{color:"grey"}}>Vendor marketplace access</li>
           </ul>
           <button id="dashboard" onClick={navPlannerDashboard}>Enter Event Dashboard <ArrowRight size={20} /></button>
         </section>
+    
+
 
         {/* Vendor Tile */}
         <section className="role-tile center-tile">
@@ -49,9 +51,9 @@ export default function Home() {
           </div>
           <h2>Vendor</h2>
           <ul>
-            <li>Business profile management</li>
-            <li>Booking calendar</li>
-            <li>Ratings & reviews</li>
+            <li  style={{color:"grey"}}>Business profile management</li>
+            <li  style={{color:"grey"}}>Booking calendar</li>
+            <li  style={{color:"grey"}}>Ratings & reviews</li>
           </ul>
           <button id="dashboard" onClick={navVendorDashboard}>Enter Vendor Dashboard <ArrowRight size={20}></ArrowRight></button>
         </section>
@@ -76,3 +78,4 @@ export default function Home() {
 
   );
 }
+

@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import VendorDashboard from "./VendorDashboard";
 import VendorProfile from "./vendorProfile";
-import "./VendorApp.css";
+import VendorBooking from "./vendorBooking";
+import "./vendorApp.css";
+import VendorReviews from "./vendorReviews";
 
 const VendorApp = () => {
   const [activePage, setActivePage] = useState("dashboard");
@@ -54,11 +56,11 @@ const VendorApp = () => {
       case "profile":
         return <VendorProfile />;
       case "bookings":
-        return renderPlaceholderPage("Bookings Management");
+        return <VendorBooking setActivePage={setActivePage}/>;
       case "floorplan":
         return renderPlaceholderPage("Floorplan View");
       case "reviews":
-        return renderPlaceholderPage("Reviews Management");
+        return <VendorReviews setActivePage={setActivePage}/>;
       case "contracts":
         return renderPlaceholderPage("Contracts Management");
       default:
