@@ -100,4 +100,28 @@ app.put('/vendor/me', authenticate, upload.single('profilePic'), async (req, res
   }
 });
 
+//Apply for event
+app.post('/event/apply', authenticate, async (req, res) => {
+  try {
+    const { eventName, description, theme, location, budget, notes, startTime, endTime } = req.body;
+
+    await db.collection('Event').doc(req.uid).set({
+      eventName,
+      description,
+      theme,
+      location,
+      budget,
+      notes: notes || 'None',
+      startTime: startTime,
+      endTime: endTime,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({ message: 'Event application submitted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error: event unsuccefully posted' });
+  }
+});
+
 exports.api = functions.https.onRequest(app);

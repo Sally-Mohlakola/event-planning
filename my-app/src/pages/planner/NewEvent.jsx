@@ -1,16 +1,44 @@
 import React, { useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import './NewEvent.css';
 
 export default function NewEvent({ setActivePage }) {
   const [inputs, setInputs] = useState({});
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setInputs(values => ({ ...values, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!auth.currentUser) {
+      setError("You must be logged in to apply");
+      return;
+    }
+
+    try{
+      const token = await auth.currentUser.getIdToken();
+      
+      const res = await fetch("http://localhost:5000/api/event/apply", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}` // DO NOT set Content-Type manually for FormData
+      },
+      body: inputs
+    });
+
+      setSuccess("Application submitted successfully!");
+      navigate("/planner-dashboard");
+      console.log("Navigating now...");
+    }catch (err) {
+      console.error(err);
+      setError(err.message);
+    }
     console.log("Form submitted:", inputs);
     // TODO: handle save event logic here
   };
@@ -34,28 +62,28 @@ export default function NewEvent({ setActivePage }) {
         </div>
 
         <div className="form-field">
-          <label htmlFor="eventDescription">Event Description</label>
-          <textarea id="eventDescription" name="eventDescription" value={inputs.eventDescription || ""} onChange={handleChange} />
+          <label htmlFor="description">Event Description</label>
+          <textarea id="description" name="description" value={inputs.description || ""} onChange={handleChange} />
         </div>
 
         <div className="form-field">
-          <label htmlFor="eventTheme">Event Theme</label>
-          <input id="eventTheme" type="text" name="eventTheme" value={inputs.eventTheme || ""} onChange={handleChange} />
+          <label htmlFor="theme">Event Theme</label>
+          <input id="theme" type="text" name="theme" value={inputs.theme || ""} onChange={handleChange} />
         </div>
 
         <div className="form-field">
-          <label htmlFor="eventLocation">Event Location</label>
-          <input id="eventLocation" type="text" name="eventLocation" value={inputs.eventLocation || ""} onChange={handleChange} />
+          <label htmlFor="location">Event Location</label>
+          <input id="location" type="text" name="location" value={inputs.location || ""} onChange={handleChange} />
         </div>
 
         <div className="date-time">
-          <label htmlFor="eventBudget">Event Budget</label>
-          <input id="eventBudget" type="number" name="eventBudget" value={inputs.eventBudget || ""} onChange={handleChange} />
+          <label htmlFor="budget">Event Budget</label>
+          <input id="budget" type="number" name="budget" value={inputs.budget || ""} onChange={handleChange} />
         </div>
 
         <div className="form-field">
-          <label htmlFor="eventNotes">Event Notes</label>
-          <textarea id="eventNotes" name="eventNotes" value={inputs.eventNotes || ""} onChange={handleChange} />
+          <label htmlFor="notes">Event Notes</label>
+          <textarea id="notes" name="notes" value={inputs.notes || ""} onChange={handleChange} />
         </div>
 
         <div className="date-time">
