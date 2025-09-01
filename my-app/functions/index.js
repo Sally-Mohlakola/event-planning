@@ -109,29 +109,64 @@ app.put('/vendor/me', authenticate, async (req, res) => {
   }
 });
 
-
-//Apply for event
 app.post('/event/apply', authenticate, async (req, res) => {
   try {
-    const { eventName, description, theme, location, budget, notes, startTime, endTime } = req.body;
-
-    await db.collection('Event').doc(req.uid).set({
+    const {
       eventName,
       description,
       theme,
       location,
       budget,
-      notes: notes || 'None',
-      startTime: startTime,
-      endTime: endTime,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+      notes,
+      startTime,
+      endTime,
+      date,
+      expectedGuestCount
+    } = req.body;
 
-    res.json({ message: 'Event application submitted successfully' });
+    const newEvent = {
+      plannerId: req.uid,
+      eventName,
+      description: description || "",
+      theme: theme || "",
+      location: location || "",
+      budget: Number(budget) || 0,
+      notes: notes || "",
+      startTime: startTime || null,
+      endTime: endTime || null,
+      date: date || null,
+      expectedGuestCount: Number(expectedGuestCount) || 0,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const docRef = await db.collection("Event").add(newEvent);
+
+    res.json({ message: "Event created successfully", id: docRef.id, event: newEvent });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error: event unsuccefully posted' });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+app.get('/planner/me/events', authenticate, async (req, res) => {
+  try {
+    const plannerId = req.uid; 
+
+    const snapshot = await db.collection("Event")
+      .where("plannerId", "==", plannerId)
+      .get();
+
+    if (snapshot.empty) {
+      return res.json({ plannerId, events: [] });
+    }
+
+    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ plannerId, events });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 exports.api = functions.https.onRequest(app);
