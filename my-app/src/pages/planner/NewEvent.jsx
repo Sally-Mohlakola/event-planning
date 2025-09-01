@@ -68,6 +68,9 @@ export default function NewEvent({ setActivePage }) {
       setSuccess("Event created successfully!");
       navigate("/planner-dashboard");
     } catch (err) {
+
+
+      
       console.error(err);
       setError(err.message);
     }
