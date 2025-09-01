@@ -73,8 +73,7 @@ app.post('/vendor/apply', authenticate, async (req, res) => {
 });
 
 
-<<<<<<< HEAD
-=======
+
 //Create planner doc on signup
 app.post('/planner/signup', async (req, res) => {
   try{
@@ -100,7 +99,7 @@ app.post('/planner/signup', async (req, res) => {
   }
 });
 
->>>>>>> development
+
 
 app.get('/vendor/me', authenticate, async (req, res) => {
   try {
@@ -142,41 +141,58 @@ app.put('/vendor/me', authenticate, async (req, res) => {
 app.post('/event/apply', authenticate, async (req, res) => {
   try {
     const {
-      eventName,
+      name,
       description,
       theme,
       location,
       budget,
+      expectedGuestCount,
+      duration,
+      eventCategory,
       notes,
-      startTime,
-      endTime,
+      specialRequirements = [],
+      style = [],
+      tasks = [],
+      vendoringCategoriesNeeded = [],
+      files = null,
+      schedules = null,
+      services = null,
       date,
-      expectedGuestCount
+      plannerId
     } = req.body;
 
     const newEvent = {
-      plannerId: req.uid,
-      eventName,
-      description: description || "",
-      theme: theme || "",
-      location: location || "",
-      budget: Number(budget) || 0,
-      notes: notes || "",
-      startTime: startTime || null,
-      endTime: endTime || null,
-      date: date || null,
-      expectedGuestCount: Number(expectedGuestCount) || 0,
+      name,
+      description,
+      theme,
+      location,
+      budget: Number(budget),
+      expectedGuestCount: Number(expectedGuestCount),
+      duration: Number(duration),
+      eventCategory,
+      notes,
+      specialRequirements,
+      style,
+      tasks,
+      vendoringCategoriesNeeded,
+      files,
+      schedules,
+      services,
+      date: date ? new Date(date) : null,
+      status: "planning",
+      plannerId,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     const docRef = await db.collection("Event").add(newEvent);
 
-    res.json({ message: "Event created successfully", id: docRef.id, event: newEvent });
+    res.status(200).json({ message: "Event created successfully", id: docRef.id, event: newEvent });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
 app.get('/planner/me/events', authenticate, async (req, res) => {
   try {
     const plannerId = req.uid; 
@@ -197,53 +213,35 @@ app.get('/planner/me/events', authenticate, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-
-
-=======
-//Get an event
-app.get('/event/:eventId', authenticate, async(req, res) => {
+//Create planner doc on signup
+app.post('/planner/signup', async (req, res) => {
   try{
-    const {eventId} = req.params;
-    const eventDoc = await db.collection("Event").doc(eventId).get();
+    const {uid, name, email, eventHistory, activeEvents, preferences} = req.body;
 
-    if(!eventDoc.exists){
-      return res.status(404).json({message: "Event not found"});
-    }
-    res.json(eventDoc.data());
-    
+    const plannerDoc = {
+      uid,
+      name,
+      email,
+      eventHistory,
+      activeEvents,
+      preferences
+    };
+
+    await db.collection('Planner').doc(plannerDoc.uid).set(plannerDoc);
+
+    res.json({message: "Planner successfully created"});
+
   }
-  catch (err){
+
+
+  
+  catch(err){
     console.error(err);
-    res.status(500).json({message: "Server Error"});
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 
-app.get('/planner/:plannerId/events', authenticate, async (req, res) => {
-  try {
 
-    console.log("In function");
-    const { plannerId } = req.params;
-    console.log("In function");
-    // Query events where plannerId matches
-    const snapshot = await db.collection("Event")
-                             .where("plannerId", "==", plannerId)
-                             .get();
 
-    if (snapshot.empty) {
-      return res.status(404).json({ message: "No events found for this planner" });
-    }
-
-    console.log("in functions");
-    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    res.json({ plannerId, events });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
->>>>>>> development
 exports.api = functions.https.onRequest(app);
