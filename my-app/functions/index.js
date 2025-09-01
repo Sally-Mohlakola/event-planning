@@ -117,41 +117,6 @@ app.get('/event/:eventId', authenticate, async(req, res) => {
   }
 });
 
-//Get and event's guests
-app.get('/event/:eventId/guests', authenticate, async(req, res) => {
- try {
-    const { eventId } = req.params;
-    const { page = 1, limit = 50, rsvp } = req.query;
-
-    // Reference to the guests subcollection
-    let guestQuery = db.collection("Event").doc(eventId).collection("Guests").orderBy("name") // you can change the ordering field.limit(Number(limit));
-
-    // Apply optional RSVP filter
-    if (rsvp) {
-      guestQuery = guestQuery.where("rsvp", "==", rsvp);
-    }
-
-    // Apply pagination (calculate offset)
-    const offset = (Number(page) - 1) * Number(limit);
-    const guestSnapshot = await guestQuery.get();
-
-    let guests = guestSnapshot.docs.map(doc => doc.data());
-
-    // Simulate pagination by slicing the array (Firestore doesn't support offset easily)
-    guests = guests.slice(offset, offset + Number(limit));
-
-    res.json({
-      eventId,
-      page: Number(page),
-      limit: Number(limit),
-      totalGuests: guestSnapshot.size,
-      guests
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server Error" });
-  }
-});
 
 app.get('/planner/:plannerId/events', authenticate, async (req, res) => {
   try {
