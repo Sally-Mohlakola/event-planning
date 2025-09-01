@@ -85,7 +85,7 @@ app.post('/planner/signup', async (req, res) => {
       preferences
     };
 
-    await setDoc(doc(db, "Planner", uid), plannerDoc);
+    await db.collection('Planner').doc(plannerDoc.uid).set(plannerDoc);
 
     res.json({message: "Planner successfully created"});
 
@@ -94,7 +94,7 @@ app.post('/planner/signup', async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
-})
+});
 
 
 app.get('/vendor/me', authenticate, async (req, res) => {
