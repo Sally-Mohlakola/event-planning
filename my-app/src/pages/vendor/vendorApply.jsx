@@ -30,31 +30,43 @@ export default function VendorApply() {
   try {
     const token = await auth.currentUser.getIdToken();
 
-    const formData = new FormData();
-    formData.append("businessName", businessName);
-    formData.append("phone", phone);
-    formData.append("email", email);
-    formData.append("description", description);
-    formData.append("category", category);
-    formData.append("address", address || "None");
-    if (profilePic) formData.append("profilePic", profilePic);
+    let profilePicBase64 = "";
+    if (profilePic) {
+      const reader = new FileReader();
+      profilePicBase64 = await new Promise((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result.split(",")[1]); // only base64
+        reader.onerror = reject;
+        reader.readAsDataURL(profilePic);
+      });
+    }
 
-    const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/apply", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      body: formData
-    });
+    const body = {
+      businessName,
+      phone,
+      email,
+      description,
+      category,
+      address: address || "None",
+      profilePic: profilePicBase64,
+    };
+
+    const res = await fetch(
+      "https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/apply",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
     const data = await res.json();
-
     if (!res.ok) throw new Error(data.message || "Failed to submit");
 
     setSuccess("Application submitted successfully!");
     navigate("/vendor-app");
-    console.log("Navigating now...");
-    
   } catch (err) {
     console.error(err);
     setError(err.message);
