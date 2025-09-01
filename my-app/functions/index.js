@@ -98,6 +98,7 @@ app.put('/vendor/me', authenticate, async (req, res) => {
     }
 
     await db.collection('Vendor').doc(req.uid).set(updateData, { merge: true });
+      
 
     res.status(200).json({ message: 'Profile updated successfully', data: updateData });
   } catch (err) {

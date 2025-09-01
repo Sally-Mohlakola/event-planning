@@ -41,7 +41,9 @@ const VendorApp = () => {
         <p className="placeholder-text">This page is coming soon. All the functionality will be built here.</p>
         <button 
           onClick={() => setActivePage("dashboard")}
-          className="back-to-dashboard-btn"
+          className="back-to-dashboard-btn"    
+
+          
         >
           Back to Dashboard
         </button>

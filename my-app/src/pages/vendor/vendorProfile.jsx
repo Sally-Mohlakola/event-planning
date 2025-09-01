@@ -22,7 +22,9 @@ const VendorProfile = () => {
       try {
         const token = await user.getIdToken();
         const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/me", {
-          headers: {
+          headers: {  
+
+            
             Authorization: `Bearer ${token}`,
           },
         });
