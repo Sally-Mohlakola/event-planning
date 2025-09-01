@@ -86,6 +86,8 @@ export default function VendorProfileEdit() {
       }),
     });
 
+
+    
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Update failed");
 

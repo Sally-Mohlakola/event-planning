@@ -71,11 +71,12 @@ app.post('/vendor/apply', authenticate, async (req, res) => {
 });
 
 
-// Get vendor
+
 app.get('/vendor/me', authenticate, async (req, res) => {
   try {
+
     const doc = await db.collection('Vendor').doc(req.uid).get();
-    if (!doc.exists) return res.status(404).json({ message: 'Vendor not found' });
+    if (!doc.exists) return res.status(404).json({ message: 'Vendor not found ' });
     res.json(doc.data());
   } catch (err) {
     console.error(err);

@@ -1,4 +1,4 @@
-// src/vendor/VendorApp.jsx
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -34,7 +34,7 @@ const VendorApp = () => {
       <div className="placeholder-content">
         <div className="placeholder-icon">  
 
-          
+
           {navigationItems.find(item => item.id === activePage)?.icon && 
             React.createElement(navigationItems.find(item => item.id === activePage).icon, { size: 32 })
           }
@@ -109,7 +109,7 @@ const VendorApp = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
+   
       <main className="vendor-main">
         {renderCurrentPage()}
       </main>
