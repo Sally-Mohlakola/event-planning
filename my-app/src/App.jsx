@@ -13,7 +13,11 @@ import VendorProfileEdit from './pages/vendor/vendorProfileEdit.jsx';
 import VendorProfile from './pages/vendor/vendorProfile.jsx';
 import VendorApply from './pages/vendor/vendorApply.jsx';
 import Reports from './pages/adminDashboard/Reports.jsx';
+
 import LandingPage from './pages/LandingPage.jsx';
+
+import NewEvent from './pages/planner/NewEvent.jsx';
+
 
 
 
@@ -44,6 +48,7 @@ function App() {
         <Route path='/vendor/vendor-edit-profile' element ={<VendorProfileEdit />} />
         <Route path='/vendor/vendor-profile' element ={<VendorProfile />} />
         <Route path='/vendor/vendor-apply' element ={<VendorApply />} />
+        <Route path='/planner/new-event' element={<NewEvent/>}/>
      
 
         
