@@ -10,22 +10,16 @@ describe("VendorDashboard", () => {
     render(<VendorDashboard setActivePage={mockSetActivePage} />);
   });
 
-  test("renders dashboard summary cards", () => {
-    expect(screen.getByText(/total bookings/i)).toBeInTheDocument();
-    expect(screen.getByText(/revenue \(MTD\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/avg rating/i)).toBeInTheDocument();
-    expect(screen.getByText(/active contracts/i)).toBeInTheDocument();
+  test("renders dashboard overview", () => {
+    expect(screen.getByText("Dashboard Overview")).toBeInTheDocument();
+    expect(screen.getByText("Welcome back! Here's what's happening with your business.")).toBeInTheDocument();
   });
 
-  test("renders recent bookings", () => {
-    expect(screen.getByText(/corporate lunch/i)).toBeInTheDocument();
-    expect(screen.getByText(/wedding reception/i)).toBeInTheDocument();
-    expect(screen.getByText(/birthday party/i)).toBeInTheDocument();
-  });
-
-  test("renders recent reviews", () => {
-    expect(screen.getByText(/sarah m\./i)).toBeInTheDocument();
-    expect(screen.getByText(/john d\./i)).toBeInTheDocument();
+  test("renders summary cards", () => {
+    expect(screen.getByText("Total Bookings")).toBeInTheDocument();
+    expect(screen.getByText("Revenue (MTD)")).toBeInTheDocument();
+    expect(screen.getByText("Avg Rating")).toBeInTheDocument();
+    expect(screen.getByText("Active Contracts")).toBeInTheDocument();
   });
 
   test("renders quick action buttons", () => {
@@ -48,5 +42,14 @@ describe("VendorDashboard", () => {
     fireEvent.click(screen.getByTestId("quick-action-manage-venues"));
     expect(mockSetActivePage).toHaveBeenCalledWith("floorplan");
   });
+
+  test("renders recent bookings and reviews", () => {
+    expect(screen.getByText("Recent Bookings")).toBeInTheDocument();
+    expect(screen.getByText("Recent Reviews")).toBeInTheDocument();
+  });
+
+  test("renders pending contracts and venue status", () => {
+    expect(screen.getByText("Pending Contracts")).toBeInTheDocument();
+    expect(screen.getByText("Venue Status")).toBeInTheDocument();
+  });
 });
-//
