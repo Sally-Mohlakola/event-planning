@@ -47,9 +47,9 @@ export default function NewEvent({ setActivePage }) {
     <section className="page-container">
 
       {/* Header Section */}
-      <section className="dashboard-intro">
+      <section className="intro">
         <section>
-          <h1 className="dashboard-title">New Event</h1>
+          <h1 className="title">New Event</h1>
           <p className="dashboard-subtitle">Input your event's details</p>
         </section>
       </section>

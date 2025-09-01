@@ -20,7 +20,7 @@ html, body {
   background: white;
 }
 
-.dashboard-intro {
+.intro {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -34,13 +34,27 @@ html, body {
   flex: 1;
   padding: 1rem;
   height: 100%;
+  width: 100%;
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
   margin-bottom: 1rem;
+  width: 100%;  
 }
+
+.form-field input,
+.form-field textarea {
+  flex: 1;       
+  width: 100%;   
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--field);
+  box-sizing: border-box;
+}
+
 
 .form-field label {
   margin-bottom: 0.4rem;
@@ -48,15 +62,6 @@ html, body {
   color: var(--blue-700);
 }
 
-.form-field input,
-.form-field textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 0.4rem;
-  background: var(--field);
-  box-sizing: border-box;
-}
 
 .date-time label {
   margin-bottom: 0.4rem;
