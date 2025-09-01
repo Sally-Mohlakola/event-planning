@@ -11,6 +11,32 @@ import { HiOutlineMail } from 'react-icons/hi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { FaRegHandPaper } from 'react-icons/fa';
 
+export async function createPlannerAccount(email, uid) {
+
+  const body =
+  {
+    uid: uid,
+    name: "",
+    email: email,
+    eventHistory: [],
+    activeEvents: [],
+    preferences: []
+  }
+
+  const res = await fetch(
+      
+      "https://us-central1-planit-sdp.cloudfunctions.net/api/planner/signup",
+      {
+        method: "POST",
+        headers:{
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+}
+
 export default function Signup() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
@@ -21,7 +47,11 @@ export default function Signup() {
         e.preventDefault();
         try {
             setError("")
-            await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+            //To create planner document on signup
+            const uid = userCredential.user.uid;
+            await createPlannerAccount(email, uid);
             navigate('/login');
         } catch (error) {
             console.error("Error signing up:", error);
@@ -40,7 +70,13 @@ export default function Signup() {
         const provider = new GoogleAuthProvider();
         try {
               setError("")
-            await signInWithPopup(auth, provider);
+            
+            const userCrendential = await signInWithPopup(auth, provider);
+
+            //To create planner document on signup
+            const uid = userCrendential.user.uid;
+            const email = userCrendential.user.email;
+            await createPlannerAccount(email, uid);
             navigate('/login');
         } catch (error) {
             console.error("Error signing up with Google:", error);
