@@ -112,41 +112,58 @@ app.put('/vendor/me', authenticate, async (req, res) => {
 app.post('/event/apply', authenticate, async (req, res) => {
   try {
     const {
-      eventName,
+      name,
       description,
       theme,
       location,
       budget,
+      expectedGuestCount,
+      duration,
+      eventCategory,
       notes,
-      startTime,
-      endTime,
+      specialRequirements = [],
+      style = [],
+      tasks = [],
+      vendoringCategoriesNeeded = [],
+      files = null,
+      schedules = null,
+      services = null,
       date,
-      expectedGuestCount
+      plannerId
     } = req.body;
 
     const newEvent = {
-      plannerId: req.uid,
-      eventName,
-      description: description || "",
-      theme: theme || "",
-      location: location || "",
-      budget: Number(budget) || 0,
-      notes: notes || "",
-      startTime: startTime || null,
-      endTime: endTime || null,
-      date: date || null,
-      expectedGuestCount: Number(expectedGuestCount) || 0,
+      name,
+      description,
+      theme,
+      location,
+      budget: Number(budget),
+      expectedGuestCount: Number(expectedGuestCount),
+      duration: Number(duration),
+      eventCategory,
+      notes,
+      specialRequirements,
+      style,
+      tasks,
+      vendoringCategoriesNeeded,
+      files,
+      schedules,
+      services,
+      date: date ? new Date(date) : null,
+      status: "planning",
+      plannerId,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     const docRef = await db.collection("Event").add(newEvent);
 
-    res.json({ message: "Event created successfully", id: docRef.id, event: newEvent });
+    res.status(200).json({ message: "Event created successfully", id: docRef.id, event: newEvent });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
 app.get('/planner/me/events', authenticate, async (req, res) => {
   try {
     const plannerId = req.uid; 
@@ -164,6 +181,31 @@ app.get('/planner/me/events', authenticate, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+//Create planner doc on signup
+app.post('/planner/signup', async (req, res) => {
+  try{
+    const {uid, name, email, eventHistory, activeEvents, preferences} = req.body;
+
+    const plannerDoc = {
+      uid,
+      name,
+      email,
+      eventHistory,
+      activeEvents,
+      preferences
+    };
+
+    await db.collection('Planner').doc(plannerDoc.uid).set(plannerDoc);
+
+    res.json({message: "Planner successfully created"});
+
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
