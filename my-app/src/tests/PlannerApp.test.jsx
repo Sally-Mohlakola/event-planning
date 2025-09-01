@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 import PlannerApp from "../pages/planner/PlannerApp";
 
-// Mock the PlannerDashboard component - use the correct relative path
+
 vi.mock("../pages/planner/PlannerDashboard", () => ({
   default: ({ setActivePage }) => (
     <div data-testid="planner-dashboard">
@@ -16,7 +16,7 @@ vi.mock("../pages/planner/PlannerDashboard", () => ({
   ),
 }));
 
-// Mock useNavigate
+
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -37,13 +37,11 @@ describe("PlannerApp", () => {
   });
 
   test("renders initial dashboard content", () => {
-    // The app should start on dashboard page
     expect(screen.getByTestId("planner-dashboard")).toBeInTheDocument();
     expect(screen.getByText("Dashboard Content")).toBeInTheDocument();
   });
 
   test("renders navigation items", () => {
-    // Check that navigation items are rendered
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Events")).toBeInTheDocument();
     expect(screen.getByText("Vendor Marketplace")).toBeInTheDocument();
@@ -59,14 +57,12 @@ describe("PlannerApp", () => {
   });
 
   test("navigates to Events tab and shows placeholder", () => {
-    // Click on Events navigation button specifically in navbar
     const navButtons = screen.getAllByText("Events");
     const eventsNavButton = navButtons.find(button => 
       button.closest('.nav-btn')
     );
     fireEvent.click(eventsNavButton);
     
-    // Should show placeholder content for Events
     expect(screen.getByText("Event Management")).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -77,14 +73,12 @@ describe("PlannerApp", () => {
   });
 
   test("navigates to Vendor Marketplace and shows placeholder", () => {
-    // Click on Vendor Marketplace navigation button specifically in navbar
     const navButtons = screen.getAllByText("Vendor Marketplace");
     const vendorNavButton = navButtons.find(button => 
       button.closest('.nav-btn')
     );
     fireEvent.click(vendorNavButton);
     
-    // Should show placeholder content for Vendor Marketplace - check for specific title
     expect(screen.getByRole("heading", { name: "Vendor Marketplace" })).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -94,14 +88,12 @@ describe("PlannerApp", () => {
   });
 
   test("navigates to Guest Management and shows placeholder", () => {
-    // Use specific selector to find the nav button
     const allNavButtons = screen.getAllByRole("button");
     const guestNavButton = allNavButtons.find(btn => 
       btn.textContent.includes("Guest Management") && btn.classList.contains("nav-btn")
     );
     fireEvent.click(guestNavButton);
     
-    // Check for the heading specifically 
     expect(screen.getByRole("heading", { name: "Guest Management" })).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -141,7 +133,6 @@ describe("PlannerApp", () => {
   });
 
   test("back to dashboard button works from placeholder pages", () => {
-    // Navigate to Events first
     const navButtons = screen.getAllByText("Events");
     const eventsNavButton = navButtons.find(button => 
       button.closest('.nav-btn')
@@ -149,10 +140,8 @@ describe("PlannerApp", () => {
     fireEvent.click(eventsNavButton);
     expect(screen.getByText("Event Management")).toBeInTheDocument();
     
-    // Click back to dashboard
     fireEvent.click(screen.getByText("Back to Dashboard"));
     
-    // Should be back on dashboard
     expect(screen.getByTestId("planner-dashboard")).toBeInTheDocument();
     expect(screen.getByText("Dashboard Content")).toBeInTheDocument();
   });
@@ -165,14 +154,12 @@ describe("PlannerApp", () => {
   });
 
   test("active navigation state changes correctly", () => {
-    // Find dashboard navigation button specifically (not the mock dashboard button)
     const allNavButtons = screen.getAllByRole("button");
     const dashboardNavBtn = allNavButtons.find(btn => 
       btn.textContent.includes("Dashboard") && btn.classList.contains("nav-btn")
     );
     expect(dashboardNavBtn).toHaveClass("active");
 
-    // Click Events and check if it becomes active
     const eventsNavBtn = allNavButtons.find(btn => 
       btn.textContent.includes("Events") && btn.classList.contains("nav-btn")
     );

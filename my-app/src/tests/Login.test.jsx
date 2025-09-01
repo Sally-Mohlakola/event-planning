@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Login from '../pages/Login'
 
-// mock useNavigate
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
@@ -13,7 +12,7 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
-// mock firebase/auth functions
+
 const mockSignInWithEmailAndPassword = vi.fn()
 const mockSignInWithPopup = vi.fn()
 const mockSendPasswordResetEmail = vi.fn()
@@ -59,7 +58,7 @@ describe('Login Page', () => {
       target: { value: 'test@example.com' },
     })
     fireEvent.change(screen.getByPlaceholderText(/password/i), {
-      target: { value: 'password123' },
+    target: { value: 'password123' },
     })
 
     fireEvent.click(screen.getByRole('button', { name: /^log in$/i })) // ✅ only the submit button
@@ -67,17 +66,12 @@ describe('Login Page', () => {
     await waitFor(() => {
       expect(mockSignInWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), 'test@example.com', 'password123')
       expect(mockNavigate).toHaveBeenCalledWith('/home')
-    })
-  })
+    })})
 
   test('shows error message on invalid credentials', async () => {
     mockSignInWithEmailAndPassword.mockRejectedValueOnce({ code: 'auth/invalid-credential' })
 
-    render(
-      <MemoryRouter>
-        <Login />
-      </MemoryRouter>
-    )
+    render(<MemoryRouter><Login /></MemoryRouter>)
 
     fireEvent.change(screen.getByPlaceholderText(/you@example.com/i), {
       target: { value: 'bad@example.com' },
@@ -88,19 +82,13 @@ describe('Login Page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^log in$/i }))
 
-    await waitFor(() => {
-      expect(screen.getByText(/invalid credential/i)).toBeInTheDocument()
-    })
+    await waitFor(() => {expect(screen.getByText(/invalid credential/i)).toBeInTheDocument()})
   })
 
   test('calls Google sign-in and navigates on success', async () => {
     mockSignInWithPopup.mockResolvedValueOnce({ user: { uid: '123' } })
 
-    render(
-      <MemoryRouter>
-        <Login />
-      </MemoryRouter>
-    )
+    render(<MemoryRouter><Login /></MemoryRouter>)
 
     fireEvent.click(screen.getByRole('button', { name: /^log in with google$/i })) // ✅ exact
 
@@ -138,7 +126,7 @@ describe('Login Page', () => {
       </MemoryRouter>
     )
 
-    fireEvent.click(screen.getByText(/^forgot password\?$/i)) // ✅ exact
+    fireEvent.click(screen.getByText(/^forgot password\?$/i)) 
 
     await waitFor(() => {
       expect(screen.getByText(/enter your email first/i)).toBeInTheDocument()

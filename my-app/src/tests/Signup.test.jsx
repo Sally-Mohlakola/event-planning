@@ -3,12 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Signup from '../pages/Signup'
 
-
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
-  return {
-    ...actual,
+  return {...actual,
     useNavigate: () => mockNavigate,
   }
 })
