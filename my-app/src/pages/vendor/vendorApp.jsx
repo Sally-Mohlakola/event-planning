@@ -32,7 +32,9 @@ const VendorApp = () => {
   const renderPlaceholderPage = (pageTitle) => (
     <div className="placeholder-page">
       <div className="placeholder-content">
-        <div className="placeholder-icon">
+        <div className="placeholder-icon">  
+
+          
           {navigationItems.find(item => item.id === activePage)?.icon && 
             React.createElement(navigationItems.find(item => item.id === activePage).icon, { size: 32 })
           }
@@ -43,7 +45,7 @@ const VendorApp = () => {
           onClick={() => setActivePage("dashboard")}
           className="back-to-dashboard-btn"    
 
-          
+
         >
           Back to Dashboard
         </button>

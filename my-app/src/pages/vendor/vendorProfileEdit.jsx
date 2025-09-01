@@ -59,7 +59,7 @@ export default function VendorProfileEdit() {
     let profilePicBase64 = null;
 
     if (profilePic) {
-      // convert file to base64
+     
       profilePicBase64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(profilePic);
@@ -118,7 +118,9 @@ export default function VendorProfileEdit() {
               onChange={(e) => setDescription(e.target.value)}
               rows={4}  
 
-              
+
+
+
               required
             />
           </label>

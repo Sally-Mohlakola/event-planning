@@ -31,10 +31,12 @@ export default function VendorApply() {
     const token = await auth.currentUser.getIdToken();
 
     let profilePicBase64 = "";
-    if (profilePic) {
+    if (profilePic) { 
+
+       
       const reader = new FileReader();  
 
-      
+
       profilePicBase64 = await new Promise((resolve, reject) => {
         reader.onloadend = () => resolve(reader.result.split(",")[1]); // only base64
         reader.onerror = reject;

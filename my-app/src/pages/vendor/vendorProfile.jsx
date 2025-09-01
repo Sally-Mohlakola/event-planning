@@ -24,6 +24,7 @@ const VendorProfile = () => {
         const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/me", {
           headers: {  
 
+
             
             Authorization: `Bearer ${token}`,
           },
