@@ -28,10 +28,12 @@ function GuestRSVPSummary({guests}) {
             <section className="rsvp-progress">
                 <section 
                     className="rsvp-progress-bar"
-                    style={{width: `${(confirmedGuests / totalGuests) * 100}%`}}
+                    style={{width: `${totalGuests > 0 ? (confirmedGuests / totalGuests) * 100 : 0}%`}}
                 ></section>
             </section>
-            <p className="rsvp-percentage">{Math.round((confirmedGuests / totalGuests) * 100)}% confirmed</p>
+            <p className="rsvp-percentage">
+                {totalGuests > 0 ? Math.round((confirmedGuests / totalGuests) * 100) : 0}% confirmed
+            </p>
         </section>
     );
 }
@@ -42,9 +44,6 @@ function VendorItem({vendor}) {
             <section className="vendor-info">
                 <h4>{vendor.businessName}</h4>
                 <p>{vendor.category}</p>
-            </section>
-            <section className="vendor-cost">
-                <p>R{vendor.phone}</p>
             </section>
             <section className="vendor-actions">
                 <button className="contact-btn">Contact</button>
@@ -66,8 +65,6 @@ function TaskItem({task, onToggle}) {
             </section>
             <section className="task-content">
                 <h4 className={task.completed ? "completed" : ""}>{task.task}</h4>
-            </section>
-            <section className="task-priority">
             </section>
         </section>
     );
@@ -133,30 +130,10 @@ export default function PlannerViewEvent({event, setActivePage}) {
         return date.toLocaleDateString();
     };
 
-    const budgetPercentage = (eventData.spent / eventData.budget) * 100;
-
     return(
         <section className="event-view-edit">
             <section className="event-header">
                 
-                <section className="header-main">
-                    {!isEditing ? (
-                        <section className="event-title-info">
-                            <h1>{eventData.name}</h1>
-                        </section>
-                    ) : (
-                        <section className="edit-title-section">
-                            <input 
-                                type="text"
-                                value={editForm.name}
-                                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                                className="edit-title-input"
-                                placeholder="Event name"
-                            />
-                        </section>
-                    )}
-                </section>
-
                 <section className="header-top">
                     <button 
                         className="back-btn"
@@ -179,6 +156,24 @@ export default function PlannerViewEvent({event, setActivePage}) {
                             </section>
                         )}
                     </section>
+                </section>
+
+                <section className="header-main">
+                    {!isEditing ? (
+                        <section className="event-title-info">
+                            <h1>{eventData.name}</h1>
+                        </section>
+                    ) : (
+                        <section className="edit-title-section">
+                            <input 
+                                type="text"
+                                value={editForm.name}
+                                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                                className="edit-title-input"
+                                placeholder="Event name"
+                            />
+                        </section>
+                    )}
                 </section>
             </section>
 
@@ -219,7 +214,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                     {!isEditing ? (
                                         <section className="detail-info">
                                             <p><strong>Location:</strong> {eventData.location}</p>
-                                            <p><strong>Date:</strong> {eventData.date.toLocaleDateString}</p>
+                                            <p><strong>Date:</strong> {formatDate(eventData.date)}</p>
                                             <p><strong>Expected Attendees:</strong> {eventData.expectedGuestCount}</p>
                                             <p><strong>Category:</strong> {eventData.eventCategory}</p>
                                         </section>
@@ -245,8 +240,16 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                                 Expected Attendees:
                                                 <input 
                                                     type="number"
-                                                    value={editForm.attendees}
-                                                    onChange={(e) => setEditForm({...editForm, attendees: parseInt(e.target.value)})}
+                                                    value={editForm.expectedGuestCount}
+                                                    onChange={(e) => setEditForm({...editForm, expectedGuestCount: parseInt(e.target.value)})}
+                                                />
+                                            </label>
+                                            <label>
+                                                Category:
+                                                <input 
+                                                    type="text"
+                                                    value={editForm.eventCategory}
+                                                    onChange={(e) => setEditForm({...editForm, eventCategory: e.target.value})}
                                                 />
                                             </label>
                                         </section>
@@ -268,16 +271,18 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                 </section>
                                 
                                 <section className="guests-list">
-                                    {guests.map((guest) => (
+                                    {guests.length > 0 ? guests.map((guest) => (
                                         <section key={guest.id} className="guest-item">
                                             <section className="guest-info">
-                                                <h4>{guest.firstname}</h4>
+                                                <h4>{guest.firstname} {guest.lastname}</h4>
                                                 <p>{guest.email}</p>
                                                 <p>{guest.plusOne ? "Plus One: Yes" : "Plus One: No"}</p>
                                             </section>
                                             <section className="guest-rsvp">
                                                 <span className={`rsvp-badge ${guest.rsvpStatus}`}>
-                                                    {guest.rsvpStatus}
+                                                    {guest.rsvpStatus === 'attending' ? 'Confirmed' : 
+                                                     guest.rsvpStatus === 'not_attending' ? 'Declined' : 
+                                                     'Pending'}
                                                 </span>
                                             </section>
                                             <section className="guest-actions">
@@ -285,7 +290,11 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                                 <button className="edit-guest-btn">Edit</button>
                                             </section>
                                         </section>
-                                    ))}
+                                    )) : (
+                                        <section className="empty-state">
+                                            <p>No guests added yet. Click "Add Guest" to invite people to your event.</p>
+                                        </section>
+                                    )}
                                 </section>
                             </section>
                         </section>
@@ -298,9 +307,13 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                 <button className="add-vendor-btn">+ Add Vendor</button>
                             </section>
                             <section className="vendors-list">
-                                {eventData.vendors.map((vendor) => (
+                                {eventData.vendors && eventData.vendors.length > 0 ? eventData.vendors.map((vendor) => (
                                     <VendorItem key={vendor.id} vendor={vendor} />
-                                ))}
+                                )) : (
+                                    <section className="empty-state">
+                                        <p>No vendors added yet. Click "Add Vendor" to start building your vendor list.</p>
+                                    </section>
+                                )}
                             </section>
                         </section>
                     )}
@@ -312,13 +325,17 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                 <button className="add-task-btn">+ Add Task</button>
                             </section>
                             <section className="tasks-list">
-                                {eventData.tasks.map((task) => (
+                                {eventData.tasks && eventData.tasks.length > 0 ? eventData.tasks.map((task) => (
                                     <TaskItem 
                                         key={task.id} 
                                         task={task} 
                                         onToggle={() => handleTaskToggle(task.id)}
                                     />
-                                ))}
+                                )) : (
+                                    <section className="empty-state">
+                                        <p>No tasks added yet. Click "Add Task" to start organizing your event planning.</p>
+                                    </section>
+                                )}
                             </section>
                         </section>
                     )}

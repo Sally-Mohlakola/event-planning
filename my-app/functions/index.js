@@ -208,6 +208,8 @@ app.get('/planner/:eventId/guests', authenticate, async (req, res) =>{
   }
 });
 
+app.get
+
 //Create planner doc on signup
 app.post('/planner/signup', async (req, res) => {
   try{
