@@ -10,6 +10,8 @@ admin.initializeApp();
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
+//import { doc, setDoc } from 'firebase/firestore';
+
 const app = express();
 app.use(cors({
   origin: [
@@ -63,6 +65,32 @@ app.post('/vendor/apply', upload.single('profilePic'), async (req, res) => {
 
     res.json({ message: 'Vendor application submitted successfully' });
   } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+//Create planner doc on signup
+app.post('/planner/signup', async (req, res) => {
+  try{
+    const {uid, name, email, eventHistory, activeEvents, preferences} = req.body;
+
+    const plannerDoc = {
+      uid,
+      name,
+      email,
+      eventHistory,
+      activeEvents,
+      preferences
+    };
+
+    await db.collection('Planner').doc(plannerDoc.uid).set(plannerDoc);
+
+    res.json({message: "Planner successfully created"});
+
+  }
+  catch(err){
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
@@ -134,7 +162,7 @@ app.post('/event/apply', authenticate, async (req, res) => {
 //Get an event
 app.get('/event/:eventId', authenticate, async(req, res) => {
   try{
-    const {eventId} = req.body;
+    const {eventId} = req.params;
     const eventDoc = await db.collection("Event").doc(eventId).get();
 
     if(!eventDoc.exists){
@@ -152,8 +180,10 @@ app.get('/event/:eventId', authenticate, async(req, res) => {
 
 app.get('/planner/:plannerId/events', authenticate, async (req, res) => {
   try {
-    const { plannerId } = req.params;
 
+    console.log("In function");
+    const { plannerId } = req.params;
+    console.log("In function");
     // Query events where plannerId matches
     const snapshot = await db.collection("Event")
                              .where("plannerId", "==", plannerId)
@@ -163,6 +193,7 @@ app.get('/planner/:plannerId/events', authenticate, async (req, res) => {
       return res.status(404).json({ message: "No events found for this planner" });
     }
 
+    console.log("in functions");
     const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     res.json({ plannerId, events });

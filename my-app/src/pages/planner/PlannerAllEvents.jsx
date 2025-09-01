@@ -72,7 +72,7 @@ export default function PlannerAllEvents({setActivePage, onSelectEvent}){
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
 
-        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${plannerId}/events`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${plannerId}/events`, {
             headers: {
                 "Authorization": `Bearer ${token}`
             }
