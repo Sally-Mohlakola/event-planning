@@ -59,7 +59,11 @@ function EventCard({event, onSelectEvent}){
 
 export default function PlannerAllEvents({setActivePage, onSelectEvent}){
 
+<<<<<<< HEAD
     const plannerId = "";
+=======
+    const plannerId = "Gz2V3kogLn1hRftL8ef4";
+>>>>>>> development
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [sortBy, setSortBy] = useState("date");
@@ -72,15 +76,24 @@ export default function PlannerAllEvents({setActivePage, onSelectEvent}){
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
 
+<<<<<<< HEAD
         const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events`, {
+=======
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${plannerId}/events`, {
+>>>>>>> development
             headers: {
                 "Authorization": `Bearer ${token}`
             }
         });
+<<<<<<< HEAD
         if (!res.ok) return []; 
 
   const data = await res.json();
   return data.events || [];
+=======
+        const data = await res.json();
+        return data.events;
+>>>>>>> development
     };
 
     useEffect(() => {
