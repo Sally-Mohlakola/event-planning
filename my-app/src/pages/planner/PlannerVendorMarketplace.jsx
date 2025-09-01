@@ -75,8 +75,4 @@ export default function PlannerVendorMarketplace({setActivePage}){
             </section>
         </section>
     );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> development
