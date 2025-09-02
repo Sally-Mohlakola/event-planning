@@ -2,6 +2,185 @@ import { useEffect, useState } from 'react';
 import "./PlannerViewEvent.css";
 import { getAuth } from 'firebase/auth';
 
+function AddGuestPopup({ isOpen, onClose, onSave }) {
+
+    const guestTags = [
+        "VIP",
+        "Family",
+        "Friend",
+        "Colleague",
+        "Plus One",
+        "Speaker",
+        "Sponsor",
+        "Media",
+        "Performer",
+        "Staff"
+    ];
+
+    const dietaryOptions = [
+        "None",
+        "Vegetarian",
+        "Vegan",
+        "Gluten-Free",
+        "Nut-Free",
+        "Dairy-Free",
+        "Halal",
+        "Kosher"
+    ];
+
+    const [selectedTags, setSelectedTags] = useState([]);
+    const [dietary, setDietary] = useState("None");
+
+    const [guestForm, setGuestForm] = useState({
+        firstname: '',
+        lastname: '',
+        email: '',
+        plusOne: 0
+    });
+
+    const handleTagToggle = (tag) => {
+        setSelectedTags(prev => {
+            const updatedTags = prev.includes(tag) 
+                ? prev.filter(t => t !== tag) 
+                : [...prev, tag];
+
+            setGuestForm({...guestForm, tags: updatedTags});
+
+            console.log(updatedTags);
+            return updatedTags;
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (guestForm.firstname.trim() && guestForm.email.trim()) {
+            onSave({
+                ...guestForm,
+                rsvpStatus: 'pending'
+            });
+            setGuestForm({
+                firstname: '',
+                lastname: '',
+                email: '',
+                plusOne: 0
+            });
+            onClose();
+        }
+    };
+
+    const handleClose = () => {
+        setGuestForm({
+            firstname: '',
+            lastname: '',
+            email: '',
+            plusOne: 0
+        });
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <section className="popup-overlay" onClick={handleClose}>
+            <section className="popup-content" onClick={(e) => e.stopPropagation()}>
+                <section className="popup-header">
+                    <h3>Add Guest</h3>
+                    <button className="close-btn" onClick={handleClose}>×</button>
+                </section>
+                <form onSubmit={handleSubmit} className="guest-form">
+                    <section className="form-row">
+                        <label>
+                            First Name *
+                            <input 
+                                type="text"
+                                value={guestForm.firstname}
+                                onChange={(e) => setGuestForm({...guestForm, firstname: e.target.value})}
+                                required
+                                autoFocus
+                            />
+                        </label>
+                        <label>
+                            Last Name
+                            <input 
+                                type="text"
+                                value={guestForm.lastname}
+                                onChange={(e) => setGuestForm({...guestForm, lastname: e.target.value})}
+                            />
+                        </label>
+                    </section>
+                    <label>
+                        Email Address *
+                        <input 
+                            type="email"
+                            value={guestForm.email}
+                            onChange={(e) => setGuestForm({...guestForm, email: e.target.value})}
+                            required
+                        />
+                    </label>
+                    <label>
+                        Phone
+                        <input 
+                            type="text"
+                            checked={guestForm.plusOne}
+                            onChange={(e) => setGuestForm({...guestForm, plusOne: e.target.value})}
+                        />
+                    </label>
+
+                    <section className="form-group">
+                        <label>Dietary Requirement:</label>
+                        <select value={dietary} onChange={(e) => setGuestForm({...guestForm, dietary: e.target.value})}>
+                        {dietaryOptions.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                        ))}
+                        </select>
+                    </section>
+
+                    <section className="form-group">
+                        <label>Guest Tags:</label>
+                        <section className="checkbox-group">
+                        {guestTags.map(tag => (
+                            <label key={tag} className="checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={selectedTags.includes(tag)}
+                                onChange={() => handleTagToggle(tag)}
+                            />
+                            {tag}
+                            </label>
+                        ))}
+                        </section>
+                    </section>
+
+                    <label>
+                        Notes
+                        <input 
+                            type="text"
+                            checked={guestForm.plusOne}
+                            onChange={(e) => setGuestForm({...guestForm, plusOne: e.target.value})}
+                        />
+                    </label>
+                    <label className="plusones-label">
+                        Number of Plus Ones
+                        <input 
+                            type="number"
+                            checked={guestForm.plusOne}
+                            onChange={(e) => setGuestForm({...guestForm, plusOne: e.target.value})}
+                        />
+                    </label>
+                    <section className="form-actions">
+                        <button type="button" className="cancel-form-btn" onClick={handleClose}>
+                            Cancel
+                        </button>
+                        <button type="submit" className="save-form-btn">
+                            Add Guest
+                        </button>
+                    </section>
+                </form>
+            </section>
+        </section>
+    );
+}
+
 function GuestRSVPSummary({guests}) {
     const totalGuests = guests.length;
     const confirmedGuests = guests.filter(g => g.rsvpStatus === 'attending').length;
@@ -84,6 +263,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
     const [guests, setGuests] = useState([]);
     const [vendors, setVendors] = useState([]);
     const [eventData, setEventData] = useState(event);
+    const [showAddGuestPopup, setShowAddGuestPopup] = useState(false);
 
     const [editForm, setEditForm] = useState({...eventData});
 
@@ -95,9 +275,10 @@ export default function PlannerViewEvent({event, setActivePage}) {
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
     
-        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/guests`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/guests`, {
             headers: {
-                "Authorization": `Bearer ${token}`
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
             }
         });
         if (!res.ok) return []; 
@@ -111,9 +292,10 @@ export default function PlannerViewEvent({event, setActivePage}) {
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
     
-        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/vendors`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/vendors`, {
             headers: {
-                "Authorization": `Bearer ${token}`
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
             }
         });
         if (!res.ok) return []; 
@@ -121,22 +303,55 @@ export default function PlannerViewEvent({event, setActivePage}) {
         const data = await res.json();
         return data.vendors || [];
     };
+
+    const updateEventData = async () => {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
     
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/${eventId}`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(eventData)
+        });
+        if (!res.ok) console.log("Update Failed"); 
+        console.log("Updated Event.");
+    }    
+
     useEffect(() => {
         async function loadGuests() {
             const guests = await fetchGuests();
             setGuests(guests);
-            console.log(guests);
-            const vendors = await fetchVendors();
-            setVendors(vendors);
         }
         loadGuests();
     }, []);
+
+    useEffect(() => {
+        async function loadVendors() {
+            const vendors = await fetchVendors();
+            setVendors(vendors);
+        }
+        loadVendors();
+    }, []);
+
+    useEffect(() => {
+        if(showAddGuestPopup === true){
+            
+        }
+    }, showAddGuestPopup);
 
     const handleSave = () => {
         setEventData({...editForm});
         setIsEditing(false);
     };
+
+    useEffect(() => {
+        console.log("eventData updated:", eventData);
+        updateEventData();
+    }, [eventData]);
 
     const handleCancel = () => {
         setEditForm({...eventData});
@@ -153,12 +368,27 @@ export default function PlannerViewEvent({event, setActivePage}) {
         }));
     };
 
-    const formatDate = (timestamp) => {
-        console.log(typeof timestamp);
-        if(!timestamp) return "No date";
-        const date = new Date(timestamp._seconds*1000);
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
         return date.toLocaleString();
     };
+
+    const onSave = async (guestInfo) => {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
+    
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/${eventId}/guests`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(guestInfo)
+        });
+        if (!res.ok) return "Guest Creation Failed"; 
+        console.log("Guest creation done.");
+    }
 
     return(
         <section className="event-view-edit">
@@ -167,7 +397,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                 <section className="header-top">
                     <button 
                         className="back-btn"
-                        onClick={() => setActivePage && setActivePage('events-list')}
+                        onClick={() => setActivePage && setActivePage('events')}
                     >
                         ← Back to Events
                     </button>
@@ -248,6 +478,9 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                             <p><strong>Duration: </strong> {eventData.duration} hrs </p>
                                             <p><strong>Expected Attendees:</strong> {eventData.expectedGuestCount}</p>
                                             <p><strong>Category:</strong> {eventData.eventCategory}</p>
+                                            <p><strong>Style:</strong>  
+                                            <section style={{display: "flex", flexDirection: "column", justifyContent:"flex-start"}}> {eventData.style.map(style =>
+                                                <p>{style}</p>)}</section></p>
                                         </section>
                                     ) : (
                                         <section className="edit-form">
@@ -265,6 +498,14 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                                     type="datetime-local"
                                                     value={editForm.date}
                                                     onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+                                                />
+                                            </label>
+                                            <label>
+                                                Duration:
+                                                <input 
+                                                    type="number"
+                                                    value={editForm.duration}
+                                                    onChange={(e) => setEditForm({...editForm, duration: e.target.value})}
                                                 />
                                             </label>
                                             <label>
@@ -291,6 +532,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                     )}
 
                     {activeTab === "guests" && (
+
                         <section className="guests-content">
 
                             <GuestRSVPSummary guests={guests} />
@@ -298,16 +540,25 @@ export default function PlannerViewEvent({event, setActivePage}) {
                             <section className="guests-section">
                                 <section className="guests-header">
                                     <h3>Guest List</h3>
-                                    <button className="add-guest-btn">+ Add Guest</button>
+                                    <button className="add-guest-btn" onClick={() => setShowAddGuestPopup(true)}>+ Add Guest</button>
                                 </section>
+
+                                 {
+                                    showAddGuestPopup === true && (
+                                        <section>
+                                            <AddGuestPopup isOpen={true} onClose={() => setShowAddGuestPopup(false)} onSave={onSave}/>
+                                        </section>
+                                    )
+                                }
                                 
+                               
                                 <section className="guests-list">
                                     {guests.length > 0 ? guests.map((guest) => (
                                         <section key={guest.id} className="guest-item">
                                             <section className="guest-info">
                                                 <h4>{guest.firstname} {guest.lastname}</h4>
                                                 <p>{guest.email}</p>
-                                                <p>{guest.plusOne ? "Plus One: Yes" : "Plus One: No"}</p>
+                                                <p>Plus Ones: {guest.plusOne}</p>
                                             </section>
                                             <section className="guest-rsvp">
                                                 <span className={`rsvp-badge ${guest.rsvpStatus}`}>
@@ -335,7 +586,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                         <section className="vendors-content">
                             <section className="vendors-header">
                                 <h3>Event Vendors</h3>
-                                <button className="add-vendor-btn">+ Add Vendor</button>
+                                <button className="add-vendor-btn" onClick={() => setActivePage("vendor")}>+ Add Vendor</button>
                             </section>
                             <section className="vendors-list">
                                 {vendors && vendors.length > 0 ? vendors.map((vendor) => (

@@ -199,7 +199,6 @@ app.get('/planner/:eventId/guests', authenticate, async (req, res) =>{
     }
 
     const guests = snapshot.docs.map(doc => ({id: doc.id, ...doc.data() }));
-    console.log(guests);
     res.json({eventId, guests});
   }
   catch(err){
@@ -220,7 +219,6 @@ app.get('/planner/:eventId/vendors', authenticate, async (req, res) => {
     }
 
     const vendors = snapshot.docs.map(doc => ({id: doc.id, ...doc.data() }));
-    console.log(vendors);
     res.json({eventId, vendors});
   }
   catch(err){
@@ -228,6 +226,41 @@ app.get('/planner/:eventId/vendors', authenticate, async (req, res) => {
     res.status(500).json({message: "Server error"});
   }
 
+});
+
+//Updates the information of an event
+app.put('/planner/me/:eventId', authenticate, async (req, res) => {
+  try{
+      const eventId = req.params.eventId;
+      const updatedEventData = req.body;
+
+      await db.collection("Event").doc(eventId).update(updatedEventData);
+
+      res.json({message: "Event updated successfully"});
+
+
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({message: "Server error"});
+  }
+});
+
+//Create a guest manually
+app.post('/planner/me/:eventId/guests', authenticate, async (req, res) => {
+
+  try{
+    const eventId = req.params.eventId;
+    const guestDetails = req.body;
+
+    await db.collection("Event").doc(eventId).collection("Guests").add(guestDetails);
+
+    res.json({message: "Guest added successfully"});
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({message: "Server error"});
+  }
 });
 
 //Create planner doc on signup
