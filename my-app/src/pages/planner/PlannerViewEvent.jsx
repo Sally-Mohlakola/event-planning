@@ -341,7 +341,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
         if(showAddGuestPopup === true){
             
         }
-    }, showAddGuestPopup);
+    }, [showAddGuestPopup]);
 
     const handleSave = () => {
         setEventData({...editForm});
@@ -478,9 +478,6 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                             <p><strong>Duration: </strong> {eventData.duration} hrs </p>
                                             <p><strong>Expected Attendees:</strong> {eventData.expectedGuestCount}</p>
                                             <p><strong>Category:</strong> {eventData.eventCategory}</p>
-                                            <p><strong>Style:</strong>  
-                                            <section style={{display: "flex", flexDirection: "column", justifyContent:"flex-start"}}> {eventData.style.map(style =>
-                                                <p>{style}</p>)}</section></p>
                                         </section>
                                     ) : (
                                         <section className="edit-form">
