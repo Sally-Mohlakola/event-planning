@@ -39,10 +39,16 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
     });
 
     const handleTagToggle = (tag) => {
-        setSelectedTags(prev =>
-        prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-        );
-        console.log(selectedTags)
+        setSelectedTags(prev => {
+            const updatedTags = prev.includes(tag) 
+                ? prev.filter(t => t !== tag) 
+                : [...prev, tag];
+
+            setGuestForm({...guestForm, tags: updatedTags});
+
+            console.log(updatedTags);
+            return updatedTags;
+        });
     };
 
     const handleSubmit = (e) => {
@@ -67,7 +73,7 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
             firstname: '',
             lastname: '',
             email: '',
-            plusOne: false
+            plusOne: 0
         });
         onClose();
     };
@@ -122,7 +128,7 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
 
                     <section className="form-group">
                         <label>Dietary Requirement:</label>
-                        <select value={dietary} onChange={(e) => setDietary(e.target.value)}>
+                        <select value={dietary} onChange={(e) => setGuestForm({...guestForm, dietary: e.target.value})}>
                         {dietaryOptions.map(option => (
                             <option key={option} value={option}>{option}</option>
                         ))}
@@ -286,7 +292,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
     
-        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/${eventId}/vendors`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/vendors`, {
             headers: {
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
@@ -303,7 +309,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
     
-        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/me/${eventId}`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/${eventId}`, {
             method: "PUT",
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -319,11 +325,16 @@ export default function PlannerViewEvent({event, setActivePage}) {
         async function loadGuests() {
             const guests = await fetchGuests();
             setGuests(guests);
-            console.log(guests);
+        }
+        loadGuests();
+    }, []);
+
+    useEffect(() => {
+        async function loadVendors() {
             const vendors = await fetchVendors();
             setVendors(vendors);
         }
-        loadGuests();
+        loadVendors();
     }, []);
 
     useEffect(() => {
@@ -367,7 +378,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
     
-        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/me/${eventId}/guests`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/${eventId}/guests`, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -386,7 +397,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                 <section className="header-top">
                     <button 
                         className="back-btn"
-                        onClick={() => setActivePage && setActivePage('events-list')}
+                        onClick={() => setActivePage && setActivePage('events')}
                     >
                         ← Back to Events
                     </button>
@@ -467,6 +478,9 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                             <p><strong>Duration: </strong> {eventData.duration} hrs </p>
                                             <p><strong>Expected Attendees:</strong> {eventData.expectedGuestCount}</p>
                                             <p><strong>Category:</strong> {eventData.eventCategory}</p>
+                                            <p><strong>Style:</strong>  
+                                            <section style={{display: "flex", flexDirection: "column", justifyContent:"flex-start"}}> {eventData.style.map(style =>
+                                                <p>{style}</p>)}</section></p>
                                         </section>
                                     ) : (
                                         <section className="edit-form">
@@ -484,6 +498,14 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                                     type="datetime-local"
                                                     value={editForm.date}
                                                     onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+                                                />
+                                            </label>
+                                            <label>
+                                                Duration:
+                                                <input 
+                                                    type="number"
+                                                    value={editForm.duration}
+                                                    onChange={(e) => setEditForm({...editForm, duration: e.target.value})}
                                                 />
                                             </label>
                                             <label>
@@ -536,7 +558,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                             <section className="guest-info">
                                                 <h4>{guest.firstname} {guest.lastname}</h4>
                                                 <p>{guest.email}</p>
-                                                <p>{guest.plusOne ? "Plus One: Yes" : "Plus One: No"}</p>
+                                                <p>Plus Ones: {guest.plusOne}</p>
                                             </section>
                                             <section className="guest-rsvp">
                                                 <span className={`rsvp-badge ${guest.rsvpStatus}`}>
