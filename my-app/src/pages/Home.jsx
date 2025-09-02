@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, ChefHat, ArrowRight } from 'lucide-react';
-import { auth } from "../../firebase";
+import { getAuth } from "firebase/auth";
+
+
 
 
 import './Home.css';
@@ -9,6 +11,7 @@ import './Home.css';
 
 export default function Home() {
   const navigate = useNavigate();
+  const auth = getAuth(); 
 
   const navPlannerDashboard = () => {
     navigate("/planner-dashboard");
