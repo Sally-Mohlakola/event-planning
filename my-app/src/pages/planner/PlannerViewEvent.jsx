@@ -257,6 +257,10 @@ function TaskItem({taskName, taskStatus, onToggle}) {
 
 
 export default function PlannerViewEvent({event, setActivePage}) {
+    
+    if(!event) {
+        return <section>Loading Event...</section>;
+    }
 
     const [isEditing, setIsEditing] = useState(false);
     const [activeTab, setActiveTab] = useState("overview");
