@@ -16,6 +16,7 @@ import Reports from './pages/admin/Reports.jsx';
 import VendorApplications from './pages/admin/VendorApplications';
 import LandingPage from './pages/LandingPage.jsx';
 import NewEvent from './pages/planner/NewEvent.jsx';
+import VendorWaiting from './pages/vendor/VendorWaiting.jsx'
 
 import './App.css'
 import VendorApp from './pages/vendor/vendorApp.jsx';
@@ -41,6 +42,12 @@ function App() {
         <Route path='/vendor/vendor-edit-profile' element ={<VendorProfileEdit />} />
         <Route path='/vendor/vendor-profile' element ={<VendorProfile />} />
         <Route path='/vendor/vendor-apply' element ={<VendorApply />} />
+
+        <Route path='/planner/new-event' element={<NewEvent/>}/>
+        <Route path="/vendor/waiting" element={<VendorWaiting />} />
+
+     
+
 
         <Route path='/admin' element={<Admin />} />
         <Route path='/admin/planner-management' element ={<PlannerManagement/>} />
