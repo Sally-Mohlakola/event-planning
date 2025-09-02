@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, ChefHat, ArrowRight } from 'lucide-react';
+import { auth } from "../../firebase";
 
-import { getAuth } from "firebase/auth";
+
 import './Home.css';
-const auth = getAuth();
+
 
 export default function Home() {
   const navigate = useNavigate();
