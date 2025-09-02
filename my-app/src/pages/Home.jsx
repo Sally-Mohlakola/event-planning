@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, ChefHat, ArrowRight } from 'lucide-react';
@@ -107,3 +106,4 @@ const navVendorApply = async () => {
       </footer>
     </section>
   );
+}
