@@ -24,6 +24,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    gap:12px;
 }
 
 .back-btn {
@@ -489,14 +490,14 @@
     gap: 12px;
 }
 
-.vendor-info h4 {
+.vendor-info, .vendor-cost h4 {
     margin: 0 0 2px 0;
     color: #1e293b;
     font-weight: 600;
     font-size: 14px;
 }
 
-.vendor-info p {
+.vendor-info, .vendor-cost p {
     margin: 0;
     color: #64748b;
     font-size: 12px;
