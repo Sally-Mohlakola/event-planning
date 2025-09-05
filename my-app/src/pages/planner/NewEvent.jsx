@@ -6,21 +6,11 @@ import './NewEvent.css';
 export default function NewEvent({ setActivePage }) {
   const [inputs, setInputs] = useState({
     name: "",
-    description: "",
-    theme: "",
-    location: "",
-    budget: 0,
-    expectedGuestCount: 0,
-    duration: 0,
     eventCategory: "",
-    notes: "",
-    specialRequirements: [],
-    style: [],
-    tasks: [],
-    vendoringCategoriesNeeded: [],
-    files: null,
-    schedules: null,
-    services: null
+    startTime: "",
+    duration: 1,
+    location: "",
+    style: ""
   });
 
   const [error, setError] = useState("");
@@ -28,19 +18,61 @@ export default function NewEvent({ setActivePage }) {
   const navigate = useNavigate();
   const auth = getAuth();
 
+  // Event categories dropdown options
+  const eventCategories = [
+    "Wedding",
+    "Birthday Party",
+    "Corporate Event",
+    "Conference",
+    "Baby Shower",
+    "Graduation",
+    "Anniversary",
+    "Fundraiser",
+    "Product Launch",
+    "Holiday Party",
+    "Networking Event",
+    "Workshop",
+    "Concert",
+    "Festival",
+    "Sports Event",
+    "Other"
+  ];
+
+  // Event styles dropdown options
+  const eventStyles = [
+    "Elegant/Formal",
+    "Casual/Relaxed",
+    "Modern/Contemporary",
+    "Vintage/Classic",
+    "Rustic/Country",
+    "Minimalist",
+    "Bohemian/Boho",
+    "Industrial",
+    "Garden/Outdoor",
+    "Beach/Tropical",
+    "Urban/City",
+    "Traditional",
+    "Glamorous",
+    "Fun/Playful",
+    "Professional",
+    "Themed"
+  ];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setInputs(values => ({ ...values, [name]: value }));
-  };
-
-  const handleArrayChange = (field, value) => {
-    setInputs(values => ({ ...values, [field]: value.split(',').map(v => v.trim()) }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    // Basic validation
+    if (!inputs.name || !inputs.eventCategory || !inputs.startTime || !inputs.location || !inputs.style) {
+      setError("Please fill in all required fields");
+      return;
+    }
 
     if (!auth.currentUser) {
       setError("You must be logged in to create an event");
@@ -66,46 +98,135 @@ export default function NewEvent({ setActivePage }) {
       if (!res.ok) throw new Error("Failed to create event");
 
       setSuccess("Event created successfully!");
-      navigate("/planner-dashboard");
+      setTimeout(() => navigate("/planner-dashboard"), 1500);
     } catch (err) {
-
-
-      
       console.error(err);
       setError(err.message);
     }
   };
 
   return (
-    <section className="page-container">
+    <section className="newevent-container">
+      <section className="back-button-container">
+        <button 
+          className="back-button"
+          onClick={() => setActivePage ? setActivePage('dashboard') : navigate('/planner-dashboard')}
+        >
+          ← Back to Dashboard
+        </button>
+      </section>
+      
       <section className="intro">
-        <h1 className="title">New Event</h1>
-        <p className="dashboard-subtitle">Input your event's details</p>
+        <h1 className="newevent-title">Create New Event</h1>
+        <p className="newevent-subtitle">Tell us about your event</p>
       </section>
 
-      <form className="main-content" onSubmit={handleSubmit}>
-        <input type="text" name="name" placeholder="Event Name" value={inputs.name} onChange={handleChange} />
-        <textarea name="description" placeholder="Description" value={inputs.description} onChange={handleChange} />
-        <input type="text" name="theme" placeholder="Theme" value={inputs.theme} onChange={handleChange} />
-        <input type="number" name="expectedGuestCount" placeholder="Attendees" value={inputs.expectedGuestCount} onChange={handleChange} />
-        <input type="text" name="location" placeholder="Location" value={inputs.location} onChange={handleChange} />
-        <input type="number" name="budget" placeholder="Budget (R)" value={inputs.budget} onChange={handleChange} />
-        <input type="number" name="duration" placeholder="Duration (hours)" value={inputs.duration} onChange={handleChange} />
-        <input type="text" name="eventCategory" placeholder="Category" value={inputs.eventCategory} onChange={handleChange} />
-        <textarea name="notes" placeholder="Notes" value={inputs.notes} onChange={handleChange} />
+      <form className="event-form" onSubmit={handleSubmit}>
+        <section className="form-group">
+          <label htmlFor="name">Event Name *</label>
+          <input 
+            type="text" 
+            id="name"
+            name="name" 
+            placeholder="Enter event name" 
+            value={inputs.name} 
+            onChange={handleChange}
+            required
+          />
+        </section>
 
-        <input type="text" placeholder="Special Requirements (comma separated)" onChange={e => handleArrayChange('specialRequirements', e.target.value)} />
-        <input type="text" placeholder="Style (comma separated)" onChange={e => handleArrayChange('style', e.target.value)} />
-        <input type="text" placeholder="Tasks (comma separated)" onChange={e => handleArrayChange('tasks', e.target.value)} />
-        <input type="text" placeholder="Vendoring Categories Needed (comma separated)" onChange={e => handleArrayChange('vendoringCategoriesNeeded', e.target.value)} />
+        <section className="form-group">
+          <label htmlFor="eventCategory">Event Category *</label>
+          <select 
+            id="eventCategory"
+            name="eventCategory" 
+            value={inputs.eventCategory} 
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select event category</option>
+            {eventCategories.map(category => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </section>
 
-        <input type="datetime-local" name="startTime" value={inputs.startTime || ""} onChange={handleChange} />
+        <section className="form-row">
+          <section className="form-group">
+            <label htmlFor="startTime">Date & Time *</label>
+            <input 
+              type="datetime-local" 
+              id="startTime"
+              name="startTime" 
+              value={inputs.startTime} 
+              onChange={handleChange}
+              required
+            />
+          </section>
 
-        <button type="submit" className="page-button">Save Event</button>
+          <section className="form-group">
+            <label htmlFor="duration">Duration (hours) *</label>
+            <input 
+              type="number" 
+              id="duration"
+              name="duration" 
+              min="1" 
+              max="24"
+              value={inputs.duration} 
+              onChange={handleChange}
+              required
+            />
+          </section>
+        </section>
+
+        <section className="form-group">
+          <label htmlFor="location">Location *</label>
+          <input 
+            type="text" 
+            id="location"
+            name="location" 
+            placeholder="Enter event location or select from map" 
+            value={inputs.location} 
+            onChange={handleChange}
+            required
+          />
+          <small className="form-hint">Start typing to search for locations</small>
+        </section>
+
+        <section className="form-group">
+          <label htmlFor="style">Event Style *</label>
+          <select 
+            id="style"
+            name="style" 
+            value={inputs.style} 
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select event style</option>
+            {eventStyles.map(style => (
+              <option key={style} value={style}>{style}</option>
+            ))}
+          </select>
+        </section>
+
+        <button type="submit" className="create-event-btn">
+          Create Event
+        </button>
       </form>
 
-      {error && <p className="error">{error}</p>}
-      {success && <p className="success">{success}</p>}
+      {error && (
+        <section className="message error-message">
+          <span className="message-icon">⚠</span>
+          {error}
+        </section>
+      )}
+      
+      {success && (
+        <section className="message success-message">
+          <span className="message-icon">✓</span>
+          {success}
+        </section>
+      )}
     </section>
   );
 }
