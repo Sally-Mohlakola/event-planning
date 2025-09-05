@@ -62,6 +62,9 @@ app.post('/vendor/apply', authenticate, async (req, res) => {
       category,
       address: address || 'None',
       profilePic: profilePicURL,
+
+
+      status: 'pending',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -282,9 +285,151 @@ app.post('/planner/signup', async (req, res) => {
     res.json({message: "Planner successfully created"});
 
   }
+
+
+
   catch(err){
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * @route   GET /api/admin/vendor-applications
+ * @desc    Get all vendor applications with a 'pending' status.
+ * @access  PUBLIC
+ */
+// --- CHANGE 1: Removed all middleware from this route ---
+app.get('/admin/vendor-applications', async (req, res) => {
+  try {
+    const snapshot = await db.collection('Vendor').where('status', '==', 'pending').get();
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    const applications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(applications);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while fetching applications' });
+  }
+});
+
+/**
+ * @route   PUT /api/admin/vendor-applications/:vendorId
+ * @desc    Approve or reject a vendor application.
+ * @access  PUBLIC
+ */
+// --- CHANGE 2: Removed all middleware from this route ---
+app.put('/admin/vendor-applications/:vendorId', async (req, res) => {
+  const { vendorId } = req.params;
+  const { status } = req.body;
+
+  if (!status || !['approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid status provided' });
+  }
+
+  try {
+    const vendorRef = db.collection('Vendor').doc(vendorId);
+    await vendorRef.update({ status: status });
+    res.json({ message: `Vendor application has been ${status}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while updating application' });
+  }
+});
+
+//Get the vendors for a particular event
+app.get('/planner/:eventId/vendors', authenticate, async (req, res) => {
+
+  try{
+    const eventId = req.params.eventId;
+    const snapshot = await db.collection("Event").doc(eventId).collection("Vendors").get();
+
+    if(snapshot.empty){
+      return res.json({message: "No vendors found for this event"});
+    }
+
+    const vendors = snapshot.docs.map(doc => ({id: doc.id, ...doc.data() }));
+    console.log(vendors);
+    res.json({eventId, vendors});
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({message: "Server error"});
+  }
+
+});
+
+//Get the guests for a particular event
+app.get('/planner/:eventId/guests', authenticate, async (req, res) =>{
+  try{
+
+    const eventId = req.params.eventId;
+    const snapshot = await db.collection("Event").doc(eventId).collection("Guests").get();
+
+    if(snapshot.empty){
+      return res.json({message: "No guests found for this event"});
+    }
+
+    const guests = snapshot.docs.map(doc => ({id: doc.id, ...doc.data() }));
+    console.log(guests);
+    res.json({eventId, guests});
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({message: "Server error"});
+  }
+});
+
+app.get('/admin/vendor-applications', async (req, res) => {
+  try {
+    const snapshot = await db.collection('Vendor').where('status', '==', 'pending').get();
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    const applications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(applications);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while fetching applications' });
+  }
+});
+
+
+app.put('/admin/vendor-applications/:vendorId', async (req, res) => {
+  const { vendorId } = req.params;
+  const { status } = req.body;
+
+  if (!status || !['approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid status provided' });
+  }
+
+  try {
+    const vendorRef = db.collection('Vendor').doc(vendorId);
+    await vendorRef.update({ status: status });
+    res.json({ message: `Vendor application has been ${status}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while updating application' });
+  }
+});
+
+
+
+app.get("/vendor/status", authenticate, async (req, res) => {
+  try {
+    const vendorRef = db.collection("Vendor").doc(req.uid); 
+    const doc = await vendorRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ message: "Vendor application not found" });
+    }
+
+    const { status } = doc.data();
+    return res.json({ status });
+  } catch (err) {
+    console.error("Error fetching vendor status:", err);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 

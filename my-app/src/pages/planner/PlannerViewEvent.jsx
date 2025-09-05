@@ -257,7 +257,7 @@ function TaskItem({taskName, taskStatus, onToggle}) {
 
 
 export default function PlannerViewEvent({event, setActivePage}) {
-
+    
     if(!event) {
         return <section>Loading Event...</section>;
     }

@@ -1,42 +1,30 @@
-// src/vendor/VendorApp.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
   Calendar,
-  MapPin,
-  FileText,
   ArrowLeft,
   Building2,
-  BarChart3
+  BarChart3,
+  House
 } from "lucide-react";
+import AdminHome from "./AdminHome.jsx";
+import "./Admin.css";
+import Reports from  "./Reports.jsx"
 
-//Paging imports
-import PlannerDashboard from "./PlannerDashboard";
-import PlannerVendorMarketplace from "./PlannerVendorMarketplace";
-
-//css import
-import "./PlannerApp.css";
-import PlannerViewEvent from "./PlannerViewEvent";
-import PlannerAllEvents from "./PlannerAllEvents";
-
-
-const PlannerApp = () => {
-
+const Admin = () => {
     
   //USing to page to the selected tab
-  const [activePage, setActivePage] = useState("dashboard");
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [activePage, setActivePage] = useState("home");
 
   const navigate = useNavigate();
     
   const navigationItems = [
-        {id: 'dashboard', label: 'Dashboard', icon: BarChart3},
-        {id: 'events', label: 'Events', icon: Calendar},
-        {id: 'vendor', label: 'Vendor Marketplace', icon: Users},
-        {id: 'guest management', label: 'Guest Management', icon: Users},
-        {id: 'floorplan', label: 'Floorplan', icon: MapPin},
-        {id: 'documents', label: 'Documents', icon: FileText},
+        {id: 'home', label: 'Home', icon: House},
+        {id: 'event-management', label: 'Event Management', icon: Calendar},
+        {id: 'planner-management', label: 'Planner Management', icon: Users},
+        {id: 'vendor-management', label: 'Vendor Management', icon: Users},
+        {id: 'reports', label: 'Reports & Detailed Analytics', icon: BarChart3},
     ];
 
   const renderPlaceholderPage = (pageTitle) => (
@@ -50,8 +38,8 @@ const PlannerApp = () => {
         <h1 className="placeholder-title">{pageTitle}</h1>
         <p className="placeholder-text">This page is coming soon. All the functionality will be built here.</p>
         <button 
-          onClick={() => setActivePage("dashboard")}
-          className="back-to-dashboard-btn"
+          onClick={() => setActivePage("home")}
+          className="back-to-home-btn"
         >
           Back to Dashboard
         </button>
@@ -61,34 +49,25 @@ const PlannerApp = () => {
 
   const renderCurrentPage = () => {
     switch (activePage) {
-      case "dashboard":
-        return <PlannerDashboard setActivePage={setActivePage} />;
-      case "events":
-        return <PlannerAllEvents setActivePage={setActivePage} onSelectEvent={onSelectEvent}/>;
-      case "vendor":
-        return <PlannerVendorMarketplace setActivePage={setActivePage}/>;
-      case "floorplan":
-        return renderPlaceholderPage("Floorplan View");
-      case "guest management":
-        return renderPlaceholderPage("Guest Management");
-      case "documents":
-        return renderPlaceholderPage("Document Management");
-      case "selected-event":
-        return <PlannerViewEvent event={selectedEvent} setActivePage={setActivePage}/>
+      case "home":
+        return <AdminHome setActivePage={setActivePage} />;
+      case "event-management":
+        return renderPlaceholderPage("Event Management");
+      case "planner-management":
+        return renderPlaceholderPage("Planner Management");
+      case "vendor-management":
+        return renderPlaceholderPage("vendor Management");
+      case "reports":
+        return <Reports setActivePage={setActivePage} />;
       default:
-        return <PlannerDashboard setActivePage={setActivePage} />;
+        return <AdminHome setActivePage={setActivePage} />;
     }
   };
 
-  const onSelectEvent = (event) => {
-    setSelectedEvent(event);
-    setActivePage("selected-event");
-  }
-
   return (
-    <section className="vendor-app">
+    <section className="admin-app">
       {/* Navigation Bar */}
-      <nav className="vendor-navbar">
+      <nav className="admin-navbar">
         <section className="navbar-container">
           <section className="navbar-content">
             <section className="navbar-left">
@@ -99,7 +78,7 @@ const PlannerApp = () => {
               
               <section className="vendor-logo">
                 <Building2 size={24} />
-                <section className="logo-text">Planner Home</section>
+                <section className="logo-text">Admin Home</section>
               </section>
             </section>
 
@@ -123,11 +102,11 @@ const PlannerApp = () => {
       </nav>
 
       {/* Main Content */}
-      <main className="vendor-main">
+      <main className="admin-main">
         {renderCurrentPage()}
       </main>
     </section>
   );
 };
 
-export default PlannerApp;
+export default Admin;

@@ -70,7 +70,7 @@ export default function VendorApply() {
     if (!res.ok) throw new Error(data.message || "Failed to submit");
 
     setSuccess("Application submitted successfully!");
-    navigate("/vendor-app");
+    navigate("/vendor/waiting");
   } catch (err) {
     console.error(err);
     setError(err.message);
