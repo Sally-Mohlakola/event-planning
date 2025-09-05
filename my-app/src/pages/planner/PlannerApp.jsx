@@ -18,6 +18,7 @@ import PlannerVendorMarketplace from "./PlannerVendorMarketplace";
 //css import
 import "./PlannerApp.css";
 import PlannerViewEvent from "./PlannerViewEvent";
+import PlannerAllEvents from "./PlannerAllEvents";
 
 
 const PlannerApp = () => {
@@ -25,6 +26,7 @@ const PlannerApp = () => {
     
   //USing to page to the selected tab
   const [activePage, setActivePage] = useState("dashboard");
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const navigate = useNavigate();
     
@@ -62,7 +64,7 @@ const PlannerApp = () => {
       case "dashboard":
         return <PlannerDashboard setActivePage={setActivePage} />;
       case "events":
-        return <PlannerViewEvent />;
+        return <PlannerAllEvents setActivePage={setActivePage} onSelectEvent={onSelectEvent}/>;
       case "vendor":
         return <PlannerVendorMarketplace setActivePage={setActivePage}/>;
       case "floorplan":
@@ -71,10 +73,17 @@ const PlannerApp = () => {
         return renderPlaceholderPage("Guest Management");
       case "documents":
         return renderPlaceholderPage("Document Management");
+      case "selected-event":
+        return <PlannerViewEvent event={selectedEvent} setActivePage={setActivePage}/>
       default:
         return <PlannerDashboard setActivePage={setActivePage} />;
     }
   };
+
+  const onSelectEvent = (event) => {
+    setSelectedEvent(event);
+    setActivePage("selected-event");
+  }
 
   return (
     <section className="vendor-app">
