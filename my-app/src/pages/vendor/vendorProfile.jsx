@@ -8,22 +8,28 @@ const VendorProfile = () => {
   const navigate = useNavigate();
   const [vendor, setVendor] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageVersion, setImageVersion] = useState(Date.now()); // cache buster for profile pic
 
   const navProfileEdit = () => navigate("/vendor/vendor-edit-profile");
 
-   useEffect(() => {
-    if (loading) {
-      window.scrollTo(0, 0);             // jump to top
-      document.body.style.overflow = "hidden"; // lock scrolling
-    } else {
-      document.body.style.overflow = "auto";   // unlock scrolling
+  const fetchVendor = async () => {
+    if (!auth.currentUser) return;
+    setLoading(true);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch vendor profile");
+      const data = await res.json();
+      setVendor(data);
+      setImageVersion(Date.now()); // refresh image
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-
-    // Cleanup if component unmounts while loading
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [loading]);
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -31,39 +37,29 @@ const VendorProfile = () => {
         setLoading(false);
         return;
       }
-
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/me", {
-          headers: {  
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) throw new Error("Failed to fetch vendor profile");
-        const data = await res.json();
-        setVendor(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+      await fetchVendor();
     });
 
     return () => unsubscribe();
   }, []);
 
-  if (loading) {
-    
-  return (
-    <div className="loading-screen">
-      <div className="spinner"></div>
-      <p>Loading your profile...</p>
-    </div>
-  );
-}
+  // Trigger a refresh when coming back from the edit page
+  useEffect(() => {
+    const handleFocus = () => fetchVendor();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
 
-  if (!vendor) return <p id = "no-profile-found">No vendor profile found.</p>;
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Loading your profile...</p>
+      </div>
+    );
+  }
+
+  if (!vendor) return <p id="no-profile-found">No vendor profile found.</p>;
 
   return (
     <div className="vendor-profile">
@@ -73,21 +69,22 @@ const VendorProfile = () => {
           <h1 className="profile-title">Vendor Profile</h1>
           <p className="profile-subtitle">Manage your business profile and services</p>
         </div>
-
         <button className="edit-profile-btn" onClick={navProfileEdit}>
           <Edit size={16} /> Edit Profile
         </button>
       </div>
 
-        {/* Profile Image Circle on the Right */}
-        <div className="profile-image-circle">
-          <img
-            src={vendor.profilePic || "/default-avatar.png"}
-            alt="Vendor"
-          />
-        </div>
-
-     
+      {/* Profile Image Circle */}
+      <div className="profile-image-circle">
+        <img
+          src={
+            vendor.profilePic
+              ? `${vendor.profilePic}?v=${imageVersion}` // cache-buster query param
+              : "/default-avatar.png"
+          }
+          alt="Vendor"
+        />
+      </div>
 
       {/* Small Summary Cards */}
       <div className="profile-summary-cards">

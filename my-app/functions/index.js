@@ -38,7 +38,8 @@ async function authenticate(req, res, next) {
   }
 }
 
-
+//VENDOR
+//=============================================
 app.post('/vendor/apply', authenticate, async (req, res) => {
   try {
     const { businessName, phone, email, description, category, address, profilePic } = req.body;
@@ -75,18 +76,6 @@ app.post('/vendor/apply', authenticate, async (req, res) => {
 
 
 
-app.get('/vendor/me', authenticate, async (req, res) => {
-  try {
-
-    const doc = await db.collection('Vendor').doc(req.uid).get();
-    if (!doc.exists) return res.status(404).json({ message: 'Vendor not found ' });
-    res.json(doc.data());
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 
 app.get('/vendor/me', authenticate, async (req, res) => {
   try {
@@ -107,6 +96,35 @@ app.get('/vendor/me', authenticate, async (req, res) => {
   }
 });
 
+app.put('/vendor/me', authenticate, async (req, res) => {
+  try {
+    const { description, address, phone, email, profilePic } = req.body;
+    let profilePicURL = '';
+
+    if (profilePic) {
+      const buffer = Buffer.from(profilePic, 'base64');
+      const fileRef = bucket.file(`Vendor/${req.uid}/profile.jpg`);
+      await fileRef.save(buffer, { contentType: 'image/jpeg' });
+      await fileRef.makePublic();
+      profilePicURL = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+    }
+
+    await db.collection('Vendor').doc(req.uid).update({
+      description,
+      address,
+      phone,
+      email,
+      ...(profilePicURL && { profilePic: profilePicURL }),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+//==============================================================
 
 app.post('/event/apply', authenticate, async (req, res) => {
   try {
