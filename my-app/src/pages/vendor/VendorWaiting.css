@@ -1,0 +1,55 @@
+/* src/vendor/VendorWaiting.css */
+
+.vendor-waiting-section {
+  position: relative;          /* allow content layering */
+  top: 0;                      /* start at top of page */
+  left: 0;
+  width: 100%;
+  min-height: 100vh;           /* full viewport height */
+  background-color: var(--dashboard-bg, #f5f7fb);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  box-sizing: border-box;
+  z-index: 1;                  /* behind navbar */
+}
+
+/* Ensure navbar is above */
+.navbar {
+  position: relative;
+  z-index: 10;
+}
+
+
+.vendor-waiting-section h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.vendor-waiting-section p {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+  max-width: 500px;
+}
+
+.vendor-waiting-section button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  background: linear-gradient(100deg, #1d4ed8, #7c3aed);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.vendor-waiting-section button:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../firebase"; 
@@ -12,6 +11,20 @@ const VendorProfile = () => {
 
   const navProfileEdit = () => navigate("/vendor/vendor-edit-profile");
 
+   useEffect(() => {
+    if (loading) {
+      window.scrollTo(0, 0);             // jump to top
+      document.body.style.overflow = "hidden"; // lock scrolling
+    } else {
+      document.body.style.overflow = "auto";   // unlock scrolling
+    }
+
+    // Cleanup if component unmounts while loading
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [loading]);
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
@@ -23,9 +36,6 @@ const VendorProfile = () => {
         const token = await user.getIdToken();
         const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/me", {
           headers: {  
-
-
-
             Authorization: `Bearer ${token}`,
           },
         });
@@ -43,21 +53,41 @@ const VendorProfile = () => {
     return () => unsubscribe();
   }, []);
 
-  if (loading) return <p>Loading vendor profile...</p>;
-  if (!vendor) return <p>No vendor profile found.</p>;
+  if (loading) {
+    
+  return (
+    <div className="loading-screen">
+      <div className="spinner"></div>
+      <p>Loading your profile...</p>
+    </div>
+  );
+}
+
+  if (!vendor) return <p id = "no-profile-found">No vendor profile found.</p>;
 
   return (
     <div className="vendor-profile">
       {/* Header */}
       <div className="profile-header">
         <div>
-          <h1 className="profile-title">{"Vendor Profile"}</h1>
-          <p className="profile-subtitle">{"Manage your business profile and services"}</p>
+          <h1 className="profile-title">Vendor Profile</h1>
+          <p className="profile-subtitle">Manage your business profile and services</p>
         </div>
+
         <button className="edit-profile-btn" onClick={navProfileEdit}>
           <Edit size={16} /> Edit Profile
         </button>
       </div>
+
+        {/* Profile Image Circle on the Right */}
+        <div className="profile-image-circle">
+          <img
+            src={vendor.profilePic || "/default-avatar.png"}
+            alt="Vendor"
+          />
+        </div>
+
+     
 
       {/* Small Summary Cards */}
       <div className="profile-summary-cards">

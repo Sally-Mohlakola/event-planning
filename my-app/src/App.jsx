@@ -6,6 +6,7 @@ import Home from './pages/Home.jsx';
 import PlannerApp from './pages/planner/PlannerApp.jsx'
 import Admin from './pages/admin/Admin.jsx';
 import PlannerDashboard from './pages/planner/PlannerDashboard.jsx';
+import PlannerContract from './pages/planner/PlannerContract.jsx';
 import PlannerManagement from './pages/admin/PlannerManagement.jsx';
 import EventManagement from './pages/admin/EventManagement.jsx';
 import VendorManagement from './pages/admin/VendorManagement.jsx';
@@ -45,6 +46,7 @@ function App() {
 
         <Route path='/planner/new-event' element={<NewEvent/>}/>
         <Route path="/vendor/waiting" element={<VendorWaiting />} />
+        <Route path="/planner/contracts" element={<PlannerContract/>}/>
 
      
 
