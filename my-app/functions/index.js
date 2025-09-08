@@ -76,7 +76,7 @@ app.post('/vendor/apply', authenticate, async (req, res) => {
 
 
 
-
+// Get the vendor profile
 app.get('/vendor/me', authenticate, async (req, res) => {
   try {
     const doc = await db.collection('Vendor').doc(req.uid).get();
@@ -96,6 +96,7 @@ app.get('/vendor/me', authenticate, async (req, res) => {
   }
 });
 
+// Update the vendor's profile
 app.put('/vendor/me', authenticate, async (req, res) => {
   try {
     const { description, address, phone, email, profilePic } = req.body;
@@ -124,6 +125,38 @@ app.put('/vendor/me', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+
+//Get the vendor bookings from the Event collection
+app.get('/vendor/bookings', authenticate, async (req, res) => {
+  try {
+    const vendorID = req.uid;
+    const eventsSnapshot = await db.collection("Event").get();
+    const vendorEvents = [];
+
+    for (const eventDoc of eventsSnapshot.docs) {
+      const vendorsRef = db.collection("Event").doc(eventDoc.id).collection("Vendors").doc(vendorID);
+      const vendorDoc = await vendorsRef.get();
+      if (vendorDoc.exists) {
+        const eventData = eventDoc.data();
+        vendorEvents.push({
+          eventId: eventDoc.id,
+          eventName: eventData.name,
+          date: eventData.date,
+          location: eventData.location,
+          vendorServices: vendorDoc.data().vendoringCategoriesNeeded || [], // services map for this vendor
+          status: vendorDoc.data().status || "pending",     // optional overall status
+        });
+      }
+    }
+
+    res.json({ vendorID, bookings: vendorEvents });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
 //==============================================================
 
 app.post('/event/apply', authenticate, async (req, res) => {
