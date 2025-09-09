@@ -294,6 +294,40 @@ app.post('/planner/signup', async (req, res) => {
   }
 });
 
+//Import guests
+app.post('/planner/events/:eventId/guests/import', authenticate, async (req, res) => {
+  try{
+    const eventId = req.params.eventId;
+    const { guests } = req.body;
+
+    //Validate guest data
+    const validGuests = guests.filter(guest => 
+      guest.email && guest.firstname
+    ).map(guest => ({
+      firstname: guest.firstname?.trim(),
+      lastname: guest.lastname?.trim() || '',
+      email: guest.email?.toLowerCase().trim(),
+      rsvpStatus: 'pending'
+    }));
+
+    // Batch write to Firestore
+    const batch = db.batch();
+    const guestCollection = db.collection('Event').doc(eventId).collection('Guests');
+    
+    validGuests.forEach(guest => {
+      const guestRef = guestCollection.doc();
+      batch.set(guestRef, guest);
+    });
+
+    await batch.commit();
+    return res.status(200).json({ success: true, imported: validGuests.length });
+  }
+  catch{
+    console.error(error);
+    return res.status(500).json({message: "Internal Server Error"});
+  }
+});
+
 /**
  * @route   GET /api/admin/vendor-applications
  * @desc    Get all vendor applications with a 'pending' status.

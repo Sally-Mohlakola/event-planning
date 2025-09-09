@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import "./PlannerViewEvent.css";
 import { getAuth } from 'firebase/auth';
+import Papa from 'papaparse';
 
+//Code for the pop up when manually adding a guest **********
 function AddGuestPopup({ isOpen, onClose, onSave }) {
 
     const guestTags = [
@@ -87,7 +89,7 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
                     <h3>Add Guest</h3>
                     <button className="close-btn" onClick={handleClose}>×</button>
                 </section>
-                <div onSubmit={handleSubmit} className="guest-form">
+                <section onSubmit={handleSubmit} className="guest-form">
                     <section className="form-row">
                         <label>
                             First Name *
@@ -175,12 +177,14 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
                             Add Guest
                         </button>
                     </section>
-                </div>
+                </section>
             </section>
         </section>
     );
 }
+//End of code for the pop up when manually adding a guest **********
 
+//Code for Guest RSVP Summary Bar **********
 function GuestRSVPSummary({guests}) {
     const totalGuests = guests.length;
     const confirmedGuests = guests.filter(g => g.rsvpStatus === 'attending').length;
@@ -216,7 +220,9 @@ function GuestRSVPSummary({guests}) {
         </section>
     );
 }
+//End of code for guest RSVP summary bar *********
 
+//Code for one vendor list item **********
 function VendorItem({vendor}) {
     return(
         <section className="vendor-item">
@@ -235,7 +241,9 @@ function VendorItem({vendor}) {
         </section>
     );
 }
+//End of code for one vendor list item **********
 
+//Code for one task list item **********
 function TaskItem({taskName, taskStatus, onToggle}) {
     const isCompleted = taskStatus === true;
     
@@ -254,7 +262,9 @@ function TaskItem({taskName, taskStatus, onToggle}) {
         </section>
     );
 }
+//End of code for one task list item **********
 
+//Code for prompt card (No Guests, No vendors, No tasks) (Or Guest Summary, Vendor Summary)
 function PromptCard({ title, message, buttonText, onClick, icon }) {
     return (
         <section className="prompt-card">
@@ -269,6 +279,144 @@ function PromptCard({ title, message, buttonText, onClick, icon }) {
         </section>
     );
 }
+//End of code for prompt card
+
+//Code for importing a guest list
+function GuestImportWithValidation({ eventId, onImportComplete }) {
+  const [preview, setPreview] = useState([]);
+  const [errors, setErrors] = useState([]);
+  const fileInputRef = useRef(null);
+
+  // Trigger the hidden file input
+  const handleButtonClick = () => fileInputRef.current.click();
+
+  const validateGuests = (guests) => {
+    const validationErrors = [];
+    const validGuests = [];
+
+    guests.forEach((guest, index) => {
+      const rowErrors = [];
+
+      if (!guest.email) rowErrors.push("Email required");
+      else if (!/\S+@\S+\.\S+/.test(guest.email)) rowErrors.push("Invalid email");
+
+      if (!guest.firstname) rowErrors.push("First name required");
+
+      if (rowErrors.length > 0) {
+        validationErrors.push({ row: index + 1, errors: rowErrors });
+      } else {
+        validGuests.push(guest);
+      }
+    });
+
+    setErrors(validationErrors);
+    return validGuests;
+  };
+
+  const processFile = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, ""),
+      complete: (results) => {
+        const validGuests = validateGuests(results.data);
+        setPreview(validGuests);
+      },
+    });
+  };
+
+  const importGuests = async (guestData) => {
+    const auth = getAuth();
+    const token = await auth.currentUser.getIdToken();
+
+    const response = await fetch(
+      `http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/events/${eventId}/guests/import`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ guests: guestData }),
+      }
+    );
+
+    if (!response.ok) throw new Error("Import failed");
+    onImportComplete();
+  };
+
+  return (
+    <section className="guest-import-overlay">
+      <section className="guest-import-modal">
+        <header className="guest-import-header">
+          <h2>Import Guests from CSV</h2>
+          <button className="guest-import-close-btn" onClick={onImportComplete}>
+            &times;
+          </button>
+        </header>
+
+        <section className="guest-import-body">
+          <button className="guest-import-select-btn" onClick={handleButtonClick}>
+            Select CSV File
+          </button>
+          <input
+            type="file"
+            accept=".csv,.xlsx"
+            ref={fileInputRef}
+            className="guest-import-file-input"
+            onChange={processFile}
+          />
+
+          {errors.length > 0 && (
+            <section className="guest-import-errors">
+              <h4>Validation Errors:</h4>
+              {errors.map((error) => (
+                <p key={error.row}>
+                  Row {error.row}: {error.errors.join(", ")}
+                </p>
+              ))}
+            </section>
+          )}
+
+          {preview.length > 0 && (
+            <section className="guest-import-preview">
+              <h4>Preview ({preview.length} guests)</h4>
+              <table className="guest-import-table">
+                <thead>
+                  <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.slice(0, 5).map((guest, i) => (
+                    <tr key={i}>
+                      <td>{guest.firstname}</td>
+                      <td>{guest.lastname}</td>
+                      <td>{guest.email}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button
+                className="guest-import-confirm-btn"
+                onClick={() => importGuests(preview)}
+              >
+                Import {preview.length} Guests
+              </button>
+            </section>
+          )}
+        </section>
+      </section>
+    </section>
+  );
+}
+
+//End of code for importing a guest list
 
 export default function PlannerViewEvent({event, setActivePage}) {
     
@@ -282,6 +430,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
     const [vendors, setVendors] = useState([]);
     const [eventData, setEventData] = useState(event);
     const [showAddGuestPopup, setShowAddGuestPopup] = useState(false);
+    const [showImportGuestPopup, setShowImportGuestPopup] = useState(false);
 
     const [editForm, setEditForm] = useState({...eventData});
 
@@ -609,7 +758,6 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                     
                                     {vendors.length === 0 && (
                                         <PromptCard
-                                            icon="🏪"
                                             title="No Vendors Yet"
                                             message="Your event doesn't have any vendors yet. Add vendors to manage services, catering, and suppliers."
                                             buttonText="Add Vendors"
@@ -619,7 +767,6 @@ export default function PlannerViewEvent({event, setActivePage}) {
 
                                     {(!eventData.tasks || Object.keys(eventData.tasks).length === 0) && (
                                         <PromptCard
-                                            icon="✅"
                                             title="No Tasks Yet"
                                             message="Create a task list to stay organized and track your event planning progress."
                                             buttonText="Add Tasks"
@@ -661,18 +808,25 @@ export default function PlannerViewEvent({event, setActivePage}) {
                             <section className="guests-section">
                                 <section className="guests-header">
                                     <h3>Guest List</h3>
+                                    <button className="add-guest-btn" onClick={() => setShowImportGuestPopup(true)}>+ Add Guests from CSV</button>
                                     <button className="add-guest-btn" onClick={() => setShowAddGuestPopup(true)}>+ Add Guest</button>
                                 </section>
 
-                                 {
-                                    showAddGuestPopup === true && (
+                                {showImportGuestPopup && (
+                                    <GuestImportWithValidation
+                                        eventId={eventId}
+                                        onImportComplete={() => {
+                                        setShowImportGuestPopup(false); // hide after import completes
+                                        }}
+                                    />
+                                )}
+
+                                {showAddGuestPopup && (
                                         <section>
                                             <AddGuestPopup isOpen={true} onClose={() => setShowAddGuestPopup(false)} onSave={onSave}/>
                                         </section>
-                                    )
-                                }
+                                    )}
                                 
-                               
                                 <section className="guests-list">
                                     {guests.length > 0 ? guests.map((guest) => (
                                         <section key={guest.id} className="guest-item">
