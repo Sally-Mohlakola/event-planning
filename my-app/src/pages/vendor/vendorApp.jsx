@@ -16,6 +16,7 @@ import VendorProfile from "./vendorProfile";
 import VendorBooking from "./vendorBooking";
 import "./vendorApp.css";
 import VendorReviews from "./vendorReviews";
+import VendorContract from "./VendorContract";
 
 const VendorApp = () => {
   const [activePage, setActivePage] = useState("dashboard");
@@ -66,7 +67,7 @@ const VendorApp = () => {
       case "reviews":
         return <VendorReviews setActivePage={setActivePage}/>;
       case "contracts":
-        return renderPlaceholderPage("Contracts Management");
+        return <VendorContract setActivePage={setActivePage} />;
       default:
         return <VendorDashboard setActivePage={setActivePage} />;
     }
