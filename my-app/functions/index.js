@@ -10,13 +10,15 @@ admin.initializeApp();
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
+//import { doc, setDoc } from 'firebase/firestore';
+
 const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173',
 
     'https://witty-stone-03009b61e.1.azurestaticapps.net'
-  ]
+  ],
 }));
 app.use(express.json());
 
@@ -231,6 +233,83 @@ app.get('/planner/me/events', authenticate, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+//Get the guests for a particular event
+app.get('/planner/:eventId/guests', authenticate, async (req, res) =>{
+  try{
+
+    const eventId = req.params.eventId;
+    const snapshot = await db.collection("Event").doc(eventId).collection("Guests").get();
+
+    if(snapshot.empty){
+      return res.json({message: "No guests found for this event"});
+    }
+
+    const guests = snapshot.docs.map(doc => ({id: doc.id, ...doc.data() }));
+    res.json({eventId, guests});
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({message: "Server error"});
+  }
+});
+
+//Get the vendors for a particular event
+app.get('/planner/:eventId/vendors', authenticate, async (req, res) => {
+
+  try{
+    const eventId = req.params.eventId;
+    const snapshot = await db.collection("Event").doc(eventId).collection("Vendors").get();
+
+    if(snapshot.empty){
+      return res.json({message: "No vendors found for this event"});
+    }
+
+    const vendors = snapshot.docs.map(doc => ({id: doc.id, ...doc.data() }));
+    res.json({eventId, vendors});
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({message: "Server error"});
+  }
+
+});
+
+//Updates the information of an event
+app.put('/planner/me/:eventId', authenticate, async (req, res) => {
+  try{
+      const eventId = req.params.eventId;
+      const updatedEventData = req.body;
+
+      await db.collection("Event").doc(eventId).update(updatedEventData);
+
+      res.json({message: "Event updated successfully"});
+
+
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({message: "Server error"});
+  }
+});
+
+//Create a guest manually
+app.post('/planner/me/:eventId/guests', authenticate, async (req, res) => {
+
+  try{
+    const eventId = req.params.eventId;
+    const guestDetails = req.body;
+
+    await db.collection("Event").doc(eventId).collection("Guests").add(guestDetails);
+
+    res.json({message: "Guest added successfully"});
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).json({message: "Server error"});
   }
 });
 
