@@ -328,6 +328,53 @@ app.post('/planner/events/:eventId/guests/import', authenticate, async (req, res
   }
 });
 
+//Fetch and filter best vendors
+//Will perhaps make logic more complex in the future
+app.get('/planner/events/:eventId/bestvendors', authenticate, async (req, res) => {
+try {
+    const eventId = req.params.eventId;
+    if (!eventId) {
+      return res.status(400).json({ error: "eventId is required" });
+    }
+
+    // Fetch the event document to get its category
+    const eventSnap = await db.collection("Event").doc(eventId).get();
+    if (!eventSnap.exists) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    const event = eventSnap.data();
+    const category = event.eventCategory;
+
+    // Fetch approved vendors
+    const vendorSnap = await db
+      .collection("Vendor")
+      .where("status", "==", "approved")
+      .get();
+
+    if (vendorSnap.empty) return res.status(200).json({ vendors: [] });
+
+    const vendors = vendorSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Apply scoring
+    const scoredVendors = vendors.map(vendor => {
+      let score = 0;
+      if (vendor.category && vendor.category.toLowerCase() === category.toLowerCase()) score += 50;
+      if (vendor.profilePic && vendor.profilePic.trim() !== "") score += 20;
+      if (vendor.description && vendor.description.trim() !== "") score += 20;
+      if (vendor.businessName && vendor.businessName.trim() !== "") score += 10;
+      return { ...vendor, score };
+    });
+
+    const sortedVendors = scoredVendors.sort((a, b) => b.score - a.score);
+
+    res.status(200).json({ vendors: sortedVendors });
+  } catch (err) {
+    console.error("Error matching vendors:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 /**
  * @route   GET /api/admin/vendor-applications
  * @desc    Get all vendor applications with a 'pending' status.

@@ -66,7 +66,7 @@ const PlannerApp = () => {
       case "events":
         return <PlannerAllEvents setActivePage={setActivePage} onSelectEvent={onSelectEvent}/>;
       case "vendor":
-        return <PlannerVendorMarketplace setActivePage={setActivePage}/>;
+        return <PlannerVendorMarketplace setActivePage={setActivePage} event={selectedEvent}/>;
       case "floorplan":
         return renderPlaceholderPage("Floorplan View");
       case "guest management":
@@ -74,7 +74,7 @@ const PlannerApp = () => {
       case "documents":
         return renderPlaceholderPage("Document Management");
       case "selected-event":
-        return <PlannerViewEvent event={selectedEvent} setActivePage={setActivePage}/>
+        return <PlannerViewEvent event={selectedEvent} onOpenMarketplace={onOpenMarketplace} setActivePage={setActivePage}/>
       default:
         return <PlannerDashboard setActivePage={setActivePage} />;
     }
@@ -83,6 +83,10 @@ const PlannerApp = () => {
   const onSelectEvent = (event) => {
     setSelectedEvent(event);
     setActivePage("selected-event");
+  }
+
+  const onOpenMarketplace = () => {
+    setActivePage("vendor-marketplace");
   }
 
   return (

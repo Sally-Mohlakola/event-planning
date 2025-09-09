@@ -265,10 +265,9 @@ function TaskItem({taskName, taskStatus, onToggle}) {
 //End of code for one task list item **********
 
 //Code for prompt card (No Guests, No vendors, No tasks) (Or Guest Summary, Vendor Summary)
-function PromptCard({ title, message, buttonText, onClick, icon }) {
+function PromptCard({ title, message, buttonText, onClick}) {
     return (
         <section className="prompt-card">
-            <section className="prompt-icon">{icon}</section>
             <section className="prompt-content">
                 <h4>{title}</h4>
                 <p>{message}</p>
@@ -418,7 +417,7 @@ function GuestImportWithValidation({ eventId, onImportComplete }) {
 
 //End of code for importing a guest list
 
-export default function PlannerViewEvent({event, setActivePage}) {
+export default function PlannerViewEvent({event, setActivePage, onOpenMarketplace}) {
     
     if(!event) {
         return <section>Loading Event...</section>;
@@ -752,7 +751,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                             title="No Guests Yet"
                                             message="Your event doesn't have any guests yet. Start building your guest list to manage RSVPs and attendance."
                                             buttonText="Add Guests"
-                                            onClick={() => setActiveTab("guests")}
+                                            onClick={() => { setShowImportGuestPopup(true); setActiveTab("guests")}}
                                         />
                                     )}
                                     
