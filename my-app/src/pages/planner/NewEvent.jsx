@@ -91,7 +91,12 @@ export default function NewEvent({ setActivePage }) {
         body: JSON.stringify({
           ...inputs,
           plannerId: auth.currentUser.uid,
-          date: inputs.startTime
+          date: inputs.startTime,
+          description: "",
+          theme: "",
+          budget: null,
+          expectedGuestCount: null,
+          notes: ""
         })
       });
 
@@ -209,7 +214,7 @@ export default function NewEvent({ setActivePage }) {
           </select>
         </section>
 
-        <button type="submit" className="create-event-btn">
+        <button type="submit" className="create-event-btn" onClick={handleSubmit}>
           Create Event
         </button>
       </form>

@@ -87,7 +87,7 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
                     <h3>Add Guest</h3>
                     <button className="close-btn" onClick={handleClose}>×</button>
                 </section>
-                <form onSubmit={handleSubmit} className="guest-form">
+                <div onSubmit={handleSubmit} className="guest-form">
                     <section className="form-row">
                         <label>
                             First Name *
@@ -171,11 +171,11 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
                         <button type="button" className="cancel-form-btn" onClick={handleClose}>
                             Cancel
                         </button>
-                        <button type="submit" className="save-form-btn">
+                        <button type="submit" className="save-form-btn" onClick={handleSubmit}>
                             Add Guest
                         </button>
                     </section>
-                </form>
+                </div>
             </section>
         </section>
     );
@@ -255,6 +255,20 @@ function TaskItem({taskName, taskStatus, onToggle}) {
     );
 }
 
+function PromptCard({ title, message, buttonText, onClick, icon }) {
+    return (
+        <section className="prompt-card">
+            <section className="prompt-icon">{icon}</section>
+            <section className="prompt-content">
+                <h4>{title}</h4>
+                <p>{message}</p>
+                <button className="prompt-btn" onClick={onClick}>
+                    {buttonText}
+                </button>
+            </section>
+        </section>
+    );
+}
 
 export default function PlannerViewEvent({event, setActivePage}) {
     
@@ -473,13 +487,14 @@ export default function PlannerViewEvent({event, setActivePage}) {
                     {activeTab === "overview" && (
                         <section className="overview-content">
                             <section className="overview-grid">
+                                {/* Basic Event Details */}
                                 <section className="detail-card">
                                     <h3>Event Details</h3>
                                     {!isEditing ? (
                                         <section className="detail-info">
                                             <p><strong>Location:</strong> {eventData.location}</p>
                                             <p><strong>Date:</strong> {formatDate(eventData.date)}</p>
-                                            <p><strong>Duration: </strong> {eventData.duration} hrs </p>
+                                            <p><strong>Duration:</strong> {eventData.duration} hrs</p>
                                             <p><strong>Expected Attendees:</strong> {eventData.expectedGuestCount}</p>
                                             <p><strong>Category:</strong> {eventData.eventCategory}</p>
                                         </section>
@@ -528,6 +543,111 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                         </section>
                                     )}
                                 </section>
+
+                                {/* Additional Event Details */}
+                                <section className="detail-card">
+                                    <h3>Event Specifications</h3>
+                                    {!isEditing ? (
+                                        <section className="detail-info">
+                                            <p><strong>Style:</strong> {eventData.eventStyle || 'Not specified'}</p>
+                                            <p><strong>Budget:</strong> {eventData.budget ? `$${eventData.budget}` : 'Not set'}</p>
+                                            <p><strong>Special Requirements:</strong> {eventData.specialRequirements || 'None'}</p>
+                                            <p><strong>Notes:</strong> {eventData.notes || 'No additional notes'}</p>
+                                        </section>
+                                    ) : (
+                                        <section className="edit-form">
+                                            <label>
+                                                Style:
+                                                <input 
+                                                    type="text"
+                                                    value={editForm.eventStyle || ''}
+                                                    onChange={(e) => setEditForm({...editForm, eventStyle: e.target.value})}
+                                                    placeholder="e.g., Formal, Casual, Modern, Rustic"
+                                                />
+                                            </label>
+                                            <label>
+                                                Budget:
+                                                <input 
+                                                    type="number"
+                                                    value={editForm.budget || ''}
+                                                    onChange={(e) => setEditForm({...editForm, budget: e.target.value})}
+                                                    placeholder="Total budget amount"
+                                                />
+                                            </label>
+                                            <label>
+                                                Special Requirements:
+                                                <textarea 
+                                                    value={editForm.specialRequirements || ''}
+                                                    onChange={(e) => setEditForm({...editForm, specialRequirements: e.target.value})}
+                                                    placeholder="Accessibility needs, dietary restrictions, equipment requirements..."
+                                                    rows="3"
+                                                />
+                                            </label>
+                                            <label>
+                                                Notes:
+                                                <textarea 
+                                                    value={editForm.notes || ''}
+                                                    onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                                                    placeholder="Additional notes, ideas, or reminders..."
+                                                    rows="3"
+                                                />
+                                            </label>
+                                        </section>
+                                    )}
+                                </section>
+
+                                {/* Action Prompts */}
+                                <section className="action-prompts">
+                                    {guests.length === 0 && (
+                                        <PromptCard
+                                            title="No Guests Yet"
+                                            message="Your event doesn't have any guests yet. Start building your guest list to manage RSVPs and attendance."
+                                            buttonText="Add Guests"
+                                            onClick={() => setActiveTab("guests")}
+                                        />
+                                    )}
+                                    
+                                    {vendors.length === 0 && (
+                                        <PromptCard
+                                            icon="🏪"
+                                            title="No Vendors Yet"
+                                            message="Your event doesn't have any vendors yet. Add vendors to manage services, catering, and suppliers."
+                                            buttonText="Add Vendors"
+                                            onClick={() => setActiveTab("vendors")}
+                                        />
+                                    )}
+
+                                    {(!eventData.tasks || Object.keys(eventData.tasks).length === 0) && (
+                                        <PromptCard
+                                            icon="✅"
+                                            title="No Tasks Yet"
+                                            message="Create a task list to stay organized and track your event planning progress."
+                                            buttonText="Add Tasks"
+                                            onClick={() => setActiveTab("tasks")}
+                                        />
+                                    )}
+                                </section>
+
+                                {/* Event Summary Cards */}
+                                {(guests.length > 0 || vendors.length > 0) && (
+                                    <section className="summary-cards">
+                                        {guests.length > 0 && (
+                                            <section className="summary-card">
+                                                <h4>Guest Summary</h4>
+                                                <p>{guests.length} total guests</p>
+                                                <p>{guests.filter(g => g.rsvpStatus === 'attending').length} confirmed</p>
+                                            </section>
+                                        )}
+                                        
+                                        {vendors.length > 0 && (
+                                            <section className="summary-card">
+                                                <h4>Vendor Summary</h4>
+                                                <p>{vendors.length} vendors booked</p>
+                                                <p>Total cost: ${vendors.reduce((sum, v) => sum + (parseFloat(v.cost) || 0), 0).toFixed(2)}</p>
+                                            </section>
+                                        )}
+                                    </section>
+                                )}
                             </section>
                         </section>
                     )}
