@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getAuth } from 'firebase/auth';
 
 import "./PlannerVendorMarketplace.css";
 
 function VendorCard({vendor}){
     return(
         <section className="vendor-card">
-            <img src={vendor.logoUrl} alt={vendor.name} className="vendor-image"/>
+            <img src={vendor.profilePic} alt={vendor.businessName} className="vendor-image"/>
             <h3>{vendor.name}</h3>
             <section className="vendor-info">
                 <p className="vendor-category">{vendor.category}</p>
@@ -22,22 +23,42 @@ function VendorCard({vendor}){
     );
 }
 
-export default function PlannerVendorMarketplace({setActivePage}){
+export default function PlannerVendorMarketplace({event, plannerId, setActivePage}){
     const [showAllEvents, setShowAllEvents] = useState(true);
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
+    const [vendors, setVendors] = useState([]);
 
-    const dummyVendors = [
-        { id: 1, name: "Sweet Treats Catering", category: "Catering", rating: 4.7, location: "Cape Town", logoUrl: "https://picsum.photos/100?random=1" },
-        { id: 2, name: "Elite Sound Systems", category: "Entertainment", rating: 4.5, location: "Johannesburg", logoUrl: "https://picsum.photos/100?random=2" },
-        { id: 3, name: "Glam Decor", category: "Decor", rating: 4.8, location: "Durban", logoUrl: "https://picsum.photos/100?random=3" },
-        { id: 4, name: "Bright Lights Photography", category: "Photography", rating: 4.9, location: "Pretoria", logoUrl: "https://picsum.photos/100?random=4" },
-        { id: 5, name: "Floral Dreams", category: "Decor", rating: 4.6, location: "Cape Town", logoUrl: "https://picsum.photos/100?random=5" },
-        { id: 6, name: "DJ Masters", category: "Entertainment", rating: 4.3, location: "Durban", logoUrl: "https://picsum.photos/100?random=6" }
-    ];
+    const fetchSortedVendors = async () => {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
 
-    const filteredVendors = dummyVendors.filter(v => 
-        (v.name.toLowerCase().includes(search.toLowerCase()) || v.category.toLowerCase().includes(search.toLowerCase())) &&
+        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/events/${event.id}/bestvendors`, {
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if(!res.ok) return [];
+
+        const data = await res.json();
+        return data.vendors || [];
+    }
+
+    useEffect(() => {
+        async function loadVendors(){
+            const vendors = await fetchSortedVendors();
+                        console.log(vendors);
+            setVendors(vendors);
+
+        }
+        loadVendors();
+    }, [])
+
+    const filteredVendors = vendors.filter(v => 
+        (v.businessName.toLowerCase().includes(search.toLowerCase()) || v.category.toLowerCase().includes(search.toLowerCase())) &&
         (categoryFilter === "All" || v.category === categoryFilter)
     );
 
