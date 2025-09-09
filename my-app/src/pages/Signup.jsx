@@ -89,6 +89,7 @@ export default function Signup() {
         }
     }
     return (
+      <section className='background'>
         <main className="login-page">
             <section className="login-card">
         <header className="login-header">
@@ -150,5 +151,6 @@ export default function Signup() {
             <p className="muted center">Already have an account? <a href="/login">Login</a></p>
                 </section>
         </main>
+        </section>
     );
 }

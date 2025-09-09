@@ -38,7 +38,8 @@ async function authenticate(req, res, next) {
   }
 }
 
-
+//VENDOR
+//=============================================
 app.post('/vendor/apply', authenticate, async (req, res) => {
   try {
     const { businessName, phone, email, description, category, address, profilePic } = req.body;
@@ -75,42 +76,88 @@ app.post('/vendor/apply', authenticate, async (req, res) => {
 
 
 
+// Get the vendor profile
 app.get('/vendor/me', authenticate, async (req, res) => {
   try {
-
     const doc = await db.collection('Vendor').doc(req.uid).get();
-    if (!doc.exists) return res.status(404).json({ message: 'Vendor not found ' });
-    res.json(doc.data());
+    if (!doc.exists) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    const vendorData = doc.data();
+
+    res.json({
+      ...vendorData,
+      profilePic: vendorData.profilePic || null // ensure field always exists
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// Update the vendor's profile
 app.put('/vendor/me', authenticate, async (req, res) => {
   try {
     const { description, address, phone, email, profilePic } = req.body;
-    const updateData = { description, address, phone, email };
+    let profilePicURL = '';
 
-    
     if (profilePic) {
       const buffer = Buffer.from(profilePic, 'base64');
       const fileRef = bucket.file(`Vendor/${req.uid}/profile.jpg`);
       await fileRef.save(buffer, { contentType: 'image/jpeg' });
-      await fileRef.makePublic(); 
-      updateData.profilePic = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+      await fileRef.makePublic();
+      profilePicURL = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
     }
 
-    await db.collection('Vendor').doc(req.uid).set(updateData, { merge: true });
-      
+    await db.collection('Vendor').doc(req.uid).update({
+      description,
+      address,
+      phone,
+      email,
+      ...(profilePicURL && { profilePic: profilePicURL }),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
-    res.status(200).json({ message: 'Profile updated successfully', data: updateData });
+    res.json({ message: 'Profile updated successfully' });
   } catch (err) {
-      
     console.error(err);
-    res.status(500).json({ message: 'Server Error', error: err.message });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+
+//Get the vendor bookings from the Event collection
+app.get('/vendor/bookings', authenticate, async (req, res) => {
+  try {
+    const vendorID = req.uid;
+    const eventsSnapshot = await db.collection("Event").get();
+    const vendorEvents = [];
+
+    for (const eventDoc of eventsSnapshot.docs) {
+      const vendorsRef = db.collection("Event").doc(eventDoc.id).collection("Vendors").doc(vendorID);
+      const vendorDoc = await vendorsRef.get();
+      if (vendorDoc.exists) {
+        const eventData = eventDoc.data();
+        vendorEvents.push({
+          eventId: eventDoc.id,
+          eventName: eventData.name,
+          date: eventData.date,
+          location: eventData.location,
+          vendorServices: vendorDoc.data().vendoringCategoriesNeeded || [], // services map for this vendor
+          status: vendorDoc.data().status || "pending",     // optional overall status
+        });
+      }
+    }
+
+    res.json({ vendorID, bookings: vendorEvents });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+//==============================================================
 
 app.post('/event/apply', authenticate, async (req, res) => {
   try {

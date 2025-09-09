@@ -71,6 +71,7 @@ const handleForgotPassword = async () => {
        
 
   return (
+    <section className ="background">
     <main className="login-page">
       <section className="login-card">
         <header className="login-header">
@@ -153,5 +154,6 @@ const handleForgotPassword = async () => {
         </p>
       </section>
     </main>
+    </section>
   );
 }
