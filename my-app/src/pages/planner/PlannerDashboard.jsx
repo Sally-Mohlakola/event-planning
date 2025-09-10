@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
+import { isAfter, isBefore } from "date-fns";
 import './PlannerDashboard.css';
+import { getAuth } from "firebase/auth";
 import { 
   Calendar, 
   Users, 
@@ -14,8 +17,52 @@ import {
 } from "lucide-react";
 
 export default function PlannerDashboard() {
+  const plannerId = "";
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
+  const [events, setEvents] = useState([]);
+  const today = new Date();
+  const future = new Date();
+  future.setDate(today.getDate() + 30);
+
+  const fetchPlannerEvents = async (plannerId) => {
+  
+          const auth = getAuth();
+          const user = auth.currentUser;
+          const token = await user.getIdToken(true);
+  
+          const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events`, {
+              headers: {
+                  "Authorization": `Bearer ${token}`
+              }
+          });
+          if (!res.ok) return []; 
+  
+    const data = await res.json();
+    return data.events || [];
+      };
+  
+      useEffect(() => {
+      async function loadEvents() {
+          const events = await fetchPlannerEvents(plannerId);
+          setEvents(events);
+
+
+      }
+      loadEvents();
+      }, [plannerId]);
+  
+      function toDate(d) {
+        return d instanceof Date ? d : new Date(d);
+      }
+
+
+      const Upcoming = events
+      .filter(event => {
+        const eventDate = toDate(event.date);
+        return isAfter(eventDate, today) && isBefore(eventDate, future);
+      })
+      .sort((a, b) => toDate(a.date) - toDate(b.date));
 
   const upcomingEvents = [
     { id: 1, title: "Annual Tech Conference", date: "Sep 25, 2025", time: "10:00 AM", attendees: 120, status: "Confirmed" },
@@ -119,7 +166,7 @@ export default function PlannerDashboard() {
               </button>
             </section>
             <section className="upcoming-events">
-              {upcomingEvents.map(event => (
+              {Upcoming.map(event => (
                 <section key={event.id} className="upcoming-event event-item">
                   <section className="event-header">
                     <h4>{event.title}</h4>
