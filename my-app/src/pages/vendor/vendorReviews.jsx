@@ -1,40 +1,51 @@
-import React from "react";
+// src/vendor/VendorReviews.jsx
+import React, { useState, useEffect } from "react";
 import { Star, StarHalf, StarOff } from "lucide-react";
+import { auth } from "../../firebase"; // Ensure firebase is imported
 import "./vendorReviews.css";
 
-const VendorReviews = ({setActivePage}) => {
-  // Mock data
-  const reviews = [
-    {
+const VendorReviews = ({ setActivePage }) => {
+  const [reviews, setReviews] = useState([]);
+  const [analytics, setAnalytics] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-      id: 1,
-    hoursAgo: 5,
-      rating: 5,
-      comment: "Amazing service! Everything was perfect.",
-     
-    },
-    {
-      id: 2,
-      hoursAgo: 28,
-      rating: 4,
-      comment: "Very professional and punctual.",
-      
-    },
-    {
-      id: 3,
-       hoursAgo: 50,
-      rating: 3,
-      comment: "Good, but some minor issues with timing.",
-     
-    },
-    {
-      id: 4,
-    hoursAgo: 100,
-      rating: 2,
-      comment: "Not satisfied with the food presentation.",
-     
-    },
-  ];
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!auth.currentUser) return;
+
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const vendorId = auth.currentUser.uid;
+
+        const res = await fetch(
+          `https://us-central1-planit-sdp.cloudfunctions.net/api/analytics/${vendorId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch reviews");
+
+        const data = await res.json();
+        setAnalytics(data); // vendor analytics info
+        setReviews(data.reviews || []);
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, []);
+
+  if (loading) return <p>Loading reviews...</p>;
+  if (error) return <p className="error">{error}</p>;
+  if (!reviews.length) return <p>No reviews found.</p>;
 
   // Overall rating calculation
   const overallRating =
@@ -52,8 +63,10 @@ const VendorReviews = ({setActivePage}) => {
   const renderStars = (rating) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
-      if (i <= Math.floor(rating)) stars.push(<Star key={i} size={16} color="#fbbf24" />);
-      else if (i - rating < 1) stars.push(<StarHalf key={i} size={16} color="#fbbf24" />);
+      if (i <= Math.floor(rating))
+        stars.push(<Star key={i} size={16} color="#fbbf24" />);
+      else if (i - rating < 1)
+        stars.push(<StarHalf key={i} size={16} color="#fbbf24" />);
       else stars.push(<StarOff key={i} size={16} color="#fbbf24" />);
     }
     return stars;
@@ -65,9 +78,10 @@ const VendorReviews = ({setActivePage}) => {
   return (
     <section className="vendor-reviews-page">
       <section className="review-page-title">
-        <h2>Vendor Review</h2>
+        <h2>Vendor Reviews</h2>
         <p>Review, analyse and respond to reviews about your services.</p>
-        </section>
+      </section>
+
       {/* Overall Rating */}
       <div className="overall-rating">
         <p>Overall Rating</p>
@@ -120,7 +134,7 @@ const VendorReviews = ({setActivePage}) => {
           <div key={review.id} className="review-card">
             <p className="review-time">{formatTime(review.hoursAgo)}</p>
             <div className="review-stars">{renderStars(review.rating)}</div>
-            <p className="review-comment">{review.comment}</p>
+            <p className="review-comment" style={{color:"black"}}>{review.review}</p>
           </div>
         ))}
       </div>
