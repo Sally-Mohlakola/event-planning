@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { auth } from "../../firebase"; // Make sure this path is correct
+import Popup from "./Popup"; // Import the new Popup component
+import "./VendorApplications.css";
 
 function VendorApplications() {
 	const [applications, setApplications] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	// This function can be removed if you are not using authentication for these routes
-	const getToken = async () => {
-		if (auth.currentUser) {
-			return await auth.currentUser.getIdToken();
-		}
-		// Return a dummy token or null if no user is logged in, for local testing
-		return null;
-	};
+	// State for the Popup
+	const [isPopupOpen, setIsPopupOpen] = useState(false);
+	const [selectedVendor, setSelectedVendor] = useState(null);
 
 	// Fetch pending applications when the component mounts
 	useEffect(() => {
@@ -37,7 +34,6 @@ function VendorApplications() {
 				setIsLoading(false);
 			}
 		};
-
 		fetchApplications();
 	}, []);
 
@@ -67,81 +63,96 @@ function VendorApplications() {
 		}
 	};
 
-	if (isLoading)
-		return (
-			<main className="main-container">
-				<h3>Loading applications...</h3>
-			</main>
-		);
-	if (error)
-		return (
-			<main className="main-container">
-				<h3>Error: {error}</h3>
-			</main>
-		);
+	// Function to open the popup with the selected vendor's data
+	const handleRowClick = (vendor) => {
+		setSelectedVendor(vendor);
+		setIsPopupOpen(true);
+	};
+
+	if (isLoading) return <h3>Loading applications...</h3>;
+	if (error) return <h3>Error: {error}</h3>;
 
 	return (
-		<div className="applications-list">
-			{applications.length > 0 ? (
-				applications.map((app) => (
-					<div key={app.id} className="card-application">
-						<table class="table-layout">
+		<main className="main-container">
+			<div className="applications-list">
+				{applications.length > 0 ? (
+					applications.map((app) => (
+						<table className="vendor-table">
 							<thead>
 								<tr>
-									<td class="col-75">
-										{/* Left Column for all text details */}
-										<div className="vendor-card-details">
-											<div className="vendor-card-header">
-												<div className="vendor-header-info">
-													<h4>{app.businessName}</h4>
-													<p className="vendor-category">
-														{app.category}
-													</p>
-												</div>
-											</div>
-											<div className="vendor-card-body">
-												<p>
-													<strong>
-														Description:
-													</strong>{" "}
-													{app.description}
-												</p>
-												<div className="vendor-contact-info">
-													<p>
-														<strong>Email:</strong>{" "}
-														{app.email}
-													</p>
-													<p>
-														<strong>Phone:</strong>{" "}
-														{app.phone}
-													</p>
-												</div>
-												<p>
-													<strong>Address:</strong>{" "}
-													{app.address}
-												</p>
-											</div>
-										</div>
-									</td>
-									<td class="col-25">
-										{/* Right Column for the profile picture */}
-										<div className="vendor-card-image-container">
-											<img
-												src={app.profilePic}
-												alt={`${app.businessName} profile`}
-												className="vendor-profile-pic"
-											/>
-										</div>
-									</td>
+									<th>Business Name</th>
+									<th>Category</th>
+									<th>Email</th>
 								</tr>
 							</thead>
+							<tbody>
+								{applications.map((app) => (
+									<tr
+										key={app.id}
+										onClick={() => handleRowClick(app)}
+									>
+										<td>{app.businessName}</td>
+										<td>{app.category}</td>
+										<td>{app.email}</td>
+									</tr>
+								))}
+							</tbody>
 						</table>
+					))
+				) : (
+					<p>There are no pending applications found.</p>
+				)}
+			</div>
 
+			{/* The Popup for displaying vendor details */}
+			<Popup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
+				{selectedVendor && (
+					<div className="vendor-popup-content">
+						{/*Vendor Profile Picture*/}
+						{selectedVendor.profilePic ? (
+							<img
+								src={selectedVendor.profilePic}
+								alt={selectedVendor.businessName}
+								className="vendor-profile-pic"
+							/>
+						) : (
+							<div className="vendor-profile-pic placeholder">
+								<span>
+									{selectedVendor.businessName.charAt(0)}
+								</span>
+							</div>
+						)}
+
+						{/*Vendor Details*/}
+						<h2 className="vendor-name">
+							{selectedVendor.businessName}
+						</h2>
+						<p className="vendor-categor">
+							<strong>Category:</strong> {selectedVendor.category}
+						</p>
+						<p className="vendor-description">
+							<strong>Description:</strong>{" "}
+							{selectedVendor.description}
+						</p>
+						<p className="vendor-email">
+							<strong>Email:</strong> {selectedVendor.email}
+						</p>
+						<p className="vendor-phone">
+							<strong>Phone:</strong> {selectedVendor.phone}
+						</p>
+						<p className="vendor-address">
+							<strong>Address:</strong> {selectedVendor.address}
+						</p>
+
+						{/*Approve/Reject Buttons*/}
 						<div className="application-actions">
 							<button
 								className="btn-approve"
 								onClick={() =>
-									handleUpdateStatus(app.id, "approved")
+									handleUpdateStatus(
+										selectedVendor.id,
+										"approved"
+									)
 								}
 							>
 								Approve
@@ -149,18 +160,19 @@ function VendorApplications() {
 							<button
 								className="btn-reject"
 								onClick={() =>
-									handleUpdateStatus(app.id, "rejected")
+									handleUpdateStatus(
+										selectedVendor.id,
+										"rejected"
+									)
 								}
 							>
 								Reject
 							</button>
 						</div>
 					</div>
-				))
-			) : (
-				<p>No pending applications found.</p>
-			)}
-		</div>
+				)}
+			</Popup>
+		</main>
 	);
 }
 
