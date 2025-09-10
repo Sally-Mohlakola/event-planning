@@ -172,14 +172,14 @@ app.get('/vendor/bookings', authenticate, async (req, res) => {
 });
 
 
-//! error updating the status!!!!!!!!!!!!!!!!!!!!!
-// Update a vendor's status in the Vendors subcollection of an Event
-app.put("/api/event/:eventId/vendor/:vendorId/status", authenticate, async (req, res) => {
+app.put("/event/:eventId/vendor/:vendorId/status", authenticate, async (req, res) => {
   try {
     const { eventId, vendorId } = req.params;
     const { status } = req.body;
 
-    if (!status) return res.status(400).json({ message: "Status is required" });
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
 
     const vendorRef = db
       .collection("Event")
@@ -187,60 +187,73 @@ app.put("/api/event/:eventId/vendor/:vendorId/status", authenticate, async (req,
       .collection("Vendors")
       .doc(vendorId);
 
-    await vendorRef.set({ status }, { merge: true });
+    // Use update() instead of set() if you just want to update fields
+    await vendorRef.update({ status });
 
     res.json({ message: "Vendor status updated successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Error updating vendor status:", err);
+
+    // If the doc doesn't exist, update() will throw
+    if (err.code === 5 || err.message.includes("No document to update")) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
 
 
 
-// New endpoint for contract upload
-app.put("/vendor/:eventId/contract", authenticate, upload.single("contract"), async (req, res) => {
-  try {
-    const vendorId = req.uid;
-    const eventId = req.params.eventId;
-    const file = req.file;
+app.put("/vendor/:eventId/contract",authenticate,upload.single("contract"),
+  async (req, res) => {
+    try {
+      const vendorId = req.uid;
+      const eventId = req.params.eventId;
+      const file = req.file;
 
-    if (!file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const allowedTypes = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ];
+
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).json({ message: "Invalid file type" });
+      }
+
+      // Upload to Firebase Storage
+      const fileName = `contracts/${eventId}/${vendorId}/${uuidv4()}-${file.originalname}`;
+      const fileRef = storage.bucket().file(fileName); // make sure to use .bucket()
+      await fileRef.save(file.buffer, { metadata: { contentType: file.mimetype } });
+
+      const [downloadUrl] = await fileRef.getSignedUrl({
+        action: "read",
+        expires: new Date("2026-09-03"),
+      });
+
+      // Update Firestore
+      const vendorRef = db.collection("Event").doc(eventId).collection("Vendors").doc(vendorId);
+      const vendorSnap = await vendorRef.get();
+      if (!vendorSnap.exists) {
+        return res.status(404).json({ message: "Vendor not found for this event" });
+      }
+
+      await vendorRef.set({ contractUrl: downloadUrl }, { merge: true });
+
+      res.json({ message: "Contract uploaded successfully", contractUrl: downloadUrl });
+    } catch (err) {
+      console.error("Error uploading contract:", err);
+      res.status(500).json({ message: "Server error", error: err.message });
     }
-
-    // Validate file type
-    const allowedTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-    if (!allowedTypes.includes(file.mimetype)) {
-      return res.status(400).json({ message: "Invalid file type. Only PDF, DOC, DOCX allowed." });
-    }
-
-    // Upload file to Firebase Storage
-    const fileName = `contracts/${eventId}/${vendorId}/${uuidv4()}-${file.originalname}`;
-    const fileRef = storage.file(fileName);
-    await fileRef.save(file.buffer, {
-      metadata: { contentType: file.mimetype },
-    });
-    const downloadUrl = await fileRef.getSignedUrl({
-      action: "read",
-      expires: "03-09-2026", // Adjust expiration as needed
-    });
-
-    // Update Firestore with contract URL
-    const vendorRef = db.collection("Event").doc(eventId).collection("Vendors").doc(vendorId);
-    const vendorSnap = await vendorRef.get();
-    if (!vendorSnap.exists) {
-      return res.status(404).json({ message: "Vendor not found for this event" });
-    }
-
-    await vendorRef.set({ contractUrl: downloadUrl[0] }, { merge: true });
-
-    res.json({ message: "Contract uploaded successfully", contractUrl: downloadUrl[0] });
-  } catch (err) {
-    console.error("Error uploading contract:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
   }
-});
+);
+
+
 
 
 app.get("/analytics/:vendorId", authenticate, async (req, res) => {

@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, User, MapPin, Clock, CheckCircle, XCircle, Filter } from "lucide-react";
+import {
+  Calendar,
+  User,
+  MapPin,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Filter,
+} from "lucide-react";
 import { auth } from "../../firebase";
-import './vendorBooking.css';
+import "./vendorBooking.css";
 
 const VendorBooking = ({ setActivePage }) => {
   const [filter, setFilter] = useState("all");
@@ -9,6 +17,8 @@ const VendorBooking = ({ setActivePage }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUpdating, setIsUpdating] = useState(null);
+
+  const vendorId = auth.currentUser?.uid; // logged-in vendor
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -38,11 +48,11 @@ const VendorBooking = ({ setActivePage }) => {
         }
 
         const data = await res.json();
-        const formattedBookings = (data.bookings || []).map(booking => ({
+        const formattedBookings = (data.bookings || []).map((booking) => ({
           ...booking,
-          status: booking.status || "pending",
+          status: booking.status || "pending", // default pending if missing
         }));
-        console.log("Fetched bookings:", formattedBookings); // Debug log
+        console.log("Fetched bookings:", formattedBookings);
         setBookings(formattedBookings);
       } catch (err) {
         console.error("Error fetching bookings:", err);
@@ -55,7 +65,7 @@ const VendorBooking = ({ setActivePage }) => {
     fetchBookings();
   }, []);
 
-  const updateVendorStatus = async (eventId, newStatus) => {
+  const updateVendorStatus = async (eventId, vendorId, newStatus) => {
     if (!auth.currentUser) {
       alert("User not authenticated");
       return;
@@ -64,16 +74,17 @@ const VendorBooking = ({ setActivePage }) => {
       alert("Another update is in progress");
       return;
     }
-    if (!eventId || typeof eventId !== "string") {
-      alert("Invalid event ID");
+    if (!eventId || !vendorId) {
+      alert("Invalid event or vendor ID");
       return;
     }
 
     setIsUpdating(eventId);
     try {
       const token = await auth.currentUser.getIdToken();
-      const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/${eventId}/status`;
-      console.log("Updating status for eventId:", eventId, "URL:", url, "Status:", newStatus);
+      const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/event/${eventId}/vendor/${vendorId}/status`;
+      console.log("Updating status:", { eventId, vendorId, newStatus, url });
+
       const res = await fetch(url, {
         method: "PUT",
         headers: {
@@ -83,22 +94,20 @@ const VendorBooking = ({ setActivePage }) => {
         body: JSON.stringify({ status: newStatus }),
       });
 
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await res.text();
-        console.error("Non-JSON response:", text);
-        throw new Error(`Server returned an unexpected response: ${text.substring(0, 100)}...`);
-      }
-
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || `Failed to update status (HTTP ${res.status})`);
+      if (!res.ok)
+        throw new Error(
+          data.message || `Failed to update status (HTTP ${res.status})`
+        );
 
-      setBookings(prev =>
-        prev.map(b =>
-          b.eventId === eventId ? { ...b, status: newStatus } : b
+      // Update local state dynamically
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.eventId === eventId
+            ? { ...b, status: newStatus }
+            : b
         )
       );
-      alert(`Status updated to ${newStatus}`);
     } catch (err) {
       console.error("Error updating status:", err);
       alert(`Failed to update status: ${err.message}`);
@@ -112,12 +121,14 @@ const VendorBooking = ({ setActivePage }) => {
       ? bookings
       : bookings.filter((b) => b.status === filter);
 
-  if (loading) return (
-    <div className="loading-screen">
-      <div className="spinner"></div>
-      <p>Loading your bookings...</p>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Loading your bookings...</p>
+      </div>
+    );
+
   if (error) return <p className="error">{error}</p>;
   if (!bookings.length) return <p className="no-bookings">No bookings found.</p>;
 
@@ -132,7 +143,6 @@ const VendorBooking = ({ setActivePage }) => {
         <Filter />
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="all">All</option>
-          <option value="pending">Pending</option>
           <option value="accepted">Accepted</option>
           <option value="rejected">Rejected</option>
         </select>
@@ -140,33 +150,48 @@ const VendorBooking = ({ setActivePage }) => {
 
       <div className="booking-list">
         {filteredBookings.map((booking) => (
-          <div key={booking.eventId} className="booking-card">
+          <div
+            key={`${booking.eventId}`}
+            className="booking-card"
+          >
             <h2>{booking.eventName || "Unnamed Event"}</h2>
             <div className="details">
-              <p><User size={16} /> {booking.client || "Unknown Client"}</p>
-              <p><Calendar size={16} /> {new Date(booking.date).toLocaleDateString()}</p>
-              <p><Clock size={16} /> {new Date(booking.date).toLocaleTimeString()}</p>
-              <p><MapPin size={16} /> {booking.location || "TBD"}</p>
+              <p>
+                <User size={16} /> {booking.client || "Unknown Client"}
+              </p>
+              <p>
+                <Calendar size={16} />{" "}
+                {new Date(booking.date).toLocaleDateString()}
+              </p>
+              <p>
+                <Clock size={16} />{" "}
+                {new Date(booking.date).toLocaleTimeString()}
+              </p>
+              <p>
+                <MapPin size={16} /> {booking.location || "TBD"}
+              </p>
             </div>
 
             <div className="actions-container">
+              {/* Status Badge */}
               <span
                 className={`status-badge ${
                   booking.status === "accepted"
                     ? "status-confirmed"
-                    : booking.status === "pending"
-                    ? "status-pending"
                     : "status-rejected"
                 }`}
                 aria-label={`Booking status: ${booking.status}`}
               >
-                {booking.status}
+                {booking.status === "accepted" ? "Accepted" : "Rejected"}
               </span>
 
+              {/* Action Buttons */}
               <div className="actions">
                 <button
                   className="approve-btn"
-                  onClick={() => updateVendorStatus(booking.eventId, "accepted")}
+                  onClick={() =>
+                    updateVendorStatus(booking.eventId, vendorId, "accepted")
+                  }
                   disabled={booking.status === "accepted" || isUpdating === booking.eventId}
                   title="Accept booking"
                 >
@@ -174,7 +199,9 @@ const VendorBooking = ({ setActivePage }) => {
                 </button>
                 <button
                   className="cancel-btn"
-                  onClick={() => updateVendorStatus(booking.eventId, "rejected")}
+                  onClick={() =>
+                    updateVendorStatus(booking.eventId, vendorId, "rejected")
+                  }
                   disabled={booking.status === "rejected" || isUpdating === booking.eventId}
                   title="Reject booking"
                 >

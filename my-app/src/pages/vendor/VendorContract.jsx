@@ -20,11 +20,8 @@ const VendorContract = ({ setActivePage }) => {
       try {
         const token = await auth.currentUser.getIdToken();
         const url = "https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/bookings";
-        console.log("Fetching clients from:", url);
         const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!res.ok) {
@@ -42,10 +39,10 @@ const VendorContract = ({ setActivePage }) => {
           name: booking.client || "Unknown Client",
           email: booking.clientEmail || "No email provided",
           event: booking.eventName || "Unnamed Event",
-          contractUrl: booking.contractUrl || null,
+          contractUrl: booking.contract || null,
           status: booking.status || "pending",
         }));
-        console.log("Fetched clients:", formattedClients);
+
         setClients(formattedClients);
       } catch (err) {
         console.error("Error fetching clients:", err);
@@ -59,50 +56,34 @@ const VendorContract = ({ setActivePage }) => {
   }, []);
 
   const handleFileUpload = async (eventId, file) => {
-    if (!auth.currentUser) {
-      alert("User not authenticated");
-      return;
-    }
-    if (!file) {
-      alert("No file selected");
-      return;
-    }
-    if (!eventId || typeof eventId !== "string") {
-      alert("Invalid event ID");
-      return;
-    }
+    if (!auth.currentUser) return alert("User not authenticated");
+    if (!file) return alert("No file selected");
 
     setUploading(eventId);
     try {
       const token = await auth.currentUser.getIdToken();
       const formData = new FormData();
       formData.append("contract", file);
+
       const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/${eventId}/contract`;
-      console.log("Uploading contract for eventId:", eventId, "URL:", url, "File:", file.name);
 
       const res = await fetch(url, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await res.text();
-        console.error("Non-JSON response:", text);
-        console.log(eventId);
-        throw new Error(`Server returned an unexpected response (HTTP ${res.status}): ${text.substring(0, 100)}...`);
+        throw new Error(`Server returned unexpected response (HTTP ${res.status}): ${text.substring(0, 100)}...`);
       }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || `Failed to upload contract (HTTP ${res.status})`);
 
       setClients(prev =>
-        prev.map(c =>
-          c.eventId === eventId ? { ...c, contractUrl: data.contractUrl } : c
-        )
+        prev.map(c => c.eventId === eventId ? { ...c, contractUrl: data.contract } : c)
       );
       alert("Contract uploaded successfully!");
     } catch (err) {
@@ -130,7 +111,7 @@ const VendorContract = ({ setActivePage }) => {
       </header>
 
       <div className="clients-list">
-        {clients.map((client) => (
+        {clients.map(client => (
           <div key={client.id} className="client-card">
             <div className="client-info">
               <p><User size={16} /> {client.name}</p>
@@ -139,9 +120,9 @@ const VendorContract = ({ setActivePage }) => {
             </div>
 
             <div className="contract-section">
-              {client.contractUrl ? (
+              {client.contract? (
                 <a
-                  href={client.contractUrl}
+                  href={client.contract}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="contract-link"
@@ -156,9 +137,8 @@ const VendorContract = ({ setActivePage }) => {
                     type="file"
                     accept=".pdf,.doc,.docx"
                     hidden
-                    onChange={(e) =>
-                      e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0])
-                    }
+                    disabled={uploading === client.id}
+                    onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0])}
                   />
                 </label>
               )}
