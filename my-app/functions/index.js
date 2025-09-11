@@ -49,7 +49,8 @@ async function authenticate(req, res, next) {
   }
 }
 
-
+//VENDOR
+//=============================================
 app.post('/vendor/apply', authenticate, async (req, res) => {
   try {
     const { businessName, phone, email, description, category, address, profilePic } = req.body;
@@ -86,42 +87,219 @@ app.post('/vendor/apply', authenticate, async (req, res) => {
 
 
 
+// Get the vendor profile
 app.get('/vendor/me', authenticate, async (req, res) => {
   try {
-
     const doc = await db.collection('Vendor').doc(req.uid).get();
-    if (!doc.exists) return res.status(404).json({ message: 'Vendor not found ' });
-    res.json(doc.data());
+    if (!doc.exists) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    const vendorData = doc.data();
+
+    res.json({
+      ...vendorData,
+      profilePic: vendorData.profilePic || null // ensure field always exists
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// Update the vendor's profile
 app.put('/vendor/me', authenticate, async (req, res) => {
   try {
     const { description, address, phone, email, profilePic } = req.body;
-    const updateData = { description, address, phone, email };
+    let profilePicURL = '';
 
-    
     if (profilePic) {
       const buffer = Buffer.from(profilePic, 'base64');
       const fileRef = bucket.file(`Vendor/${req.uid}/profile.jpg`);
       await fileRef.save(buffer, { contentType: 'image/jpeg' });
-      await fileRef.makePublic(); 
-      updateData.profilePic = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+      await fileRef.makePublic();
+      profilePicURL = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
     }
 
-    await db.collection('Vendor').doc(req.uid).set(updateData, { merge: true });
-      
+    await db.collection('Vendor').doc(req.uid).update({
+      description,
+      address,
+      phone,
+      email,
+      ...(profilePicURL && { profilePic: profilePicURL }),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
-    res.status(200).json({ message: 'Profile updated successfully', data: updateData });
+    res.json({ message: 'Profile updated successfully' });
   } catch (err) {
-      
     console.error(err);
-    res.status(500).json({ message: 'Server Error', error: err.message });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+
+//Get the vendor bookings from the Event collection
+// completely donw
+app.get('/vendor/bookings', authenticate, async (req, res) => {
+  try {
+    const vendorID = req.uid;
+    const eventsSnapshot = await db.collection("Event").get();
+    const vendorEvents = [];
+
+    for (const eventDoc of eventsSnapshot.docs) {
+      const vendorsRef = db.collection("Event").doc(eventDoc.id).collection("Vendors").doc(vendorID);
+      const vendorDoc = await vendorsRef.get();
+      if (vendorDoc.exists) {
+        const eventData = eventDoc.data();
+        vendorEvents.push({
+
+          budget:eventData.budget,
+          eventId: eventDoc.id,
+          eventName: eventData.name,
+          description: eventData.description,
+
+          date: eventData.date,
+          location: eventData.location,
+          expectedGuestCount: eventData.expectedGuestCount,
+
+          style: eventData.style,
+          specialRequirements: eventData.specialRequirements||[],
+          eventCategory: eventData.eventCategory,
+          theme: eventData.theme,
+
+          vendorServices: vendorDoc.data().vendoringCategoriesNeeded || [], // services map for this vendor
+          status: vendorDoc.data().status || "pending",     // optional overall status
+        });
+      }
+    }
+
+    res.json({ vendorID, bookings: vendorEvents });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+
+app.put("/event/:eventId/vendor/:vendorId/status", authenticate, async (req, res) => {
+  try {
+    const { eventId, vendorId } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    const vendorRef = db
+      .collection("Event")
+      .doc(eventId)
+      .collection("Vendors")
+      .doc(vendorId);
+
+    // Use update() instead of set() if you just want to update fields
+    await vendorRef.update({ status });
+
+    res.json({ message: "Vendor status updated successfully" });
+  } catch (err) {
+    console.error("Error updating vendor status:", err);
+
+    // If the doc doesn't exist, update() will throw
+    if (err.code === 5 || err.message.includes("No document to update")) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+
+
+app.put("/vendor/:eventId/contract",authenticate,upload.single("contract"),
+  async (req, res) => {
+    try {
+      const vendorId = req.uid;
+      const eventId = req.params.eventId;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const allowedTypes = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ];
+
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).json({ message: "Invalid file type" });
+      }
+
+      // Upload to Firebase Storage
+      const fileName = `contracts/${eventId}/${vendorId}/${uuidv4()}-${file.originalname}`;
+      const fileRef = storage.bucket().file(fileName); // make sure to use .bucket()
+      await fileRef.save(file.buffer, { metadata: { contentType: file.mimetype } });
+
+      const [downloadUrl] = await fileRef.getSignedUrl({
+        action: "read",
+        expires: new Date("2026-09-03"),
+      });
+
+      // Update Firestore
+      const vendorRef = db.collection("Event").doc(eventId).collection("Vendors").doc(vendorId);
+      const vendorSnap = await vendorRef.get();
+      if (!vendorSnap.exists) {
+        return res.status(404).json({ message: "Vendor not found for this event" });
+      }
+
+      await vendorRef.set({ contractUrl: downloadUrl }, { merge: true });
+
+      res.json({ message: "Contract uploaded successfully", contractUrl: downloadUrl });
+    } catch (err) {
+      console.error("Error uploading contract:", err);
+      res.status(500).json({ message: "Server error", error: err.message });
+    }
+  }
+);
+
+
+
+
+app.get("/analytics/:vendorId", authenticate, async (req, res) => {
+  try {
+    const vendorId = req.params.vendorId; // Use the URL param
+    console.log("Fetching analytics for vendor:", vendorId);
+
+    // Fetch the Analytics document for this vendor
+    const analyticsDoc = await db.collection("Analytics").doc(vendorId).get();
+    if (!analyticsDoc.exists) {
+      return res.status(404).json({ message: "Vendor analytics not found" });
+    }
+
+    const analyticsData = analyticsDoc.data();
+
+    // Fetch Reviews subcollection
+    const reviewsSnapshot = await db
+      .collection("Analytics")
+      .doc(vendorId)
+      .collection("Reviews")
+      .get();
+
+    const reviews = reviewsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.json({ ...analyticsData, reviews });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+
+
+//==============================================================
 
 app.post('/event/apply', authenticate, async (req, res) => {
   try {

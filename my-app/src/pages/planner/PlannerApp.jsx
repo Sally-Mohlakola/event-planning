@@ -19,6 +19,7 @@ import PlannerVendorMarketplace from "./PlannerVendorMarketplace";
 import "./PlannerApp.css";
 import PlannerViewEvent from "./PlannerViewEvent";
 import PlannerAllEvents from "./PlannerAllEvents";
+import PlannerContract from "./PlannerContract";
 
 
 const PlannerApp = () => {
@@ -72,7 +73,7 @@ const PlannerApp = () => {
       case "guest management":
         return renderPlaceholderPage("Guest Management");
       case "documents":
-        return renderPlaceholderPage("Document Management");
+        return <PlannerContract setActivePage={setActivePage}/>;
       case "selected-event":
         return <PlannerViewEvent event={selectedEvent} onOpenMarketplace={onOpenMarketplace} setActivePage={setActivePage}/>
       default:

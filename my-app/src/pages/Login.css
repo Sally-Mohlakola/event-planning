@@ -7,23 +7,9 @@
   --field: #f8fafc;
 }
 
-/* Page background: Elegant gradient */
-body {
-  font-family: system-ui, sans-serif;
-  background: "white";
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  margin: 0;
-  height:720px;
 
-
-  /* ✅ fixes background cut-off */
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  overflow-x: hidden;
+.background{
+  background: white;
 }
 
 /* Centered card container */
@@ -32,7 +18,9 @@ body {
   max-width: 420px;
   padding: 1rem;
   margin: 0 auto;
-  box-sizing: border-box; /* ✅ prevents overflow */
+  box-sizing: border-box; 
+  background: white;
+ 
 }
 
 /* Sparkly card inside gradient background */
