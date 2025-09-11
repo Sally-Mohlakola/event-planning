@@ -1,0 +1,12 @@
+.popup-overlay{
+    padding: 0.5rem;
+}
+.popup-content{
+    justify-content: center;
+    padding: 1rem;
+}
+.popup-close-button{
+    float: right;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
