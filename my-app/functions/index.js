@@ -4,6 +4,7 @@ const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
 
 admin.initializeApp();
 
@@ -21,6 +22,14 @@ app.use(cors({
   ],
 }));
 app.use(express.json());
+
+const nodemailer = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "noreply.planit.online@gmail.com",
+    pass: "",
+  },
+});
 
 const upload = multer({ storage: multer.memoryStorage() });
 
