@@ -87,7 +87,7 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
             <section className="popup-content" onClick={(e) => e.stopPropagation()}>
                 <section className="popup-header">
                     <h3>Add Guest</h3>
-                    <button className="close-btn" onClick={handleClose}>×</button>
+                    <button className="close-btn" onClick={handleClose}>Close</button>
                 </section>
                 <section onSubmit={handleSubmit} className="guest-form">
                     <section className="form-row">
@@ -187,9 +187,9 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
 //Code for Guest RSVP Summary Bar **********
 function GuestRSVPSummary({guests}) {
     const totalGuests = guests.length;
-    const confirmedGuests = guests.filter(g => g.rsvpStatus === 'attending').length;
+    const confirmedGuests = guests.filter(g => g.rsvpStatus === 'accept').length;
     const pendingGuests = guests.filter(g => g.rsvpStatus === 'pending').length;
-    const declinedGuests = guests.filter(g => g.rsvpStatus === 'not_attending').length;
+    const declinedGuests = guests.filter(g => g.rsvpStatus === 'declined').length;
 
     return(
         <section className="rsvp-summary">
@@ -227,7 +227,7 @@ function VendorItem({vendor}) {
     return(
         <section className="vendor-item">
             <section className="vendor-info">
-                <h4>{vendor.name}</h4>
+                <h4>{vendor.businessName}</h4>
                 <p>{vendor.category}</p>
             </section>
             <section className="vendor-cost">
@@ -281,7 +281,7 @@ function PromptCard({ title, message, buttonText, onClick}) {
 //End of code for prompt card
 
 //Code for importing a guest list
-function GuestImportWithValidation({ eventId, onImportComplete }) {
+function GuestImportWithValidation({ eventId, onImportComplete, onClose }) {
   const [preview, setPreview] = useState([]);
   const [errors, setErrors] = useState([]);
   const fileInputRef = useRef(null);
@@ -332,7 +332,7 @@ function GuestImportWithValidation({ eventId, onImportComplete }) {
     const token = await auth.currentUser.getIdToken();
 
     const response = await fetch(
-      `http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/events/${eventId}/guests/import`,
+      `https://us-central1-planit-sdp.cloudfunctions.net/api/planner/events/${eventId}/guests/import`,
       {
         method: "POST",
         headers: {
@@ -352,9 +352,7 @@ function GuestImportWithValidation({ eventId, onImportComplete }) {
       <section className="guest-import-modal">
         <header className="guest-import-header">
           <h2>Import Guests from CSV</h2>
-          <button className="guest-import-close-btn" onClick={onImportComplete}>
-            &times;
-          </button>
+          <button className="close-btn" onClick={onClose}>x</button>
         </header>
 
         <section className="guest-import-body">
@@ -487,6 +485,28 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
         console.log("Updated Event.");
     }    
 
+    const sendReminder = async (guestId, eventId) => {
+         const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
+    
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/${guestId}/sendReminder`, {
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (!res.ok){
+            alert("Unable to send reminder");
+            console.log("Unable to send reminder"); 
+        } 
+        else{
+            alert("Reminder sent successfully");
+        }
+
+
+    }
     useEffect(() => {
         async function loadGuests() {
             const guests = await fetchGuests();
@@ -814,6 +834,7 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
                                 {showImportGuestPopup && (
                                     <GuestImportWithValidation
                                         eventId={eventId}
+                                        onClose={() => setShowImportGuestPopup(false)}
                                         onImportComplete={() => {
                                         setShowImportGuestPopup(false); // hide after import completes
                                         }}
@@ -836,13 +857,13 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
                                             </section>
                                             <section className="guest-rsvp">
                                                 <span className={`rsvp-badge ${guest.rsvpStatus}`}>
-                                                    {guest.rsvpStatus === 'attending' ? 'Confirmed' : 
-                                                     guest.rsvpStatus === 'not_attending' ? 'Declined' : 
+                                                    {guest.rsvpStatus === 'accept' ? 'Confirmed' : 
+                                                     guest.rsvpStatus === 'declined' ? 'Declined' : 
                                                      'Pending'}
                                                 </span>
                                             </section>
                                             <section className="guest-actions">
-                                                <button className="send-reminder-btn">Send Reminder</button>
+                                                <button className="send-reminder-btn" onClick={() => sendReminder(guest.id, eventId)}>Send Reminder</button>
                                                 <button className="edit-guest-btn">Edit</button>
                                             </section>
                                         </section>

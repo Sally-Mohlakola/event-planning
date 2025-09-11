@@ -18,6 +18,7 @@ import VendorApplications from './pages/admin/VendorApplications';
 import LandingPage from './pages/LandingPage.jsx';
 import NewEvent from './pages/planner/NewEvent.jsx';
 import VendorWaiting from './pages/vendor/VendorWaiting.jsx'
+import PlannerRSVP from './pages/planner/PlannerRSVP.jsx';
 
 import './App.css'
 import VendorApp from './pages/vendor/vendorApp.jsx';
@@ -37,6 +38,8 @@ function App() {
         <Route path='/planner-dashboard' element={<PlannerApp />} />
         <Route path='/planner-dashboard' element={<PlannerDashboard />} />
         <Route path='/planner/new-event' element={<NewEvent/>}/>
+        <Route path='/planner/rsvp/:eventId/:guestToken/accept' element={<PlannerRSVP />} />
+        <Route path='/planner/rsvp/:eventId/:guestToken/decline' element={<PlannerRSVP />} />'
           
         <Route path='/vendor-app' element={<VendorApp />}/>
         <Route path='/vendor/vendor-dashboard' element ={<VendorProfile />} />
