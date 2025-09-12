@@ -367,7 +367,6 @@ app.get('/planner/me/events', authenticate, async (req, res) => {
   }
 });
 
-
 //Get the guests for a particular event
 app.get('/planner/:eventId/guests', authenticate, async (req, res) =>{
   try{
@@ -407,6 +406,42 @@ app.get('/planner/:eventId/vendors', authenticate, async (req, res) => {
     res.status(500).json({message: "Server error"});
   }
 
+});
+
+//Get all vendors for a particular planner
+app.get('/planner/all/vendors', authenticate, async (req, res) => {
+  try {
+    const plannerId = req.uid;
+    const eventsSnapshot = await db.collection("Event")
+      .where("plannerId", "==", plannerId)
+      .get();
+
+    if (eventsSnapshot.empty) {
+      return res.json({ vendors: [] });
+    }
+
+    const vendorSet = new Set();
+    const vendors = [];
+
+    for (const eventDoc of eventsSnapshot.docs) {
+      const vendorsSnapshot = await db.collection("Event")
+        .doc(eventDoc.id)
+        .collection("Vendors")
+        .get();
+
+      vendorsSnapshot.forEach(vendorDoc => {
+        if (!vendorSet.has(vendorDoc.id)) {
+          vendorSet.add(vendorDoc.id);
+          vendors.push({ id: vendorDoc.id, ...vendorDoc.data() });
+        }
+      });
+    }
+
+    res.json({ vendors });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 //Updates the information of an event
@@ -672,7 +707,6 @@ app.put('/admin/vendor-applications/:vendorId', async (req, res) => {
     res.status(500).json({ message: 'Server error while updating application' });
   }
 });
-
 
 
 app.get("/vendor/status", authenticate, async (req, res) => {

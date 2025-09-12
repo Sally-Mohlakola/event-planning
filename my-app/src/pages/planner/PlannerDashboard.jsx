@@ -36,12 +36,22 @@ function PlannerDashboard({ onSelectEvent }) {
         });
     };
 
+    const getStatusColor = (status) => {
+        switch(status) {
+            case 'upcoming': return '#10b981';
+            case 'in-progress': return '#f59e0b';
+            case 'completed': return '#6b7280';
+            default: return '#6366f1';
+        }
+    };
+
     return(
         <section className="event-card">
             <section className="event-header">
                 <h3>{event.name}</h3>
                 <section 
                     className="event-status" 
+                    style={{backgroundColor: getStatusColor(event.status)}}
                 >
                     {event.status}
                 </section>
@@ -67,7 +77,6 @@ function PlannerDashboard({ onSelectEvent }) {
         </section>
     );
 }
-
   const fetchPlannerEvents = async (user) => {
     if (!user) {
       console.warn("User not logged in");
@@ -121,17 +130,36 @@ function PlannerDashboard({ onSelectEvent }) {
       })
       .sort((a, b) => toDate(a.date) - toDate(b.date));
 
-  const upcomingEvents = [
-    { id: 1, title: "Annual Tech Conference", date: "Sep 25, 2025", time: "10:00 AM", attendees: 120, status: "Confirmed" },
-    { id: 2, title: "Marketing Workshop", date: "Sep 28, 2025", time: "2:00 PM", attendees: 85, status: "Pending" },
-    { id: 3, title: "Community Meetup", date: "Oct 2, 2025", time: "6:00 PM", attendees: 50, status: "Pending" }
-  ];
+      const pastEvents = events
+      .filter(event => {
+        const eventDate = toDate(event.date);
+        return isBefore(eventDate, today);
+      })
+      .sort((a, b) => toDate(b.date) - toDate(a.date));
+
+      const allUpcoming = events
+      .filter(event => {
+        const eventDate = toDate(event.date);
+        return isAfter(eventDate, today);
+      })
+      .sort((a, b) => toDate(a.date) - toDate(b.date));
+
+      const pastAve = pastEvents.length > 0 ? Math.round(pastEvents.reduce((sum, event) => sum + (event.expectedGuestCount || 0), 0) / pastEvents.length) : 0;
+      const aveGuestCount = events.length > 0 ? Math.round(events.reduce((sum, event) => sum + (event.expectedGuestCount || 0), 0) / events.length) : 0;
+      const percentageChange = aveGuestCount === 0 ? 0 : Math.round(((aveGuestCount - pastAve) / pastAve) * 100);
 
   const pendingVendors = [
     { id: 1, name: "ABC Catering", event: "Annual Tech Conference", contact: "abc@catering.com", status: "Confirmed" },
     { id: 2, name: "SoundWorks", event: "Marketing Workshop", contact: "contact@soundworks.co.za", status: "Pending" },
     { id: 3, name: "VenueCo", event: "Community Meetup", contact: "info@venueco.com", status: "Confirmed" }
   ];
+
+  const totalUpcomingGuests = Upcoming.reduce((sum, event) => sum + (event.expectedGuestCount || 0), 0);
+
+  const totalPastGuests = pastEvents.reduce((sum, event) => sum + (event.expectedGuestCount || 0), 0);
+
+  const guestDiff = totalUpcomingGuests - totalPastGuests;
+  const percentageNewGuests = totalPastGuests === 0 ? 0 : Math.round((guestDiff / totalPastGuests) * 100);
 
   return (
     <section className='page-container'>
@@ -159,11 +187,11 @@ function PlannerDashboard({ onSelectEvent }) {
         <section className="summary-card blue">
           <section className="summary-card-header">
             <Calendar size={40} />
-            <section className="summary-change positive">+2 Upcoming</section>
+            <section className="summary-change positive">+{allUpcoming.length === Upcoming.length ? 0 : allUpcoming.length - Upcoming.length}</section>
           </section>
           <section className="summary-card-body">
             <h3 className="summary-label">Upcoming Events</h3>
-            <p className="summary-value">8</p>
+            <p className="summary-value"> {Upcoming.length}</p>
             <p className="summary-subtext">Next 30 days</p>
           </section>
         </section>
@@ -172,11 +200,11 @@ function PlannerDashboard({ onSelectEvent }) {
         <section className="summary-card green">
           <section className="summary-card-header">
             <Users size={40} />
-            <section className="summary-change positive">+5%</section>
+            <section className="summary-change positive">+{percentageChange}%</section>
           </section>
           <section className="summary-card-body">
             <h3 className="summary-label">Avg Attendance</h3>
-            <p className="summary-value">320</p>
+            <p className="summary-value">{aveGuestCount}</p>
             <p className="summary-subtext">Per Event</p>
           </section>
         </section>
@@ -185,11 +213,11 @@ function PlannerDashboard({ onSelectEvent }) {
         <section className="summary-card purple">
           <section className="summary-card-header">
             <Users size={40} />
-            <section className="summary-change positive">+12%</section>
+            <section className="summary-change positive">+{percentageNewGuests}%</section>
           </section>
           <section className="summary-card-body">
             <h3 className="summary-label">New Guests</h3>
-            <p className="summary-value">450</p>
+            <p className="summary-value">{guestDiff}</p>
             <p className="summary-subtext">This month</p>
           </section>
         </section>
