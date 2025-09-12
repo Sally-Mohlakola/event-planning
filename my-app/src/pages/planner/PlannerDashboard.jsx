@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { isAfter, isBefore } from "date-fns";
 import './PlannerDashboard.css';
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth"; 
 import { 
   Calendar, 
   Users, 
@@ -16,41 +15,100 @@ import {
   Building 
 } from "lucide-react";
 
-export default function PlannerDashboard() {
+function PlannerDashboard({ onSelectEvent }) {
   const plannerId = "";
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
   const [events, setEvents] = useState([]);
+  const [authUser, setAuthUser] = useState(undefined); // undefined = loading, null = not logged in, object = user
   const today = new Date();
   const future = new Date();
   future.setDate(today.getDate() + 30);
 
-  const fetchPlannerEvents = async (plannerId) => {
-  
-          const auth = getAuth();
-          const user = auth.currentUser;
-          const token = await user.getIdToken(true);
-  
-          const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events`, {
-              headers: {
-                  "Authorization": `Bearer ${token}`
-              }
-          });
-          if (!res.ok) return []; 
-  
+  function EventCard({event, onSelectEvent}){
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
+    return(
+        <section className="event-card">
+            <section className="event-header">
+                <h3>{event.name}</h3>
+                <section 
+                    className="event-status" 
+                    style={{backgroundColor: getStatusColor(event.status)}}
+                >
+                    {event.status}
+                </section>
+            </section>
+            <section className="event-details">
+                <p className="event-date"> {formatDate(event.date)}</p>
+                <p className="event-location"> {event.location}</p>
+                <p className="event-attendees"> {event.expectedGuestCount} attendees</p>
+                <p className="event-budget"> R{event.budget.toLocaleString()}</p>
+            </section>
+            <section className="event-description">
+                <p>{event.description}</p>
+            </section>
+            <section className="event-buttons">
+                <button 
+                    className="select-btn"
+                    onClick={() => onSelectEvent(event)}
+                >
+                    Select Event
+                </button>
+                <button className="quick-view-btn">Quick View</button>
+            </section>
+        </section>
+    );
+}
+
+  const fetchPlannerEvents = async (user) => {
+    if (!user) {
+      console.warn("User not logged in");
+      return [];
+    }
+    const token = await user.getIdToken(true);
+    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    if (!res.ok) return [];
     const data = await res.json();
     return data.events || [];
-      };
+  };
+
   
-      useEffect(() => {
-      async function loadEvents() {
-          const events = await fetchPlannerEvents(plannerId);
-          setEvents(events);
 
+  // Listen for auth state changes and set user
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAuthUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
-      }
-      loadEvents();
-      }, [plannerId]);
+  // Fetch events only when authUser is loaded and not null
+  useEffect(() => {
+    if (authUser === undefined) return; // still loading
+    if (!authUser) {
+      setEvents([]);
+      return;
+    }
+    async function loadEvents() {
+      const events = await fetchPlannerEvents(authUser);
+      setEvents(events);
+    }
+    loadEvents();
+  }, [authUser]);
   
       function toDate(d) {
         return d instanceof Date ? d : new Date(d);
@@ -165,18 +223,20 @@ export default function PlannerDashboard() {
                 View All
               </button>
             </section>
-            <section className="upcoming-events">
-              {Upcoming.map(event => (
-                <section key={event.id} className="upcoming-event event-item">
-                  <section className="event-header">
-                    <h4>{event.title}</h4>
-                  </section>
-                  <section className="event-footer">
-                    <section>{event.date} | {event.time}</section>
-                    <section>{event.attendees} attending</section>
-                  </section>
-                </section>
-              ))}
+            <section className="events-grid">
+                {Upcoming.length > 0 ? (
+                    Upcoming.map((event) => (
+                        <EventCard 
+                            key={event.id} 
+                            event={event} 
+                            onSelectEvent={onSelectEvent}
+                        />
+                    ))
+                ) : (
+                    <section className="no-events">
+                        <p>You have no upcoming events</p>
+                    </section>
+                )}
             </section>
           </section>
 
@@ -234,3 +294,4 @@ export default function PlannerDashboard() {
     </section>
   );
 }
+export default PlannerDashboard;
