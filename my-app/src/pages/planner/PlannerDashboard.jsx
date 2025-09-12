@@ -42,7 +42,6 @@ function PlannerDashboard({ onSelectEvent }) {
                 <h3>{event.name}</h3>
                 <section 
                     className="event-status" 
-                    style={{backgroundColor: getStatusColor(event.status)}}
                 >
                     {event.status}
                 </section>
