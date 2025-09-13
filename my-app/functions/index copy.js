@@ -699,7 +699,7 @@ exports.api = functions.https.onRequest(app);
 // --- ADMIN PROFILE MANAGEMENT ROUTES ---
 // =================================================================
 
-/* Middleware to check if the user is an admin
+// Middleware to check if the user is an admin
 async function isAdmin(req, res, next) {
     const userRef = db.collection('Admin').doc(req.uid);
     const userDoc = await userRef.get();
@@ -709,81 +709,70 @@ async function isAdmin(req, res, next) {
     }
     next();
 }
-*/
 
-app.post('/admin/me', authenticate, async (req, res) => {
-  try {
-    const { fullName, phone, email, profilePic } = req.body;
-    let profilePicURL = '';
 
-    if (profilePic) {
-      const buffer = Buffer.from(profilePic, 'base64');
-      const fileRef = bucket.file(`Admin/${req.uid}/profile.jpg`);
-      await fileRef.save(buffer, { contentType: 'image/jpeg' });
-      await fileRef.makePublic();
-      profilePicURL = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+/**
+ * @route   POST /api/admin/profile
+ * @desc    Create an admin profile (usually on first sign-up)
+ * @access  Private
+ */
+app.post('/admin/profile', authenticate, async (req, res) => {
+    try {
+        const { name, phone, email } = req.body;
+
+        await db.collection('Admin').doc(req.uid).set({
+            uid: req.uid,
+            name,
+            phone,
+            email,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }); // Use merge to avoid overwriting existing fields
+        res.status(201).json({ message: 'Admin profile created/updated successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
     }
-
-    await db.collection('Admin').doc(req.uid).set({
-      fullName,
-      phone,
-      email,
-      profilePic: profilePicURL,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    res.json({ message: 'Admin profile created successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
 });
 
 
-// Get the admin profile
-app.get('/admin/me', authenticate, async (req, res) => {
-  try {
-    const doc = await db.collection('Admin').doc(req.uid).get();
-    if (!doc.exists) {
-      return res.status(404).json({ message: 'Admin not found' });
+/**
+ * @route   GET /api/admin/me
+ * @desc    Get the current admin's profile
+ * @access  Private (Admin Only)
+ */
+app.get('/admin/me', [authenticate, isAdmin], async (req, res) => {
+    try {
+        const doc = await db.collection('Admin').doc(req.uid).get();
+        if (!doc.exists) return res.status(404).json({ message: 'Admin profile not found' });
+        res.json(doc.data());
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
     }
-
-    const adminData = doc.data();
-
-    res.json({
-      ...adminData,
-      profilePic: adminData.profilePic || null // ensure field always exists
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
 });
 
-// Update the Admin's profile
-app.put('/admin/me', authenticate, async (req, res) => {
-  try {
-    const {fullName, phone, email, profilePic } = req.body;
-    let profilePicURL = '';
+/**
+ * @route   PUT /api/admin/me
+ * @desc    Update the current admin's profile
+ * @access  Private (Admin Only)
+ */
+app.put('/admin/me', [authenticate, isAdmin], async (req, res) => {
+    try {
+        const { name, phone, profilePic } = req.body;
+        const updateData = { name, phone };
 
-    if (profilePic) {
-      const buffer = Buffer.from(profilePic, 'base64');
-      const fileRef = bucket.file(`admin/${req.uid}/profile.jpg`);
-      await fileRef.save(buffer, { contentType: 'image/jpeg' });
-      await fileRef.makePublic();
-      profilePicURL = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+        if (profilePic) {
+            const buffer = Buffer.from(profilePic, 'base64');
+            const fileRef = bucket.file(`Admin/${req.uid}/profile.jpg`);
+            await fileRef.save(buffer, { contentType: 'image/jpeg' });
+            await fileRef.makePublic();
+            updateData.profilePic = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+        }
+
+        await db.collection('Admin').doc(req.uid).set(updateData, { merge: true });
+        res.json({ message: 'Admin profile updated successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
     }
-
-    await db.collection('Admin').doc(req.uid).update({ fullName,
-      phone,
-      email,
-      ...(profilePicURL && { profilePic: profilePicURL }),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    res.json({ message: 'Profile updated successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
 });

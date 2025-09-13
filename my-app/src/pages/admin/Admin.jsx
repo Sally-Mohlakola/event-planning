@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+	User,
 	Users,
 	Calendar,
 	ArrowLeft,
@@ -12,6 +13,7 @@ import {
 import AdminHome from "./AdminHome.jsx";
 import "./Admin.css";
 import Reports from "./Reports.jsx";
+import AdminProfile from "./AdminProfile.jsx";
 
 const Admin = () => {
 	//Using to page to the selected tab
@@ -21,6 +23,7 @@ const Admin = () => {
 
 	const navigationItems = [
 		{ id: "home", label: "Home", icon: House },
+
 		{ id: "event-management", label: "Event Management", icon: Calendar },
 		{ id: "planner-management", label: "Planner Management", icon: Users },
 		{ id: "vendor-management", label: "Vendor Management", icon: Users },
@@ -29,6 +32,7 @@ const Admin = () => {
 			label: "Reports & Detailed Analytics",
 			icon: BarChart3,
 		},
+		{ id: "my-profile", label: "My Profile", icon: User },
 	];
 
 	const renderPlaceholderPage = (pageTitle) => (
@@ -71,6 +75,8 @@ const Admin = () => {
 				return renderPlaceholderPage("Vendor Management");
 			case "reports":
 				return <Reports setActivePage={setActivePage} />;
+			case "my-profile":
+				return <AdminProfile setActivePage={setActivePage} />;
 			default:
 				return <AdminHome setActivePage={setActivePage} />;
 		}
@@ -91,7 +97,7 @@ const Admin = () => {
 								<section>Home</section>
 							</button>
 
-							<section className="vendor-logo">
+							<section className="admin-logo">
 								<Building2 size={24} />
 								<section className="logo-text">
 									Admin Home

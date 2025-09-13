@@ -11,12 +11,12 @@ import "./AdminHome.css";
 function AdminHome() {
 	return (
 		<main className="main-container">
-			<div className="vendor-applications">
+			<section className="vendor-applications">
 				<div className="main-title">
 					<h3>Pending Vendor Applications</h3>
 				</div>
 				<VendorApplications />
-			</div>
+			</section>
 		</main>
 	);
 }
