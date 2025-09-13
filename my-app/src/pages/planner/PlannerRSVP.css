@@ -1,0 +1,230 @@
+.rsvp-page {
+    min-height: 100vh;
+    background: white;
+    padding: 2rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rsvp-container {
+    width: 100%;
+    max-width: 600px;
+}
+
+.success-card,
+.error-card,
+.loading-card {
+    background: white;
+    border-radius: 20px;
+    padding: 3rem 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin: 0 auto;
+}
+
+.brand-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.brand-title {
+    color: #2563eb;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.brand-subtitle {
+    color: #6b7280;
+    margin: 0.5rem 0 0 0;
+    font-size: 1rem;
+}
+
+.status-section {
+    padding: 2rem 0;
+    margin: 2rem 0;
+    border-radius: 16px;
+}
+
+.status-section.accepted {
+    background: #ecfdf5;
+    border: 2px solid #10b981;
+}
+
+.status-section.declined {
+    background: #fef2f2;
+    border: 2px solid #ef4444;
+}
+
+.status-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.status-title {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.status-section.accepted .status-title {
+    color: #10b981;
+}
+
+.status-section.declined .status-title {
+    color: #ef4444;
+}
+
+.event-details {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #f9fafb;
+    border-radius: 12px;
+}
+
+.event-title {
+    color: #2563eb;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.event-date {
+    color: #6b7280;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.message-section {
+    margin: 2rem 0;
+}
+
+.main-message {
+    font-size: 1.1rem;
+    color: #374151;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.additional-message {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.confirmation-section {
+    margin: 2rem 0;
+    padding: 1rem;
+    background: #f0f9ff;
+    border-radius: 8px;
+    border-left: 4px solid #2563eb;
+}
+
+.confirmation-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #1e40af;
+}
+
+.rsvp-footer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    color: #6b7280;
+}
+
+.rsvp-footer p {
+    margin: 0 0 0.25rem 0;
+}
+
+.rsvp-footer strong {
+    color: #374151;
+}
+
+/* Loading States */
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #f3f4f6;
+    border-top: 4px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1.5rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-card h2 {
+    color: #2563eb;
+    margin-bottom: 1rem;
+}
+
+.loading-card p {
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Error States */
+.error-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.error-card h2 {
+    color: #ef4444;
+    margin-bottom: 1rem;
+}
+
+.error-card p {
+    color: #6b7280;
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.retry-button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background 0.2s ease;
+}
+
+.retry-button:hover {
+    background: #1d4ed8;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .rsvp-page {
+        padding: 1rem;
+    }
+
+    .success-card,
+    .error-card,
+    .loading-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .brand-title {
+        font-size: 2rem;
+    }
+
+    .status-title {
+        font-size: 1.5rem;
+    }
+
+    .event-title {
+        font-size: 1.25rem;
+    }
+}

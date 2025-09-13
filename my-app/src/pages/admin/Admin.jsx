@@ -13,7 +13,11 @@ import {
 import AdminHome from "./AdminHome.jsx";
 import "./Admin.css";
 import Reports from "./Reports.jsx";
+
+import AdminAllEvents from "./AdminAllEvents.jsx";
+
 import AdminProfile from "./AdminProfile.jsx";
+
 
 const Admin = () => {
 	//Using to page to the selected tab
@@ -68,7 +72,8 @@ const Admin = () => {
 			case "home":
 				return <AdminHome setActivePage={setActivePage} />;
 			case "event-management":
-				return renderPlaceholderPage("Event Management");
+    			return <AdminAllEvents setActivePage={setActivePage}/>;
+
 			case "planner-management":
 				return renderPlaceholderPage("Planner Management");
 			case "vendor-management":
