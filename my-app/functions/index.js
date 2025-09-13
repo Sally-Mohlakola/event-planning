@@ -692,8 +692,6 @@ app.get("/vendor/status", authenticate, async (req, res) => {
   }
 });
 
-exports.api = functions.https.onRequest(app);
-
 
 // =================================================================
 // --- ADMIN PROFILE MANAGEMENT ROUTES ---
@@ -787,3 +785,5 @@ app.put('/admin/me', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+exports.api = functions.https.onRequest(app);
