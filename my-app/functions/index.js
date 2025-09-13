@@ -508,6 +508,7 @@ app.post('/planner/events/:eventId/guests/import', authenticate, async (req, res
 
 //Fetch and filter best vendors
 //Will perhaps make logic more complex in the future
+
 app.get('/planner/events/:eventId/bestvendors', authenticate, async (req, res) => {
 try {
     const eventId = req.params.eventId;
@@ -691,5 +692,35 @@ app.get("/vendor/status", authenticate, async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+
+app.get('/admin/events', async (req, res) => {
+  try {
+    const snapshot = await db.collection('Event').get();
+    if (snapshot.empty) {
+      return res.json({ events: [] });
+    }
+    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ events });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while fetching events' });
+  }
+});
+
+app.delete('/admin/events/:eventId', async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const eventRef = db.collection('Event').doc(eventId);
+
+   
+    await eventRef.delete();
+
+    res.json({ message: 'Event deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while deleting event' });
+  }
+});
+
 
 exports.api = functions.https.onRequest(app);
