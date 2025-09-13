@@ -1,40 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../firebase";
-import "./vendorProfileEdit.css";
+import "./AdminProfileEdit.css";
 
-export default function VendorProfileEdit() {
+export default function AdminProfileEdit() {
 	const navigate = useNavigate();
 
-	const [description, setDescription] = useState("");
-	const [address, setAddress] = useState("");
+	const [fullName, setName] = useState("");
 	const [phone, setPhone] = useState("");
-	const [email, setEmail] = useState("");
 	const [profilePic, setProfilePic] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
 	const [success, setSuccess] = useState("");
 
-	const navProfile = () => navigate("/vendor-app");
+	const navProfile = () => navigate("/admin/profile");
 
-	// Fetch current profile
+	// Fetch current admin profile
 	useEffect(() => {
 		const fetchProfile = async () => {
 			if (!auth.currentUser) return;
 			try {
 				const token = await auth.currentUser.getIdToken();
 				const res = await fetch(
-					"https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/me",
+					"https://us-central1-planit-sdp.cloudfunctions.net/api/admin/me",
 					{
 						headers: { Authorization: `Bearer ${token}` },
 					}
 				);
 				if (!res.ok) throw new Error("Failed to fetch profile");
 				const data = await res.json();
-				setDescription(data.description || "");
-				setAddress(data.address || "");
+				setName(data.fullName || "");
 				setPhone(data.phone || "");
-				setEmail(data.email || "");
 			} catch (err) {
 				console.error(err);
 				setError(err.message);
@@ -59,21 +55,17 @@ export default function VendorProfileEdit() {
 
 		try {
 			let profilePicBase64 = null;
-
 			if (profilePic) {
 				profilePicBase64 = await new Promise((resolve, reject) => {
 					const reader = new FileReader();
 					reader.readAsDataURL(profilePic);
-					reader.onload = () => {
-						const base64String = reader.result.split(",")[1];
-						resolve(base64String);
-					};
+					reader.onload = () => resolve(reader.result.split(",")[1]);
 					reader.onerror = (error) => reject(error);
 				});
 			}
 
 			const res = await fetch(
-				"https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/me",
+				"https://us-central1-planit-sdp.cloudfunctions.net/api/admin/me",
 				{
 					method: "PUT",
 					headers: {
@@ -81,10 +73,8 @@ export default function VendorProfileEdit() {
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify({
-						description,
-						address,
+						fullName,
 						phone,
-						email,
 						profilePic: profilePicBase64,
 					}),
 				}
@@ -94,40 +84,33 @@ export default function VendorProfileEdit() {
 			if (!res.ok) throw new Error(data.message || "Update failed");
 
 			setSuccess("Profile updated successfully!");
-			setTimeout(() => navigate("/vendor-app"), 1000);
+			setTimeout(() => navProfile(), 1000);
 		} catch (err) {
 			console.error(err);
 			setError(err.message);
 		}
 	};
 
+	if (loading) return <p>Loading...</p>;
+
 	return (
-		<main className="vendor-apply-page">
-			<section className="vendor-apply-card">
-				<button onClick={navProfile} className="edit-profile-btn">
-					Back
+		<main className="admin-edit-page">
+			<section className="admin-edit-card">
+				<button onClick={navProfile} className="back-btn">
+					Back to Profile
 				</button>
-				<h1>Edit Vendor Profile</h1>
+				<h1>Edit Admin Profile</h1>
 				{error && <p className="error">{error}</p>}
 				{success && <p className="success">{success}</p>}
 
-				<form onSubmit={handleSubmit} className="vendor-apply-form">
+				<form onSubmit={handleSubmit} className="admin-edit-form">
 					<label>
-						Description
-						<textarea
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							rows={4}
-							required
-						/>
-					</label>
-
-					<label>
-						Address
+						Full Name
 						<input
 							type="text"
-							value={address}
-							onChange={(e) => setAddress(e.target.value)}
+							value={fullName}
+							onChange={(e) => setName(e.target.value)}
+							required
 						/>
 					</label>
 
@@ -141,15 +124,6 @@ export default function VendorProfileEdit() {
 					</label>
 
 					<label>
-						Email
-						<input
-							type="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-						/>
-					</label>
-
-					<label>
 						Profile Picture
 						<input
 							type="file"
@@ -158,7 +132,7 @@ export default function VendorProfileEdit() {
 						/>
 					</label>
 
-					<button type="submit" className="btn primary">
+					<button type="submit" className="btn-primary">
 						Save Changes
 					</button>
 				</form>

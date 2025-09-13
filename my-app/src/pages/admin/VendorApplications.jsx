@@ -76,29 +76,27 @@ function VendorApplications() {
 		<main className="main-container">
 			<div className="applications-list">
 				{applications.length > 0 ? (
-					applications.map((app) => (
-						<table className="vendor-table">
-							<thead>
-								<tr>
-									<th>Business Name</th>
-									<th>Category</th>
-									<th>Email</th>
+					<table className="vendor-table">
+						<thead>
+							<tr>
+								<th>Business Name</th>
+								<th>Category</th>
+								<th>Email</th>
+							</tr>
+						</thead>
+						<tbody>
+							{applications.map((app) => (
+								<tr
+									key={app.id}
+									onClick={() => handleRowClick(app)}
+								>
+									<td>{app.businessName}</td>
+									<td>{app.category}</td>
+									<td>{app.email}</td>
 								</tr>
-							</thead>
-							<tbody>
-								{applications.map((app) => (
-									<tr
-										key={app.id}
-										onClick={() => handleRowClick(app)}
-									>
-										<td>{app.businessName}</td>
-										<td>{app.category}</td>
-										<td>{app.email}</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					))
+							))}
+						</tbody>
+					</table>
 				) : (
 					<p>There are no pending applications found.</p>
 				)}
