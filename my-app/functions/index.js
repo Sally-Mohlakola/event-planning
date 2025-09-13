@@ -521,6 +521,7 @@ app.post('/planner/events/:eventId/guests/import', authenticate, async (req, res
 
 //Fetch and filter best vendors
 //Will perhaps make logic more complex in the future
+
 app.get('/planner/events/:eventId/bestvendors', authenticate, async (req, res) => {
 try {
     const eventId = req.params.eventId;
@@ -1140,4 +1141,128 @@ app.get("/vendor/status", authenticate, async (req, res) => {
   }
 });
 
+app.get('/admin/events', async (req, res) => {
+  try {
+    const snapshot = await db.collection('Event').get();
+    if (snapshot.empty) {
+      return res.json({ events: [] });
+    }
+    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ events });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while fetching events' });
+  }
+});
+
+app.delete('/admin/events/:eventId', async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const eventRef = db.collection('Event').doc(eventId);
+
+   
+    await eventRef.delete();
+
+    res.json({ message: 'Event deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while deleting event' });
+  }
+});
+
+
 exports.api = functions.https.onRequest(app);
+
+
+// =================================================================
+// --- ADMIN PROFILE MANAGEMENT ROUTES ---
+// =================================================================
+
+/* Middleware to check if the user is an admin
+async function isAdmin(req, res, next) {
+    const userRef = db.collection('Admin').doc(req.uid);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+        return res.status(403).json({ message: 'Forbidden: Requires admin privileges' });
+    }
+    next();
+}
+*/
+
+app.post('/admin/me', authenticate, async (req, res) => {
+  try {
+    const { fullName, phone, email, profilePic } = req.body;
+    let profilePicURL = '';
+
+    if (profilePic) {
+      const buffer = Buffer.from(profilePic, 'base64');
+      const fileRef = bucket.file(`Admin/${req.uid}/profile.jpg`);
+      await fileRef.save(buffer, { contentType: 'image/jpeg' });
+      await fileRef.makePublic();
+      profilePicURL = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+    }
+
+    await db.collection('Admin').doc(req.uid).set({
+      fullName,
+      phone,
+      email,
+      profilePic: profilePicURL,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ message: 'Admin profile created successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// Get the admin profile
+app.get('/admin/me', authenticate, async (req, res) => {
+  try {
+    const doc = await db.collection('Admin').doc(req.uid).get();
+    if (!doc.exists) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    const adminData = doc.data();
+
+    res.json({
+      ...adminData,
+      profilePic: adminData.profilePic || null // ensure field always exists
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update the Admin's profile
+app.put('/admin/me', authenticate, async (req, res) => {
+  try {
+    const {fullName, phone, email, profilePic } = req.body;
+    let profilePicURL = '';
+
+    if (profilePic) {
+      const buffer = Buffer.from(profilePic, 'base64');
+      const fileRef = bucket.file(`admin/${req.uid}/profile.jpg`);
+      await fileRef.save(buffer, { contentType: 'image/jpeg' });
+      await fileRef.makePublic();
+      profilePicURL = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+    }
+
+    await db.collection('Admin').doc(req.uid).update({ fullName,
+      phone,
+      email,
+      ...(profilePicURL && { profilePic: profilePicURL }),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
