@@ -82,3 +82,25 @@
 .contract-link:hover {
   background: #059669;
 }
+
+.contract-count {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.contract-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-btn.secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.upload-btn.secondary:hover {
+  background-color: #e5e7eb;
+}
