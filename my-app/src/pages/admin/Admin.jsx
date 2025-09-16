@@ -105,7 +105,7 @@ const Admin = () => {
 							<section className="admin-logo">
 								<Building2 size={24} />
 								<section className="logo-text">
-									Admin Home
+									AdminHub
 								</section>
 							</section>
 						</section>
