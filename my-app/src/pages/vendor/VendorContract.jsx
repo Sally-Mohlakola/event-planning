@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Upload, User, FileText, Mail, Calendar, Clock } from "lucide-react";
-import { auth, storage } from "../../firebase";
+import { auth, storage, db } from "../../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, collection, setDoc, updateDoc, getDocs, query, where } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import "./VendorContract.css";
 
@@ -12,43 +13,97 @@ const VendorContract = ({ setActivePage }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Load contracts from memory/localStorage alternative (in-memory storage)
+  // Load contracts from Firebase subcollection
+  const loadContractsFromFirestore = async () => {
+    if (!auth.currentUser) return;
+
+    try {
+      const vendorId = auth.currentUser.uid;
+      // Need to get eventId first - you'll need to modify this based on your data structure
+      // For now, we'll load contracts from all events this vendor is part of
+      const contractsData = [];
+      
+      // If you have a specific eventId, use: 
+      // const contractsRef = collection(db, "Event", eventId, "Vendors", vendorId, "Contracts");
+      
+      // For multiple events, you'd need to iterate through events
+      // This is a placeholder - you'll need to adapt based on your actual Event structure
+      for (const client of clients) {
+        if (client.eventId) {
+          try {
+            const contractsRef = collection(db, "Event", client.eventId, "Vendors", vendorId, "Contracts");
+            const contractsSnapshot = await getDocs(contractsRef);
+            
+            contractsSnapshot.docs.forEach(doc => {
+              contractsData.push({
+                id: doc.id,
+                ...doc.data()
+              });
+            });
+          } catch (eventError) {
+            console.log(`No contracts found for event ${client.eventId}:`, eventError.message);
+          }
+        }
+      }
+      
+      console.log("Loaded contracts from Firestore:", contractsData.length);
+      setAllContracts(contractsData);
+    } catch (error) {
+      console.error("Error loading contracts from Firestore:", error);
+      // Don't fail silently - continue with local-only mode
+      console.log("Continuing with local-only contract management");
+    }
+  };
+
+  // Initialize contracts from existing client data or Firestore
   useEffect(() => {
-    // Initialize AllContracts array from existing client data when component mounts
-    const initializeContracts = () => {
-      if (clients.length > 0) {
-        const existingContracts = clients
-          .filter(client => client.contractUrl)
-          .map(client => ({
-            id: uuidv4(),
-            eventId: client.eventId,
-            vendorId: auth.currentUser?.uid || '',
-            clientName: client.name,
-            clientEmail: client.email,
-            eventName: client.event,
-            contractUrl: client.contractUrl,
-            googleApisUrl: client.contractUrl, // Same URL for Google APIs access
-            fileName: client.contractUrl ? client.contractUrl.split('/').pop().split('?')[0] : 'unknown.pdf',
-            fileSize: 0, // Unknown for existing contracts
-            status: "active",
-            firstuploaded: client.firstuploaded || null,
-            lastedited: client.lastedited || null,
-            uploadHistory: client.firstuploaded ? [{
-              uploadDate: client.firstuploaded,
-              fileName: 'existing_contract',
-              fileSize: 0,
-              action: "existing_contract"
-            }] : []
-          }));
+    const initializeContracts = async () => {
+      if (auth.currentUser) {
+        // First load from Firestore
+        await loadContractsFromFirestore();
         
-        setAllContracts(existingContracts);
+        // Then check if we need to add any contracts from client data that aren't in Firestore
+        if (clients.length > 0) {
+          const existingContracts = clients
+            .filter(client => client.contractUrl)
+            .map(client => ({
+              id: uuidv4(),
+              eventId: client.eventId,
+              vendorId: auth.currentUser?.uid || '',
+              clientName: client.name,
+              clientEmail: client.email,
+              eventName: client.event,
+              contractUrl: client.contractUrl,
+              googleApisUrl: client.contractUrl, // Same URL for Google APIs access
+              fileName: client.contractUrl ? client.contractUrl.split('/').pop().split('?')[0] : 'unknown.pdf',
+              fileSize: 0, // Unknown for existing contracts
+              status: "active",
+              firstuploaded: client.firstuploaded || null,
+              lastedited: client.lastedited || null,
+              uploadHistory: client.firstuploaded ? [{
+                uploadDate: client.firstuploaded,
+                fileName: 'existing_contract',
+                fileSize: 0,
+                action: "existing_contract"
+              }] : []
+            }));
+          
+          // Only add contracts that don't already exist in Firestore
+          setAllContracts(prev => {
+            const existingEventIds = prev.map(contract => contract.eventId);
+            const newContracts = existingContracts.filter(contract => 
+              !existingEventIds.includes(contract.eventId)
+            );
+            return [...prev, ...newContracts];
+          });
+        }
       }
     };
 
-    if (clients.length > 0 && allContracts.length === 0) {
+    if (clients.length > 0) {
       initializeContracts();
     }
-  }, [clients, allContracts.length]);
+  }, [clients]);
 
   const fetchClients = async () => {
     if (!auth.currentUser) {
@@ -118,74 +173,104 @@ const VendorContract = ({ setActivePage }) => {
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
-  // Create or update contract entry in AllContracts array (frontend only)
-  const createOrUpdateContractEntry = (eventId, contractUrl, fileName, fileSize, clientInfo, isUpdate = false) => {
+  // Create or update contract entry in AllContracts array and Firestore
+  const createOrUpdateContractEntry = async (eventId, contractUrl, fileName, fileSize, clientInfo, isUpdate = false) => {
     const vendorId = auth.currentUser?.uid || '';
     const currentTime = { seconds: Math.floor(Date.now() / 1000) };
 
-    if (isUpdate) {
-      // Update existing contract
-      setAllContracts(prev => 
-        prev.map(contract => {
-          if (contract.eventId === eventId) {
-            return {
-              ...contract,
-              contractUrl: contractUrl,
-              googleApisUrl: contractUrl,
-              fileName: fileName,
-              fileSize: fileSize,
-              lastedited: currentTime,
-              uploadHistory: [
-                ...(contract.uploadHistory || []),
-                {
-                  uploadDate: currentTime,
-                  fileName: fileName,
-                  fileSize: fileSize,
-                  action: "contract_update"
-                }
-              ]
-            };
+    try {
+      if (isUpdate) {
+        // Update existing contract in Firestore and local state
+        const existingContract = allContracts.find(c => c.eventId === eventId);
+        if (existingContract) {
+          const updatedContract = {
+            ...existingContract,
+            contractUrl: contractUrl,
+            googleApisUrl: contractUrl,
+            fileName: fileName,
+            fileSize: fileSize,
+            lastedited: currentTime,
+            uploadHistory: [
+              ...(existingContract.uploadHistory || []),
+              {
+                uploadDate: currentTime,
+                fileName: fileName,
+                fileSize: fileSize,
+                action: "contract_update"
+              }
+            ]
+          };
+
+          try {
+            // Try to update in Firestore - using Event > Vendors > Contracts structure
+            const contractRef = doc(db, "Event", eventId, "Vendors", vendorId, "Contracts", existingContract.id);
+            await updateDoc(contractRef, updatedContract);
+            console.log("Contract updated in Firestore:", eventId);
+          } catch (firestoreError) {
+            console.warn("Failed to update in Firestore, continuing with local-only:", firestoreError.message);
           }
-          return contract;
-        })
-      );
-    } else {
-      // Create new contract entry
-      const newContract = {
-        id: uuidv4(),
-        eventId: eventId,
-        vendorId: vendorId,
-        clientName: clientInfo.name,
-        clientEmail: clientInfo.email,
-        eventName: clientInfo.event,
-        contractUrl: contractUrl,
-        googleApisUrl: contractUrl, // Same URL for Google APIs access
-        fileName: fileName,
-        fileSize: fileSize,
-        status: "active",
-        firstuploaded: currentTime,
-        lastedited: currentTime,
-        uploadHistory: [{
-          uploadDate: currentTime,
+
+          // Update local state regardless
+          setAllContracts(prev => 
+            prev.map(contract => 
+              contract.eventId === eventId ? updatedContract : contract
+            )
+          );
+        }
+      } else {
+        // Create new contract entry
+        const contractId = uuidv4();
+        const newContract = {
+          id: contractId,
+          eventId: eventId,
+          vendorId: vendorId,
+          clientName: clientInfo.name,
+          clientEmail: clientInfo.email,
+          eventName: clientInfo.event,
+          contractUrl: contractUrl,
+          googleApisUrl: contractUrl, // Same URL for Google APIs access
           fileName: fileName,
           fileSize: fileSize,
-          action: "initial_upload"
-        }]
-      };
+          status: "active",
+          firstuploaded: currentTime,
+          lastedited: currentTime,
+          uploadHistory: [{
+            uploadDate: currentTime,
+            fileName: fileName,
+            fileSize: fileSize,
+            action: "initial_upload"
+          }],
+          createdAt: currentTime,
+          updatedAt: currentTime
+        };
 
-      setAllContracts(prev => {
-        // Check if contract already exists, if so update it, otherwise add new
-        const existingIndex = prev.findIndex(c => c.eventId === eventId);
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = { ...updated[existingIndex], ...newContract, firstuploaded: updated[existingIndex].firstuploaded };
-          return updated;
+        try {
+          // Try to save to Firestore subcollection - using Event > Vendors > Contracts structure
+          const contractRef = doc(db, "Event", eventId, "Vendors", vendorId, "Contracts", contractId);
+          await setDoc(contractRef, newContract);
+          console.log("New contract saved to Firestore subcollection:", contractId);
+        } catch (firestoreError) {
+          console.warn("Failed to save to Firestore, continuing with local-only:", firestoreError.message);
         }
-        return [...prev, newContract];
-      });
-    }
 
-    console.log("Contract entry created/updated in AllContracts array:", { eventId, fileName, isUpdate });
+        // Update local state regardless
+        setAllContracts(prev => {
+          // Check if contract already exists, if so update it, otherwise add new
+          const existingIndex = prev.findIndex(c => c.eventId === eventId);
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], ...newContract, firstuploaded: updated[existingIndex].firstuploaded };
+            return updated;
+          }
+          return [...prev, newContract];
+        });
+      }
+
+      console.log("Contract entry created/updated in AllContracts array:", { eventId, fileName, isUpdate });
+    } catch (error) {
+      console.error("Error in contract management:", error);
+      // Don't throw the error - continue with local-only mode
+    }
   };
 
   const handleFileUpload = async (eventId, file) => {
@@ -235,8 +320,8 @@ const VendorContract = ({ setActivePage }) => {
         isUpdate
       });
 
-      // Create/Update entry in AllContracts array (frontend only)
-      createOrUpdateContractEntry(
+      // Create/Update entry in AllContracts array and save to Firestore subcollection
+      await createOrUpdateContractEntry(
         eventId, 
         downloadUrl, 
         file.name, 
