@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Upload, User, FileText, Mail } from "lucide-react";
+import { Upload, User, FileText, Mail, Calendar, Clock } from "lucide-react";
 import { auth, storage } from "../../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
@@ -7,9 +7,48 @@ import "./VendorContract.css";
 
 const VendorContract = ({ setActivePage }) => {
   const [clients, setClients] = useState([]);
+  const [allContracts, setAllContracts] = useState([]); // Frontend-only contracts array
   const [uploading, setUploading] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Load contracts from memory/localStorage alternative (in-memory storage)
+  useEffect(() => {
+    // Initialize AllContracts array from existing client data when component mounts
+    const initializeContracts = () => {
+      if (clients.length > 0) {
+        const existingContracts = clients
+          .filter(client => client.contractUrl)
+          .map(client => ({
+            id: uuidv4(),
+            eventId: client.eventId,
+            vendorId: auth.currentUser?.uid || '',
+            clientName: client.name,
+            clientEmail: client.email,
+            eventName: client.event,
+            contractUrl: client.contractUrl,
+            googleApisUrl: client.contractUrl, // Same URL for Google APIs access
+            fileName: client.contractUrl ? client.contractUrl.split('/').pop().split('?')[0] : 'unknown.pdf',
+            fileSize: 0, // Unknown for existing contracts
+            status: "active",
+            firstuploaded: client.firstuploaded || null,
+            lastedited: client.lastedited || null,
+            uploadHistory: client.firstuploaded ? [{
+              uploadDate: client.firstuploaded,
+              fileName: 'existing_contract',
+              fileSize: 0,
+              action: "existing_contract"
+            }] : []
+          }));
+        
+        setAllContracts(existingContracts);
+      }
+    };
+
+    if (clients.length > 0 && allContracts.length === 0) {
+      initializeContracts();
+    }
+  }, [clients, allContracts.length]);
 
   const fetchClients = async () => {
     if (!auth.currentUser) {
@@ -79,6 +118,76 @@ const VendorContract = ({ setActivePage }) => {
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
+  // Create or update contract entry in AllContracts array (frontend only)
+  const createOrUpdateContractEntry = (eventId, contractUrl, fileName, fileSize, clientInfo, isUpdate = false) => {
+    const vendorId = auth.currentUser?.uid || '';
+    const currentTime = { seconds: Math.floor(Date.now() / 1000) };
+
+    if (isUpdate) {
+      // Update existing contract
+      setAllContracts(prev => 
+        prev.map(contract => {
+          if (contract.eventId === eventId) {
+            return {
+              ...contract,
+              contractUrl: contractUrl,
+              googleApisUrl: contractUrl,
+              fileName: fileName,
+              fileSize: fileSize,
+              lastedited: currentTime,
+              uploadHistory: [
+                ...(contract.uploadHistory || []),
+                {
+                  uploadDate: currentTime,
+                  fileName: fileName,
+                  fileSize: fileSize,
+                  action: "contract_update"
+                }
+              ]
+            };
+          }
+          return contract;
+        })
+      );
+    } else {
+      // Create new contract entry
+      const newContract = {
+        id: uuidv4(),
+        eventId: eventId,
+        vendorId: vendorId,
+        clientName: clientInfo.name,
+        clientEmail: clientInfo.email,
+        eventName: clientInfo.event,
+        contractUrl: contractUrl,
+        googleApisUrl: contractUrl, // Same URL for Google APIs access
+        fileName: fileName,
+        fileSize: fileSize,
+        status: "active",
+        firstuploaded: currentTime,
+        lastedited: currentTime,
+        uploadHistory: [{
+          uploadDate: currentTime,
+          fileName: fileName,
+          fileSize: fileSize,
+          action: "initial_upload"
+        }]
+      };
+
+      setAllContracts(prev => {
+        // Check if contract already exists, if so update it, otherwise add new
+        const existingIndex = prev.findIndex(c => c.eventId === eventId);
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = { ...updated[existingIndex], ...newContract, firstuploaded: updated[existingIndex].firstuploaded };
+          return updated;
+        }
+        return [...prev, newContract];
+      });
+    }
+
+    console.log("Contract entry created/updated in AllContracts array:", { eventId, fileName, isUpdate });
+  };
+
   const handleFileUpload = async (eventId, file) => {
     if (!auth.currentUser) return alert("User not authenticated");
     if (!file) return alert("No file selected");
@@ -103,6 +212,8 @@ const VendorContract = ({ setActivePage }) => {
     setUploading(eventId);
     try {
       const vendorId = auth.currentUser.uid;
+      const clientInfo = clients.find(c => c.eventId === eventId);
+      const isUpdate = clientInfo?.contractUrl ? true : false;
       
       // Upload file to Firebase Storage
       const fileName = `Contracts/${eventId}/${vendorId}/${uuidv4()}-${file.name}`;
@@ -112,48 +223,74 @@ const VendorContract = ({ setActivePage }) => {
       const snapshot = await uploadBytes(storageRef, file);
       console.log("File uploaded successfully");
       
-      // Get download URL
+      // Get download URL (this will be your Google APIs compatible URL)
       const downloadUrl = await getDownloadURL(snapshot.ref);
       console.log("Download URL obtained:", downloadUrl);
 
-      // Update Firestore via API
-      const token = await auth.currentUser.getIdToken();
-      const updateRes = await fetch(
-        `https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/${eventId}/contract-url`,
-        {
-          method: "PUT",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ contractUrl: downloadUrl }),
-        }
+      // Note: Database update removed - handling everything frontend-only
+      console.log("Contract uploaded to Firebase Storage:", {
+        downloadUrl,
+        fileName: file.name,
+        fileSize: file.size,
+        isUpdate
+      });
+
+      // Create/Update entry in AllContracts array (frontend only)
+      createOrUpdateContractEntry(
+        eventId, 
+        downloadUrl, 
+        file.name, 
+        file.size, 
+        clientInfo,
+        isUpdate
       );
 
-      if (!updateRes.ok) {
-        const errorData = await updateRes.json();
-        throw new Error(errorData.message || "Failed to update contract URL in database");
-      }
-
-      // Update local state immediately
+      // Update local clients state immediately
       setClients(prev =>
         prev.map(c => c.eventId === eventId ? { 
           ...c, 
           contractUrl: downloadUrl,
-          lastedited: { seconds: Date.now() / 1000 }
+          lastedited: { seconds: Date.now() / 1000 },
+          ...(isUpdate ? {} : { firstuploaded: { seconds: Date.now() / 1000 } })
         } : c)
       );
       
-      // Refresh the full data after successful upload
-      await fetchClients();
+      // Refresh the full data after successful upload (optional since we're not using the API)
+      // await fetchClients();
       
-      alert("Contract uploaded successfully!");
+      alert(isUpdate ? "Contract updated successfully!" : "Contract uploaded successfully!");
     } catch (err) {
       console.error("Upload error:", err);
-      alert(`Failed to upload contract: ${err.message}`);
+      alert(`Failed to ${clients.find(c => c.eventId === eventId)?.contractUrl ? 'update' : 'upload'} contract: ${err.message}`);
     } finally {
       setUploading(null);
     }
+  };
+
+  // Helper function to get contract info from AllContracts
+  const getContractInfo = (eventId) => {
+    return allContracts.find(contract => contract.eventId === eventId);
+  };
+
+  // Helper function to get all contracts as exportable data
+  const getAllContractsData = () => {
+    return allContracts.map(contract => ({
+      ...contract,
+      // Convert Google APIs URL for easy copying
+      googleApisAccessUrl: contract.googleApisUrl,
+      // Add formatted dates
+      firstUploadedFormatted: contract.firstuploaded ? 
+        new Date(contract.firstuploaded.seconds * 1000).toISOString() : null,
+      lastEditedFormatted: contract.lastedited ? 
+        new Date(contract.lastedited.seconds * 1000).toISOString() : null,
+    }));
+  };
+
+  // Debug function to log all contracts
+  const logAllContracts = () => {
+    console.log("=== ALL CONTRACTS DATA ===");
+    console.log(JSON.stringify(getAllContractsData(), null, 2));
+    console.log("=== CONTRACTS COUNT ===", allContracts.length);
   };
 
   if (loading) return (
@@ -171,41 +308,93 @@ const VendorContract = ({ setActivePage }) => {
       <header>
         <h1>My Clients</h1>
         <p>View your clients and upload contracts for their events.</p>
+        {allContracts.length > 0 && (
+          <div className="contracts-summary">
+            <p><FileText size={16} /> Total Contracts: {allContracts.length}</p>
+            <button 
+              onClick={logAllContracts}
+              style={{
+                marginLeft: '1rem',
+                padding: '0.25rem 0.5rem',
+                fontSize: '0.8rem',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Log All Contracts (Console)
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="clients-list">
-        {clients.map(client => (
-          <div key={client.id} className="client-card">
-            <div className="client-info">
-              <p><User size={16} /> {client.name}</p>
-              <p><Mail size={16} /> {client.email}</p>
-              <p><FileText size={16} /> {client.event}</p>
-              {client.firstuploaded && (
-                <p className="contract-info">
-                  First uploaded: {new Date(client.firstuploaded.seconds * 1000).toLocaleDateString()}
-                </p>
-              )}
-              {client.lastedited && client.firstuploaded && client.lastedited.seconds !== client.firstuploaded.seconds && (
-                <p className="contract-info">
-                  Last updated: {new Date(client.lastedited.seconds * 1000).toLocaleDateString()}
-                </p>
-              )}
-            </div>
+        {clients.map(client => {
+          const contractInfo = getContractInfo(client.eventId);
+          
+          return (
+            <div key={client.id} className="client-card">
+              <div className="client-info">
+                <p><User size={16} /> {client.name}</p>
+                <p><Mail size={16} /> {client.email}</p>
+                <p><FileText size={16} /> {client.event}</p>
+                
+                {contractInfo && (
+                  <div className="contract-details">
+                    {contractInfo.firstuploaded && (
+                      <p className="contract-info">
+                        <Calendar size={14} /> First uploaded: {new Date(contractInfo.firstuploaded.seconds * 1000).toLocaleDateString()}
+                      </p>
+                    )}
+                    {contractInfo.lastedited && contractInfo.firstuploaded && 
+                     contractInfo.lastedited.seconds !== contractInfo.firstuploaded.seconds && (
+                      <p className="contract-info">
+                        <Clock size={14} /> Last updated: {new Date(contractInfo.lastedited.seconds * 1000).toLocaleDateString()}
+                      </p>
+                    )}
+                    <p className="contract-info">
+                      File: {contractInfo.fileName} ({(contractInfo.fileSize / (1024 * 1024)).toFixed(2)} MB)
+                    </p>
+                    <p className="contract-info">
+                      <strong>Google APIs URL:</strong>
+                    </p>
+                    <code className="google-apis-url">{contractInfo.googleApisUrl}</code>
+                    <p className="contract-info">
+                      Status: <span className={`status-${contractInfo.status}`}>{contractInfo.status}</span>
+                    </p>
+                  </div>
+                )}
+              </div>
 
-            <div className="contract-section">
-              {client.contractUrl ? (
-                <div className="contract-actions">
-                  <a
-                    href={client.contractUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="contract-link"
-                  >
-                    View Contract
-                  </a>
-                  <label className="upload-btn secondary">
+              <div className="contract-section">
+                {client.contractUrl ? (
+                  <div className="contract-actions">
+                    <a
+                      href={client.contractUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="contract-link"
+                    >
+                      View Contract
+                    </a>
+                    <label className="upload-btn secondary">
+                      <Upload size={16} />{" "}
+                      {uploading === client.eventId ? "Uploading..." : "Update Contract"}
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        hidden
+                        disabled={uploading === client.eventId}
+                        onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0])}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <label className="upload-btn">
                     <Upload size={16} />{" "}
-                    {uploading === client.eventId ? "Uploading..." : "Update Contract"}
+                    {uploading === client.eventId ? "Uploading..." : "Upload Contract"}
                     <input
                       type="file"
                       accept=".pdf,.doc,.docx"
@@ -214,24 +403,61 @@ const VendorContract = ({ setActivePage }) => {
                       onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0])}
                     />
                   </label>
-                </div>
-              ) : (
-                <label className="upload-btn">
-                  <Upload size={16} />{" "}
-                  {uploading === client.eventId ? "Uploading..." : "Upload Contract"}
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    hidden
-                    disabled={uploading === client.eventId}
-                    onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0])}
-                  />
-                </label>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* AllContracts Summary Section */}
+      {allContracts.length > 0 && (
+        <div className="all-contracts-section" style={{marginTop: '2rem'}}>
+          <h2>All Contracts Summary</h2>
+          <div className="contracts-grid">
+            {allContracts.map(contract => (
+              <div key={contract.id} className="contract-summary-card" style={{
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '1rem',
+                margin: '0.5rem',
+                backgroundColor: '#f9f9f9'
+              }}>
+                <h4>{contract.eventName}</h4>
+                <p><strong>Client:</strong> {contract.clientName}</p>
+                <p><strong>File:</strong> {contract.fileName}</p>
+                <p><strong>Size:</strong> {(contract.fileSize / (1024 * 1024)).toFixed(2)} MB</p>
+                {contract.firstuploaded && (
+                  <p><strong>Uploaded:</strong> {new Date(contract.firstuploaded.seconds * 1000).toLocaleDateString()}</p>
+                )}
+                <p><strong>Google APIs URL:</strong></p>
+                <code style={{
+                  display: 'block',
+                  padding: '0.5rem',
+                  backgroundColor: '#fff',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  wordBreak: 'break-all',
+                  marginTop: '0.25rem'
+                }}>
+                  {contract.googleApisUrl}
+                </code>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Debug section - remove in production */}
+      {process.env.NODE_ENV === 'development' && allContracts.length > 0 && (
+        <div className="debug-section" style={{marginTop: '2rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '8px'}}>
+          <h3>AllContracts Debug Info</h3>
+          <pre style={{fontSize: '12px', overflow: 'auto', maxHeight: '300px'}}>
+            {JSON.stringify(getAllContractsData(), null, 2)}
+          </pre>
+        </div>
+      )}
     </section>
   );
 };
