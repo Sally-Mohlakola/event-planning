@@ -1,6 +1,7 @@
+/* General page styling */
 .clients-page {
   padding: 2rem;
-  max-width: 800px;
+  max-width: 1200px; /* Increased to accommodate larger modal and cards */
   margin: 0 auto;
 }
 
@@ -18,6 +19,83 @@
   color: #666;
 }
 
+/* Stats summary */
+.stats-summary {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #444;
+}
+
+.uploaded-stat span {
+  color: #10b981; /* Matches contract-link color */
+}
+
+.pending-stat span {
+  color: #f59e0b; /* Amber for pending */
+}
+
+/* Search bar */
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 500px;
+  margin: 1.5rem auto;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.6rem 2.5rem 0.6rem 2rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.clear-search {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+}
+
+.clear-search:hover {
+  color: #333;
+}
+
+/* Contracts section */
+.contracts-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.uploaded-title {
+  color: #10b981; /* Matches uploaded contract styling */
+}
+
+.pending-title {
+  color: #f59e0b; /* Matches pending contract styling */
+}
+
+/* Client cards */
 .clients-list {
   display: flex;
   flex-direction: column;
@@ -36,7 +114,15 @@
 }
 
 .client-card:hover {
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.client-card.uploaded {
+  border-left: 4px solid #10b981; /* Visual cue for uploaded contracts */
+}
+
+.client-card.pending {
+  border-left: 4px solid #f59e0b; /* Visual cue for pending contracts */
 }
 
 .client-info p {
@@ -47,9 +133,48 @@
   color: #444;
 }
 
+.contract-details {
+  margin-top: 0.5rem;
+}
+
+.contract-info {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.file-name-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.file-name-btn:hover {
+  text-decoration: underline;
+}
+
+.status-active {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.status-pending {
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+/* Contract actions */
 .contract-section {
   display: flex;
   align-items: center;
+}
+
+.contract-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .upload-btn {
@@ -69,32 +194,6 @@
   background: #1e40af;
 }
 
-.contract-link {
-  background: #10b981;
-  color: white;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: background 0.2s ease;
-}
-
-.contract-link:hover {
-  background: #059669;
-}
-
-.contract-count {
-  font-size: 12px;
-  color: #666;
-  font-style: italic;
-}
-
-.contract-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .upload-btn.secondary {
   background-color: #f3f4f6;
   color: #374151;
@@ -103,4 +202,234 @@
 
 .upload-btn.secondary:hover {
   background-color: #e5e7eb;
+}
+
+.contract-link {
+  background: #10b981;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: none; /* Changed to button */
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.contract-link:hover {
+  background: #059669;
+}
+
+/* Modal styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  position: relative;
+  width: 800px; /* Adjusted for embedded content */
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.modal-body {
+  margin-bottom: 20px;
+}
+
+.contract-viewer {
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.contract-iframe {
+  width: 100%;
+  height: 500px; /* Adjustable based on needs */
+  border: none;
+}
+
+.unsupported-file {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #2563eb; /* Matches upload-btn */
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.download-btn:hover {
+  background-color: #1e40af;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.google-apis-section {
+  margin-top: 20px;
+}
+
+.google-apis-url {
+  display: block;
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  word-break: break-all;
+  font-size: 14px;
+}
+
+.copy-btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.copy-btn:hover {
+  background-color: #218838;
+}
+
+.upload-history {
+  margin-top: 20px;
+}
+
+.upload-history ul {
+  list-style: none;
+  padding: 0;
+}
+
+.upload-history li {
+  padding: 5px 0;
+  font-size: 14px;
+}
+
+/* Loading and error states */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  color: #dc2626;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.no-clients {
+  text-align: center;
+  color: #666;
+  margin-top: 2rem;
+}
+
+.no-results {
+  text-align: center;
+  color: #666;
+  margin-top: 2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .clients-page {
+    padding: 1rem;
+  }
+
+  .client-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .contract-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .contract-link,
+  .upload-btn,
+  .download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-width: none;
+  }
+
+  .contract-iframe {
+    height: 400px; /* Smaller height for mobile */
+  }
+
+  .stats-summary {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 }
