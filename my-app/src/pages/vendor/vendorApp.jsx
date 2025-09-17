@@ -17,6 +17,7 @@ import VendorBooking from "./vendorBooking";
 import "./vendorApp.css";
 import VendorReviews from "./vendorReviews";
 import VendorContract from "./VendorContract";
+import VendorFloorplan from "./vendorFloorplan";
 
 
 const VendorApp = () => {
@@ -64,7 +65,7 @@ const VendorApp = () => {
       case "bookings":
         return <VendorBooking setActivePage={setActivePage}/>;
       case "floorplan":
-        return  "floorplan";
+        return  <VendorFloorplan setActivePage={setActivePage}/>;
       case "reviews":
         return <VendorReviews setActivePage={setActivePage}/>;
       case "contracts":

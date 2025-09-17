@@ -148,36 +148,42 @@ const VendorDashboard = ({ setActivePage }) => {
         </div>
 
         {/* Recent Reviews */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <h3>Recent Reviews</h3>
-            <button onClick={() => setActivePage("reviews")} className="view-all-link">
-              View All
-            </button>
+        {/* Recent Reviews */}
+<div className="dashboard-card">
+  <div className="card-header">
+    <h3>Recent Reviews</h3>
+    <button onClick={() => setActivePage("reviews")} className="view-all-link">
+      View All
+    </button>
+  </div>
+  <div className="card-content">
+    {recentReviews.map((review) => (
+      <div key={review.id} className="review-item">
+        <div className="review-header">
+          <div className="review-user">
+            <h4>{review.name}</h4>
+            <div className="rating">
+              {/* Render stars exactly like VendorReviews */}
+              {[1, 2, 3, 4, 5].map((i) => {
+                if (i <= Math.floor(review.rating)) {
+                  return <Star key={i} size={14} color="#fbbf24" />;
+                } else if (i - review.rating <= 0.5) {
+                  return <StarHalf key={i} size={14} color="#fbbf24" />;
+                } else {
+                  return <Star key={i} size={14} color="#d1d5db" />;
+                }
+              })}
+            </div>
           </div>
-          <div className="card-content">
-            {recentReviews.map((review) => (
-              <div key={review.id} className="review-item">
-                <div className="review-header">
-                  <div className="review-user">
-                    <h4>{review.name}</h4>
-                    <div className="rating">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={14}
-                          className={i < review.rating ? 'star filled' : 'star'}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <span className="review-date">{review.date}</span>
-                </div>
-                <p className="review-comment">{review.comment}</p>
-              </div>
-            ))}
-          </div>
+          <span className="review-date">{review.date}</span>
         </div>
+        <p className="review-comment" style={{ color: "black" }}>
+          {review.comment}
+        </p>
+      </div>
+    ))}
+  </div>
+</div>
 
         {/* Sidebar */}
         <div className="dashboard-sidebar">

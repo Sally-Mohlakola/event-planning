@@ -1,8 +1,19 @@
 // src/vendor/VendorReviews.jsx
 import React, { useState, useEffect } from "react";
-import { Star, StarHalf, StarOff } from "lucide-react";
-import { auth } from "../../firebase"; // Ensure firebase is imported
+import { auth } from "../../firebase";
+import { Star, StarHalf } from "lucide-react";
 import "./vendorReviews.css";
+
+// Reusable StarRating component
+const StarRating = ({ rating, size = 16 }) => (
+  <div className="star-rating" style={{ display: "flex", gap: "2px" }}>
+    {[1, 2, 3, 4, 5].map((i) => {
+      if (i <= Math.floor(rating)) return <Star key={i} size={size} color="#fbbf24" />;
+      else if (i - rating <= 0.5) return <StarHalf key={i} size={size} color="#fbbf24" />;
+      else return <Star key={i} size={size} color="#d1d5db" />;
+    })}
+  </div>
+);
 
 const VendorReviews = ({ setActivePage }) => {
   const [reviews, setReviews] = useState([]);
@@ -20,17 +31,13 @@ const VendorReviews = ({ setActivePage }) => {
 
         const res = await fetch(
           `https://us-central1-planit-sdp.cloudfunctions.net/api/analytics/${vendorId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
         if (!res.ok) throw new Error("Failed to fetch reviews");
 
         const data = await res.json();
-        setAnalytics(data); // vendor analytics info
+        setAnalytics(data);
         setReviews(data.reviews || []);
       } catch (err) {
         console.error(err);
@@ -47,11 +54,10 @@ const VendorReviews = ({ setActivePage }) => {
   if (error) return <p className="error">{error}</p>;
   if (!reviews.length) return <p>No reviews found.</p>;
 
-  // Overall rating calculation
-  const overallRating =
-    reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  // Overall rating
+  const overallRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
 
-  // Progress bars calculation
+  // Progress bars
   const totalReviews = reviews.length;
   const ratingCounts = {
     excellent: reviews.filter((r) => r.rating >= 4.5).length,
@@ -60,26 +66,22 @@ const VendorReviews = ({ setActivePage }) => {
     poor: reviews.filter((r) => r.rating < 2.5).length,
   };
 
-  const renderStars = (rating) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      if (i <= Math.floor(rating))
-        stars.push(<Star key={i} size={16} color="#fbbf24" />);
-      else if (i - rating < 1)
-        stars.push(<StarHalf key={i} size={16} color="#fbbf24" />);
-      else stars.push(<StarOff key={i} size={16} color="#fbbf24" />);
-    }
-    return stars;
+  // Format time
+  const formatTime = (timestamp) => {
+    const now = new Date();
+    const reviewDate = new Date(timestamp);
+    const diffMs = now - reviewDate; // subtract to get positive difference
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
   };
-
-  const formatTime = (hoursAgo) =>
-    hoursAgo < 24 ? `${hoursAgo} hours ago` : `${Math.floor(hoursAgo / 24)} days ago`;
 
   return (
     <section className="vendor-reviews-page">
       <section className="review-page-title">
         <h2>Vendor Reviews</h2>
-        <p>Review, analyse and respond to reviews about your services.</p>
+        <p>Review, analyze, and respond to reviews about your services.</p>
       </section>
 
       {/* Overall Rating */}
@@ -90,51 +92,30 @@ const VendorReviews = ({ setActivePage }) => {
 
       {/* Rating Distribution */}
       <div className="rating-bars">
-        <div className="rating-bar">
-          <span className="rating-label">Excellent</span>
-          <div className="rating-progress">
-            <div
-              className="rating-progress-fill rating-excellent"
-              style={{ width: `${(ratingCounts.excellent / totalReviews) * 100}%` }}
-            ></div>
+        {["excellent", "good", "average", "poor"].map((key) => (
+          <div key={key} className="rating-bar">
+            <span className="rating-label">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+            <div className="rating-progress">
+              <div
+                className={`rating-progress-fill rating-${key}`}
+                style={{ width: `${(ratingCounts[key] / totalReviews) * 100}%` }}
+              ></div>
+            </div>
           </div>
-        </div>
-        <div className="rating-bar">
-          <span className="rating-label">Good</span>
-          <div className="rating-progress">
-            <div
-              className="rating-progress-fill rating-good"
-              style={{ width: `${(ratingCounts.good / totalReviews) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-        <div className="rating-bar">
-          <span className="rating-label">Average</span>
-          <div className="rating-progress">
-            <div
-              className="rating-progress-fill rating-average"
-              style={{ width: `${(ratingCounts.average / totalReviews) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-        <div className="rating-bar">
-          <span className="rating-label">Poor</span>
-          <div className="rating-progress">
-            <div
-              className="rating-progress-fill rating-poor"
-              style={{ width: `${(ratingCounts.poor / totalReviews) * 100}%` }}
-            ></div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Review Tiles */}
       <div className="review-list">
         {reviews.map((review) => (
           <div key={review.id} className="review-card">
-            <p className="review-time">{formatTime(review.hoursAgo)}</p>
-            <div className="review-stars">{renderStars(review.rating)}</div>
-            <p className="review-comment" style={{color:"black"}}>{review.review}</p>
+            <p className="review-time">{formatTime(review.createdAt)}</p>
+            <div className="review-stars">
+              <StarRating rating={review.rating} size={16} />
+            </div>
+            <p className="review-comment" style={{ color: "black" }}>
+              {review.review}
+            </p>
           </div>
         ))}
       </div>
