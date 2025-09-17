@@ -130,7 +130,7 @@ const PlannerApp = () => {
 							<section className="vendor-logo">
 								<Building2 size={24} />
 								<section className="logo-text">
-									Planner Home
+									PlannerHub
 								</section>
 							</section>
 						</section>

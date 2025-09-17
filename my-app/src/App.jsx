@@ -6,6 +6,7 @@ import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 import Home from "./pages/Home.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import OutsideLogin from "./pages/OutsideLogin.jsx";
 
 //planner pages imports
 import PlannerApp from "./pages/planner/PlannerApp.jsx";
@@ -40,7 +41,7 @@ function App() {
 				<Route path="/" element={<LandingPage />} />
 				<Route path="/signup" element={<Signup />} />
 				<Route path="/login" element={<Login />} />
-				<Route path="/home" element={<Home />} />
+				<Route path="/outsidelogin" element={<OutsideLogin />} />
 				<Route path="/home" element={<Home />} />
 				<Route path="/planner-dashboard" element={<PlannerApp />} />
 				<Route

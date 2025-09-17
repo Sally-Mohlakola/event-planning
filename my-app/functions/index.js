@@ -5,8 +5,6 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 
-//ee702ea5-50cd-466b-a94b-41285799f3f0
-
 const nodemailer = require('nodemailer');
 const { onDocumentCreated } = require('firebase-functions/firestore');
 const { v4: uuidv4 } = require("uuid");
@@ -50,8 +48,9 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173',
-
-    'https://witty-stone-03009b61e.1.azurestaticapps.net'
+    'http://localhost:3000',
+    'https://witty-stone-03009b61e.1.azurestaticapps.net',
+    'https://event-flow-6514.onrender.com/'
   ],
 }));
 app.use(express.json());
@@ -401,7 +400,6 @@ app.get('/planner/me/events', authenticate, async (req, res) => {
   }
 });
 
-
 //Get the guests for a particular event
 app.get('/planner/:eventId/guests', authenticate, async (req, res) =>{
   try{
@@ -441,6 +439,42 @@ app.get('/planner/:eventId/vendors', authenticate, async (req, res) => {
     res.status(500).json({message: "Server error"});
   }
 
+});
+
+//Get all vendors for a particular planner
+app.get('/planner/all/vendors', authenticate, async (req, res) => {
+  try {
+    const plannerId = req.uid;
+    const eventsSnapshot = await db.collection("Event")
+      .where("plannerId", "==", plannerId)
+      .get();
+
+    if (eventsSnapshot.empty) {
+      return res.json({ vendors: [] });
+    }
+
+    const vendorSet = new Set();
+    const vendors = [];
+
+    for (const eventDoc of eventsSnapshot.docs) {
+      const vendorsSnapshot = await db.collection("Event")
+        .doc(eventDoc.id)
+        .collection("Vendors")
+        .get();
+
+      vendorsSnapshot.forEach(vendorDoc => {
+        if (!vendorSet.has(vendorDoc.id)) {
+          vendorSet.add(vendorDoc.id);
+          vendors.push({ id: vendorDoc.id, ...vendorDoc.data() });
+        }
+      });
+    }
+
+    res.json({ vendors });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 //Updates the information of an event
@@ -1155,7 +1189,6 @@ app.put('/admin/vendor-applications/:vendorId', async (req, res) => {
 });
 
 
-
 app.get("/vendor/status", authenticate, async (req, res) => {
   try {
     const vendorRef = db.collection("Vendor").doc(req.uid); 
@@ -1202,6 +1235,44 @@ app.delete('/admin/events/:eventId', async (req, res) => {
   }
 });
 
+
+// Unprotected: Get all events for a user by UID (guid)
+app.get('/public/user/:uid/events', async (req, res) => {
+  try {
+    const uid = req.params.uid;
+    const snapshot = await db.collection("Event")
+      .where("plannerId", "==", uid)
+      .get();
+
+    if (snapshot.empty) {
+      return res.json({ uid, events: [] });
+    }
+
+    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ uid, events });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Unprotected guest list endpoint (public)
+app.get('/public/event/:eventId/guests', async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const snapshot = await db.collection("Event").doc(eventId).collection("Guests").get();
+
+    if (snapshot.empty) {
+      return res.json({ message: "No guests found for this event" });
+    }
+
+    const guests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ eventId, guests });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 exports.api = functions.https.onRequest(app);
 
@@ -1299,53 +1370,139 @@ app.put('/admin/me', authenticate, async (req, res) => {
   }
 });
 
-// admin planner management
-app.get('/admin/planners', [authenticate, isAdmin], async (req, res) => {
+
+app.post("/vendors/:vendorId/services", authenticate, async (req, res) => {
   try {
-    const snapshot = await db.collection('Planner').get();
-    if (snapshot.empty) {
-      return res.json([]);
+    const { vendorId } = req.params;
+    const {
+      serviceId, // pass this if updating an existing service
+      serviceName,
+      cost,
+      chargeByHour,
+      chargePerPerson,
+      chargePerSquareMeter,
+      extraNotes,
+    } = req.body;
+
+    if (!serviceName) {
+      return res.status(400).json({ error: "Service name is required" });
     }
-    const planners = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json(planners);
-  } catch (err) {
-    console.error('Error fetching planners:', err);
-    res.status(500).json({ message: 'Server error while fetching planners' });
-  }
-});
 
-app.put('/admin/planners/:plannerId/status', [authenticate, isAdmin], async (req, res) => {
-  const { plannerId } = req.params;
-  const { status } = req.body; // Expecting { "status": "suspended" } or { "status": "active" }
+    // reference to the vendor services subcollection
+    const servicesRef = db
+      .collection("Vendor")
+      .doc(vendorId)
+      .collection("Services");
 
-  if (!status || !['active', 'suspended'].includes(status)) {
-    return res.status(400).json({ message: 'Invalid status provided' });
-  }
+    let serviceDocRef;
 
-  try {
-    const plannerRef = db.collection('Planner').doc(plannerId);
-    await plannerRef.update({ status: status });
-    res.json({ message: `Planner status has been updated to ${status}` });
-  } catch (err) {
-    console.error('Error updating planner status:', err);
-    res.status(500).json({ message: 'Server error while updating planner' });
+    if (serviceId) {
+      // update existing service
+      serviceDocRef = servicesRef.doc(serviceId);
+      await serviceDocRef.set(
+        {
+          serviceName,
+          cost: cost || 0,
+          chargeByHour: chargeByHour || 0,
+          chargePerPerson: chargePerPerson || 0,
+          chargePerSquareMeter: chargePerSquareMeter || 0,
+          extraNotes: extraNotes || "",
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    } else {
+      // create new service
+      serviceDocRef = await servicesRef.add({
+        serviceName,
+        cost: cost || 0,
+        chargeByHour: chargeByHour || 0,
+        chargePerPerson: chargePerPerson || 0,
+        chargePerSquareMeter: chargePerSquareMeter || 0,
+        extraNotes: extraNotes || "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    res.status(200).json({
+      message: serviceId ? "Service updated successfully" : "Service added successfully",
+      serviceId: serviceDocRef.id,
+    });
+  } catch (error) {
+    console.error("Error adding/updating service:", error);
+    res.status(500).json({ error: "Failed to add/update service" });
   }
 });
 
 /**
- * @route   DELETE /api/admin/planners/:plannerId
- * @desc    Delete a planner's profile.
- * @access  Private (Admin Only)
+ * Get all services for a vendor
  */
-app.delete('/admin/planners/:plannerId', [authenticate, isAdmin], async (req, res) => {
-    const { plannerId } = req.params;
-    try {
-        await db.collection('Planner').doc(plannerId).delete();
-        res.json({ message: 'Planner has been deleted successfully' });
-    } catch (err) {
-        console.error('Error deleting planner:', err);
-        res.status(500).json({ message: 'Server error while deleting planner' });
-    }
+app.get("/vendors/:vendorId/services", authenticate, async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+
+    const servicesSnapshot = await db
+      .collection("Vendor")
+      .doc(vendorId)
+      .collection("Services")
+      .get();
+
+    const services = servicesSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json(services);
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    res.status(500).json({ error: "Failed to fetch services" });
+  }
 });
 
-exports.api = functions.https.onRequest(app);
+app.delete("/vendors/:vendorId/services/:serviceId", authenticate, async (req, res) => {
+  try {
+    const { vendorId, serviceId } = req.params;
+    if (!vendorId || !serviceId) {
+      return res.status(400).json({ error: "vendorId and serviceId are required" });
+    }
+
+    // Validate IDs to prevent invalid Firestore paths
+    if (vendorId.includes("/") || serviceId.includes("/")) {
+      return res.status(400).json({ error: "Invalid vendorId or serviceId: Path separators not allowed" });
+    }
+
+    console.log("Deleting service:", { vendorId, serviceId, user: req.uid });
+
+    const serviceDocRef = db.collection("Vendor").doc(vendorId).collection("Services").doc(serviceId);
+    console.log("Firestore path:", serviceDocRef.path);
+
+    const serviceSnapshot = await serviceDocRef.get();
+    if (!serviceSnapshot.exists) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+
+    await serviceDocRef.delete();
+    console.log("Service deleted successfully:", { vendorId, serviceId });
+
+    res.status(200).json({
+      message: "Service deleted successfully",
+      serviceId,
+    });
+  } catch (error) {
+    console.error("Error deleting service:", {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+    let errorMessage = "Failed to delete service";
+    if (error.code === "permission-denied") {
+      errorMessage = "Permission denied: User not authorized to delete this service";
+    } else if (error.code === "not-found") {
+      errorMessage = "Service document not found";
+    } else {
+      errorMessage = `Failed to delete service: ${error.message}`;
+    }
+    res.status(500).json({ error: errorMessage, details: error.message });
+  }
+});
