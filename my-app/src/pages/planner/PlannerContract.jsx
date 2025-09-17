@@ -6,6 +6,9 @@ const contractsMock = [
   { id: 2, vendor: "Floral Designs", date: "2025-09-05", status: "Pending" },
 ];
 
+
+
+
 export default function PlannerContract({ setActivePage }) {
   const [selectedContract, setSelectedContract] = useState(null);
   const [signature, setSignature] = useState("");
