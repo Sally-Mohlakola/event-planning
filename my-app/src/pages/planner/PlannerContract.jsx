@@ -10,30 +10,58 @@ export default function PlannerContract({ setActivePage }) {
   const [selectedContract, setSelectedContract] = useState(null);
   const [signature, setSignature] = useState("");
   const [sent, setSent] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
   const canvasRef = useRef();
+  const prevPosition = useRef(null);
 
-  // Draw signature on canvas
-  const handleSign = (e) => {
+  // Start drawing
+  const startDrawing = (e) => {
+    setIsDrawing(true);
     const rect = canvasRef.current.getBoundingClientRect();
-    const ctx = canvasRef.current.getContext("2d");
-    ctx.fillStyle = "#1e293b";
-    ctx.beginPath();
-    ctx.arc(
-      e.clientX - rect.left,
-      e.clientY - rect.top,
-      2,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
+    prevPosition.current = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
   };
 
+  // Draw continuous line
+  const handleSign = (e) => {
+    if (!isDrawing) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const ctx = canvasRef.current.getContext("2d");
+    const currentPosition = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(prevPosition.current.x, prevPosition.current.y);
+    ctx.lineTo(currentPosition.x, currentPosition.y);
+    ctx.stroke();
+
+    prevPosition.current = currentPosition;
+  };
+
+  // Stop drawing
+  const stopDrawing = () => {
+    setIsDrawing(false);
+    prevPosition.current = null;
+  };
+
+  // Clear signature
   const clearSignature = () => {
     const ctx = canvasRef.current.getContext("2d");
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     setSignature("");
   };
 
+  // Send contract with signature
   const sendContract = () => {
     const dataUrl = canvasRef.current.toDataURL();
     setSignature(dataUrl);
@@ -64,13 +92,10 @@ export default function PlannerContract({ setActivePage }) {
             ref={canvasRef}
             width={500}
             height={150}
-            onMouseDown={(e) => {
-              const moveHandler = (ev) => handleSign(ev);
-              window.addEventListener("mousemove", moveHandler);
-              window.addEventListener("mouseup", () => {
-                window.removeEventListener("mousemove", moveHandler);
-              }, { once: true });
-            }}
+            onMouseDown={startDrawing}
+            onMouseMove={handleSign}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
           />
           <div className="signature-buttons">
             <button onClick={clearSignature}>Clear</button>

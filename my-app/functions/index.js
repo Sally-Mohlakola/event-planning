@@ -5,8 +5,6 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 
-//ee702ea5-50cd-466b-a94b-41285799f3f0
-
 const nodemailer = require('nodemailer');
 const { onDocumentCreated } = require('firebase-functions/firestore');
 const { v4: uuidv4 } = require("uuid");
@@ -1369,5 +1367,142 @@ app.put('/admin/me', authenticate, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+app.post("/vendors/:vendorId/services", authenticate, async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const {
+      serviceId, // pass this if updating an existing service
+      serviceName,
+      cost,
+      chargeByHour,
+      chargePerPerson,
+      chargePerSquareMeter,
+      extraNotes,
+    } = req.body;
+
+    if (!serviceName) {
+      return res.status(400).json({ error: "Service name is required" });
+    }
+
+    // reference to the vendor services subcollection
+    const servicesRef = db
+      .collection("Vendor")
+      .doc(vendorId)
+      .collection("Services");
+
+    let serviceDocRef;
+
+    if (serviceId) {
+      // update existing service
+      serviceDocRef = servicesRef.doc(serviceId);
+      await serviceDocRef.set(
+        {
+          serviceName,
+          cost: cost || 0,
+          chargeByHour: chargeByHour || 0,
+          chargePerPerson: chargePerPerson || 0,
+          chargePerSquareMeter: chargePerSquareMeter || 0,
+          extraNotes: extraNotes || "",
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    } else {
+      // create new service
+      serviceDocRef = await servicesRef.add({
+        serviceName,
+        cost: cost || 0,
+        chargeByHour: chargeByHour || 0,
+        chargePerPerson: chargePerPerson || 0,
+        chargePerSquareMeter: chargePerSquareMeter || 0,
+        extraNotes: extraNotes || "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    res.status(200).json({
+      message: serviceId ? "Service updated successfully" : "Service added successfully",
+      serviceId: serviceDocRef.id,
+    });
+  } catch (error) {
+    console.error("Error adding/updating service:", error);
+    res.status(500).json({ error: "Failed to add/update service" });
+  }
+});
+
+/**
+ * Get all services for a vendor
+ */
+app.get("/vendors/:vendorId/services", authenticate, async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+
+    const servicesSnapshot = await db
+      .collection("Vendor")
+      .doc(vendorId)
+      .collection("Services")
+      .get();
+
+    const services = servicesSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json(services);
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    res.status(500).json({ error: "Failed to fetch services" });
+  }
+});
+
+app.delete("/vendors/:vendorId/services/:serviceId", authenticate, async (req, res) => {
+  try {
+    const { vendorId, serviceId } = req.params;
+    if (!vendorId || !serviceId) {
+      return res.status(400).json({ error: "vendorId and serviceId are required" });
+    }
+
+    // Validate IDs to prevent invalid Firestore paths
+    if (vendorId.includes("/") || serviceId.includes("/")) {
+      return res.status(400).json({ error: "Invalid vendorId or serviceId: Path separators not allowed" });
+    }
+
+    console.log("Deleting service:", { vendorId, serviceId, user: req.uid });
+
+    const serviceDocRef = db.collection("Vendor").doc(vendorId).collection("Services").doc(serviceId);
+    console.log("Firestore path:", serviceDocRef.path);
+
+    const serviceSnapshot = await serviceDocRef.get();
+    if (!serviceSnapshot.exists) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+
+    await serviceDocRef.delete();
+    console.log("Service deleted successfully:", { vendorId, serviceId });
+
+    res.status(200).json({
+      message: "Service deleted successfully",
+      serviceId,
+    });
+  } catch (error) {
+    console.error("Error deleting service:", {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+    let errorMessage = "Failed to delete service";
+    if (error.code === "permission-denied") {
+      errorMessage = "Permission denied: User not authorized to delete this service";
+    } else if (error.code === "not-found") {
+      errorMessage = "Service document not found";
+    } else {
+      errorMessage = `Failed to delete service: ${error.message}`;
+    }
+    res.status(500).json({ error: errorMessage, details: error.message });
   }
 });
