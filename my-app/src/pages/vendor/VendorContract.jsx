@@ -86,7 +86,7 @@ const VendorContract = ({ setActivePage }) => {
         id: booking.eventId,
         eventId: booking.eventId,
         name: booking.client || "Unknown Client",
-        email: booking.clientEmail || "No email provided",
+        email: booking.email || "No email provided",
         event: booking.eventName || "Unnamed Event",
         contractUrl: booking.contractUrl || null,
         firstuploaded: booking.firstuploaded || null,
@@ -162,72 +162,79 @@ const VendorContract = ({ setActivePage }) => {
     return () => unsubscribe();
   }, [fetchClients]);
 
-  const createOrUpdateContractEntry = useCallback(async (eventId, contractUrl, fileName, fileSize, clientInfo, isUpdate = false) => {
+  // Group contracts by eventId for multiple contracts per client
+  const groupedContracts = useMemo(() => {
+    const groups = {};
+    allContracts.forEach(contract => {
+      if (!groups[contract.eventId]) {
+        groups[contract.eventId] = [];
+      }
+      groups[contract.eventId].push(contract);
+    });
+    return groups;
+  }, [allContracts]);
+
+  // Persistent counters based on Firestore data
+  const clientsWithContracts = useMemo(() => {
+    const eventIdsWithContracts = new Set(allContracts.map(c => c.eventId));
+    return clients.filter(client => eventIdsWithContracts.has(client.eventId));
+  }, [clients, allContracts]);
+
+  const uploadedCount = clientsWithContracts.length;
+  const pendingCount = clients.length - uploadedCount;
+
+  const createOrUpdateContractEntry = useCallback(async (eventId, contractUrl, fileName, fileSize, clientInfo, isUpdate = false, replacingContractId = null) => {
     const vendorId = auth.currentUser?.uid || '';
     const currentTime = { seconds: Math.floor(Date.now() / 1000) };
 
     try {
-      if (isUpdate) {
-        const existingContract = allContracts.find(c => c.eventId === eventId);
-        if (existingContract) {
-          const updatedContract = {
-            ...existingContract,
-            contractUrl,
-            googleApisUrl: contractUrl,
-            fileName,
-            fileSize,
-            lastedited: currentTime,
-            uploadHistory: [
-              ...(existingContract.uploadHistory || []),
-              { uploadDate: currentTime, fileName, fileSize, action: "contract_update" }
-            ]
-          };
-
-          const contractRef = doc(db, "Event", eventId, "Vendors", vendorId, "Contracts", existingContract.id);
-          await updateDoc(contractRef, updatedContract);
-          setAllContracts(prev => 
-            prev.map(contract => contract.eventId === eventId ? updatedContract : contract)
-          );
-        }
-      } else {
-        const contractId = uuidv4();
-        const newContract = {
-          id: contractId,
-          eventId,
-          vendorId,
-          clientName: clientInfo.name,
-          clientEmail: clientInfo.email,
-          eventName: clientInfo.event,
-          contractUrl,
-          googleApisUrl: contractUrl,
+      const contractId = uuidv4();
+      const newContract = {
+        id: contractId,
+        eventId,
+        vendorId,
+        clientName: clientInfo.name,
+        clientEmail: clientInfo.email,
+        eventName: clientInfo.event,
+        contractUrl,
+        googleApisUrl: contractUrl,
+        fileName,
+        fileSize,
+        status: "active",
+        firstuploaded: currentTime,
+        lastedited: currentTime,
+        uploadHistory: [{
+          uploadDate: currentTime,
           fileName,
           fileSize,
-          status: "active",
-          firstuploaded: currentTime,
-          lastedited: currentTime,
-          uploadHistory: [{ uploadDate: currentTime, fileName, fileSize, action: "initial_upload" }],
-          createdAt: currentTime,
-          updatedAt: currentTime
-        };
+          action: replacingContractId ? `replacement for ${replacingContractId}` : "initial_upload"
+        }],
+        createdAt: currentTime,
+        updatedAt: currentTime
+      };
 
-        const contractRef = doc(db, "Event", eventId, "Vendors", vendorId, "Contracts", contractId);
-        await setDoc(contractRef, newContract);
-        setAllContracts(prev => {
-          const existingIndex = prev.findIndex(c => c.eventId === eventId);
-          if (existingIndex !== -1) {
-            const updated = [...prev];
-            updated[existingIndex] = { ...updated[existingIndex], ...newContract, firstuploaded: updated[existingIndex].firstuploaded };
-            return updated;
-          }
-          return [...prev, newContract];
-        });
-      }
+      const contractRef = doc(db, "Event", eventId, "Vendors", vendorId, "Contracts", contractId);
+      await setDoc(contractRef, newContract);
+      
+      setAllContracts(prev => [...prev, newContract]);
+
+      // Update client with latest contractUrl if needed
+      setClients(prev =>
+        prev.map(c => c.eventId === eventId ? { 
+          ...c, 
+          contractUrl: contractUrl,
+          lastedited: currentTime,
+          firstuploaded: c.firstuploaded || currentTime
+        } : c)
+      );
+
+      console.log(`${replacingContractId ? 'Updated' : 'New'} contract saved to Firestore:`, contractId);
     } catch (error) {
       console.error("Error in contract management:", error);
     }
-  }, [allContracts]);
+  }, []);
 
-  const handleFileUpload = useCallback(async (eventId, file) => {
+  const handleFileUpload = useCallback(async (eventId, file, replacingContractId = null) => {
     if (!auth.currentUser || !file) return;
     const allowedTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
     if (!allowedTypes.includes(file.type)) {
@@ -243,25 +250,18 @@ const VendorContract = ({ setActivePage }) => {
     try {
       const vendorId = auth.currentUser.uid;
       const clientInfo = clients.find(c => c.eventId === eventId);
-      const isUpdate = clientInfo?.contractUrl ? true : false;
+      const isUpdate = replacingContractId !== null;
       const fileName = `Contracts/${eventId}/${vendorId}/${uuidv4()}-${file.name}`;
       const storageRef = ref(storage, fileName);
       const snapshot = await uploadBytes(storageRef, file);
       const downloadUrl = await getDownloadURL(snapshot.ref);
 
-      await createOrUpdateContractEntry(eventId, downloadUrl, file.name, file.size, clientInfo, isUpdate);
-      setClients(prev =>
-        prev.map(c => c.eventId === eventId ? { 
-          ...c, 
-          contractUrl: downloadUrl,
-          lastedited: { seconds: Date.now() / 1000 },
-          ...(isUpdate ? {} : { firstuploaded: { seconds: Date.now() / 1000 } })
-        } : c)
-      );
+      await createOrUpdateContractEntry(eventId, downloadUrl, file.name, file.size, clientInfo, isUpdate, replacingContractId);
+      
       alert(isUpdate ? "Contract updated successfully!" : "Contract uploaded successfully!");
     } catch (err) {
       console.error("Upload error:", err);
-      alert(`Failed to ${clients.find(c => c.eventId === eventId)?.contractUrl ? 'update' : 'upload'} contract: ${err.message}`);
+      alert(`Failed to ${replacingContractId ? 'update' : 'upload'} contract: ${err.message}`);
     } finally {
       setUploading(null);
     }
@@ -275,10 +275,17 @@ const VendorContract = ({ setActivePage }) => {
     );
   }, [clients, debouncedSearchTerm]);
 
-  const uploadedClients = useMemo(() => filteredClients.filter(client => client.contractUrl), [filteredClients]);
-  const pendingClients = useMemo(() => filteredClients.filter(client => !client.contractUrl), [filteredClients]);
+  const uploadedClients = useMemo(() => {
+    const eventIdsWithContracts = new Set(allContracts.map(c => c.eventId));
+    return filteredClients.filter(client => eventIdsWithContracts.has(client.eventId));
+  }, [filteredClients, allContracts]);
 
-  const getContractInfo = useCallback((eventId) => allContracts.find(contract => contract.eventId === eventId), [allContracts]);
+  const pendingClients = useMemo(() => {
+    const eventIdsWithContracts = new Set(allContracts.map(c => c.eventId));
+    return filteredClients.filter(client => !eventIdsWithContracts.has(client.eventId));
+  }, [filteredClients, allContracts]);
+
+  const getContractInfo = useCallback((eventId) => groupedContracts[eventId] || [], [groupedContracts]);
 
   const viewContractDetails = useCallback((contract) => {
     setSelectedContract(contract);
@@ -289,7 +296,7 @@ const VendorContract = ({ setActivePage }) => {
   }, []);
 
   const ClientCard = React.memo(({ client, isUploaded }) => {
-    const contractInfo = getContractInfo(client.eventId);
+    const eventContracts = getContractInfo(client.eventId);
     
     return (
       <div className={`client-card ${isUploaded ? 'uploaded' : 'pending'}`}>
@@ -297,58 +304,9 @@ const VendorContract = ({ setActivePage }) => {
           <p><User size={16} /> {client.name}</p>
           <p><Mail size={16} /> {client.email}</p>
           <p><FileText size={16} /> {client.event}</p>
-          {contractInfo && (
-            <div className="contract-details">
-              {contractInfo.firstuploaded && (
-                <p className="contract-info">
-                  <Calendar size={14} /> First uploaded: {new Date(contractInfo.firstuploaded.seconds * 1000).toLocaleDateString()}
-                </p>
-              )}
-              {contractInfo.lastedited && contractInfo.firstuploaded && 
-               contractInfo.lastedited.seconds !== contractInfo.firstuploaded.seconds && (
-                <p className="contract-info">
-                  <Clock size={14} /> Last updated: {new Date(contractInfo.lastedited.seconds * 1000).toLocaleDateString()}
-                </p>
-              )}
-              <p className="contract-info">
-                File: 
-                <button 
-                  className="file-name-btn"
-                  onClick={() => viewContractDetails(contractInfo)}
-                  title="Click to view contract details"
-                >
-                  {contractInfo.fileName}
-                </button>
-                ({(contractInfo.fileSize / (1024 * 1024)).toFixed(2)} MB)
-              </p>
-              <p className="contract-info">
-                Status: <span className={`status-${contractInfo.status}`}>{contractInfo.status}</span>
-              </p>
-            </div>
-          )}
         </div>
         <div className="contract-section">
-          {client.contractUrl ? (
-            <div className="contract-actions">
-              <button
-                onClick={() => viewContractDetails(getContractInfo(client.eventId))}
-                className="contract-link"
-              >
-                View Contract
-              </button>
-              <label className="upload-btn secondary">
-                <Upload size={16} />
-                {uploading === client.eventId ? "Uploading..." : "Update Contract"}
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  hidden
-                  disabled={uploading === client.eventId}
-                  onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0])}
-                />
-              </label>
-            </div>
-          ) : (
+          {eventContracts.length === 0 ? (
             <label className="upload-btn">
               <Upload size={16} />
               {uploading === client.eventId ? "Uploading..." : "Upload Contract"}
@@ -360,6 +318,50 @@ const VendorContract = ({ setActivePage }) => {
                 onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0])}
               />
             </label>
+          ) : (
+            <div className="contract-actions">
+              <label className="upload-btn secondary">
+                <Upload size={16} />
+                {uploading === client.eventId ? "Uploading..." : "Add Contract"}
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  hidden
+                  disabled={uploading === client.eventId}
+                  onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0])}
+                />
+              </label>
+              <div className="contracts-list">
+                {eventContracts.map((contract) => (
+                  <div key={contract.id} className="contract-row">
+                    <div className="contract-info">
+                      <p className="file-name">
+                        <button 
+                          className="file-name-btn"
+                          onClick={() => viewContractDetails(contract)}
+                          title="Click to view contract details"
+                        >
+                          {contract.fileName}
+                        </button>
+                        <span>({new Date(contract.lastedited.seconds * 1000).toLocaleDateString()})</span>
+                      </p>
+                      <span className={`status-${contract.status}`}>{contract.status}</span>
+                    </div>
+                    <label className="upload-btn secondary small">
+                      <Upload size={12} />
+                      Edit
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        hidden
+                        disabled={uploading === client.eventId}
+                        onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0], contract.id)}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -387,10 +389,10 @@ const VendorContract = ({ setActivePage }) => {
             <span>Total Contracts: {allContracts.length}</span>
           </div>
           <div className="stat-item uploaded-stat">
-            <span>Uploaded: {uploadedClients.length}</span>
+            <span>Uploaded Clients: {uploadedCount}</span>
           </div>
           <div className="stat-item pending-stat">
-            <span>Pending: {pendingClients.length}</span>
+            <span>Pending Clients: {pendingCount}</span>
           </div>
         </div>
         <div className="search-container">
@@ -413,7 +415,7 @@ const VendorContract = ({ setActivePage }) => {
         <div className="contracts-section">
           <h2 className="section-title uploaded-title">
             <FileText size={20} />
-            Uploaded Contracts ({uploadedClients.length})
+            Clients with Contracts ({uploadedClients.length})
           </h2>
           <div className="clients-list">
             {uploadedClients.map(client => (
@@ -426,7 +428,7 @@ const VendorContract = ({ setActivePage }) => {
         <div className="contracts-section">
           <h2 className="section-title pending-title">
             <Upload size={20} />
-            Pending Contracts ({pendingClients.length})
+            Clients Pending Contracts ({pendingClients.length})
           </h2>
           <div className="clients-list">
             {pendingClients.map(client => (

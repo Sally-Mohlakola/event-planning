@@ -5,8 +5,6 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 
-//ee702ea5-50cd-466b-a94b-41285799f3f0
-
 const nodemailer = require('nodemailer');
 const { onDocumentCreated } = require('firebase-functions/firestore');
 const { v4: uuidv4 } = require("uuid");
@@ -1155,7 +1153,6 @@ app.put('/admin/vendor-applications/:vendorId', async (req, res) => {
 });
 
 
-
 app.get("/vendor/status", authenticate, async (req, res) => {
   try {
     const vendorRef = db.collection("Vendor").doc(req.uid); 
@@ -1296,5 +1293,95 @@ app.put('/admin/me', authenticate, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+app.post("/vendors/:vendorId/services", authenticate, async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const {
+      serviceId, // pass this if updating an existing service
+      serviceName,
+      cost,
+      chargeByHour,
+      chargePerPerson,
+      chargePerSquareMeter,
+      extraNotes,
+    } = req.body;
+
+    if (!serviceName) {
+      return res.status(400).json({ error: "Service name is required" });
+    }
+
+    // reference to the vendor services subcollection
+    const servicesRef = db
+      .collection("Vendor")
+      .doc(vendorId)
+      .collection("Services");
+
+    let serviceDocRef;
+
+    if (serviceId) {
+      // update existing service
+      serviceDocRef = servicesRef.doc(serviceId);
+      await serviceDocRef.set(
+        {
+          serviceName,
+          cost: cost || 0,
+          chargeByHour: chargeByHour || 0,
+          chargePerPerson: chargePerPerson || 0,
+          chargePerSquareMeter: chargePerSquareMeter || 0,
+          extraNotes: extraNotes || "",
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    } else {
+      // create new service
+      serviceDocRef = await servicesRef.add({
+        serviceName,
+        cost: cost || 0,
+        chargeByHour: chargeByHour || 0,
+        chargePerPerson: chargePerPerson || 0,
+        chargePerSquareMeter: chargePerSquareMeter || 0,
+        extraNotes: extraNotes || "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    res.status(200).json({
+      message: serviceId ? "Service updated successfully" : "Service added successfully",
+      serviceId: serviceDocRef.id,
+    });
+  } catch (error) {
+    console.error("Error adding/updating service:", error);
+    res.status(500).json({ error: "Failed to add/update service" });
+  }
+});
+
+/**
+ * Get all services for a vendor
+ */
+app.get("/vendors/:vendorId/services", authenticate, async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+
+    const servicesSnapshot = await db
+      .collection("Vendor")
+      .doc(vendorId)
+      .collection("Services")
+      .get();
+
+    const services = servicesSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json(services);
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    res.status(500).json({ error: "Failed to fetch services" });
   }
 });
