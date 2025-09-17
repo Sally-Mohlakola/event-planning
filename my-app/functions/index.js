@@ -1385,3 +1385,50 @@ app.get("/vendors/:vendorId/services", authenticate, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch services" });
   }
 });
+
+app.delete("/vendors/:vendorId/services/:serviceId", authenticate, async (req, res) => {
+  try {
+    const { vendorId, serviceId } = req.params;
+    if (!vendorId || !serviceId) {
+      return res.status(400).json({ error: "vendorId and serviceId are required" });
+    }
+
+    // Validate IDs to prevent invalid Firestore paths
+    if (vendorId.includes("/") || serviceId.includes("/")) {
+      return res.status(400).json({ error: "Invalid vendorId or serviceId: Path separators not allowed" });
+    }
+
+    console.log("Deleting service:", { vendorId, serviceId, user: req.uid });
+
+    const serviceDocRef = db.collection("Vendor").doc(vendorId).collection("Services").doc(serviceId);
+    console.log("Firestore path:", serviceDocRef.path);
+
+    const serviceSnapshot = await serviceDocRef.get();
+    if (!serviceSnapshot.exists) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+
+    await serviceDocRef.delete();
+    console.log("Service deleted successfully:", { vendorId, serviceId });
+
+    res.status(200).json({
+      message: "Service deleted successfully",
+      serviceId,
+    });
+  } catch (error) {
+    console.error("Error deleting service:", {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+    let errorMessage = "Failed to delete service";
+    if (error.code === "permission-denied") {
+      errorMessage = "Permission denied: User not authorized to delete this service";
+    } else if (error.code === "not-found") {
+      errorMessage = "Service document not found";
+    } else {
+      errorMessage = `Failed to delete service: ${error.message}`;
+    }
+    res.status(500).json({ error: errorMessage, details: error.message });
+  }
+});

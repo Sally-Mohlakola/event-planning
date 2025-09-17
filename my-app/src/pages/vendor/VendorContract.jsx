@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Upload, User, FileText, Mail, Calendar, Clock, Search, Eye, X } from "lucide-react";
+import { Upload, User, FileText, Mail, Calendar, Clock, Search, Eye, X, Trash2 } from "lucide-react";
 import { auth, storage, db } from "../../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, collection, setDoc, updateDoc, getDocs } from "firebase/firestore";
+import { doc, collection, setDoc, deleteDoc, getDocs } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import "./VendorContract.css";
 
@@ -50,6 +51,7 @@ const VendorContract = ({ setActivePage }) => {
       setAllContracts(contractsData);
     } catch (error) {
       console.error("Error loading contracts:", error);
+      setError("Failed to load contracts");
     }
   }, []);
 
@@ -231,6 +233,7 @@ const VendorContract = ({ setActivePage }) => {
       console.log(`${replacingContractId ? 'Updated' : 'New'} contract saved to Firestore:`, contractId);
     } catch (error) {
       console.error("Error in contract management:", error);
+      setError("Failed to save contract");
     }
   }, []);
 
@@ -266,6 +269,48 @@ const VendorContract = ({ setActivePage }) => {
       setUploading(null);
     }
   }, [clients, createOrUpdateContractEntry]);
+
+  const handleDeleteContract = useCallback(async (eventId, contractId) => {
+    if (!auth.currentUser) {
+      setError("User not authenticated");
+      return;
+    }
+    if (!confirm(`Are you sure you want to delete this contract?`)) {
+      return;
+    }
+
+    try {
+      const vendorId = auth.currentUser.uid;
+      const contractRef = doc(db, "Event", eventId, "Vendors", vendorId, "Contracts", contractId);
+      await deleteDoc(contractRef);
+
+      setAllContracts(prev => {
+        const updatedContracts = prev.filter(contract => contract.id !== contractId);
+        return updatedContracts;
+      });
+
+      // Update client contractUrl if no contracts remain for the event
+      setClients(prev =>
+        prev.map(c => {
+          if (c.eventId === eventId) {
+            const remainingContracts = groupedContracts[eventId]?.filter(c => c.id !== contractId) || [];
+            return {
+              ...c,
+              contractUrl: remainingContracts.length > 0 ? remainingContracts[remainingContracts.length - 1].contractUrl : null,
+              firstuploaded: remainingContracts.length > 0 ? c.firstuploaded : null,
+              lastedited: remainingContracts.length > 0 ? c.lastedited : null,
+            };
+          }
+          return c;
+        })
+      );
+
+      alert("Contract deleted successfully!");
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert(`Failed to delete contract: ${err.message}`);
+    }
+  }, [groupedContracts]);
 
   const filteredClients = useMemo(() => {
     return clients.filter(client => 
@@ -347,17 +392,27 @@ const VendorContract = ({ setActivePage }) => {
                       </p>
                       <span className={`status-${contract.status}`}>{contract.status}</span>
                     </div>
-                    <label className="upload-btn secondary small">
-                      <Upload size={12} />
-                      Edit
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        hidden
-                        disabled={uploading === client.eventId}
-                        onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0], contract.id)}
-                      />
-                    </label>
+                    <div className="contract-actions">
+                      <label className="upload-btn secondary small">
+                        <Upload size={12} />
+                        Edit
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          hidden
+                          disabled={uploading === client.eventId}
+                          onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0], contract.id)}
+                        />
+                      </label>
+                      <button
+                        className="delete-btn small"
+                        onClick={() => handleDeleteContract(client.eventId, contract.id)}
+                        title="Delete contract"
+                      >
+                        <Trash2 size={12} />
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

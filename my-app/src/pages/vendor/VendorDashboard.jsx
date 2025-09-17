@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Calendar,
@@ -12,6 +13,7 @@ import {
   AlertCircle,
   Edit,
   X,
+  Trash2,
 } from "lucide-react";
 import { auth } from "../../firebase";
 import "./VendorDashboard.css";
@@ -21,7 +23,7 @@ const VendorDashboard = ({ setActivePage }) => {
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [vendorId, setVendorId] = useState(null);
-  // Hardcoded contract stats (no API dependency)
+  const [deleting, setDeleting] = useState(null);
   const [contractStats] = useState({
     total: 12,
     uploaded: 8,
@@ -43,6 +45,7 @@ const VendorDashboard = ({ setActivePage }) => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setVendorId(user.uid);
+        console.log("Vendor ID set:", user.uid);
       } else {
         setError("User not authenticated");
         setLoading(false);
@@ -65,7 +68,10 @@ const VendorDashboard = ({ setActivePage }) => {
 
   // Fetch services
   const fetchServices = useCallback(async () => {
-    if (!vendorId) return;
+    if (!vendorId) {
+      console.log("Skipping fetchServices: vendorId not set");
+      return;
+    }
     setLoading(true);
     try {
       const token = await auth.currentUser.getIdToken();
@@ -81,19 +87,33 @@ const VendorDashboard = ({ setActivePage }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setServices(Array.isArray(data) ? data : data.services || []);
+        console.log("Services API response:", data);
+        const servicesData = Array.isArray(data) ? data : data.services || [];
+        const validServices = servicesData.filter(
+          (s) => s.id && typeof s.id === "string"
+        );
+        if (servicesData.length !== validServices.length) {
+          console.warn(
+            "Some services missing valid IDs:",
+            servicesData.filter((s) => !s.id || typeof s.id !== "string")
+          );
+          setError("Some services could not be loaded due to missing IDs");
+        }
+        setServices(validServices);
+        console.log("Services state set:", validServices);
       } else {
-        setError(`Failed to fetch services: ${response.statusText}`);
+        const errorData = await response.json();
+        setError(`Failed to fetch services: ${errorData.error || response.statusText}`);
       }
     } catch (error) {
       setError("Failed to fetch services");
-      console.error("Failed to fetch services", error);
+      console.error("Failed to fetch services:", error);
     } finally {
       setLoading(false);
     }
   }, [vendorId]);
 
-  // Fetch data when vendorId is available (only services now)
+  // Fetch data when vendorId is available
   useEffect(() => {
     if (vendorId) {
       fetchServices();
@@ -105,13 +125,16 @@ const VendorDashboard = ({ setActivePage }) => {
   }, []);
 
   const handleSaveService = useCallback(async () => {
-    if (!vendorId) return;
+    if (!vendorId) {
+      setError("User not authenticated");
+      return;
+    }
     try {
       const token = await auth.currentUser.getIdToken();
       const response = await fetch(
         `https://us-central1-planit-sdp.cloudfunctions.net/api/vendors/${vendorId}/services`,
         {
-          method: "POST", // Always use POST, backend handles update via serviceId
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -142,6 +165,8 @@ const VendorDashboard = ({ setActivePage }) => {
           chargePerSquareMeter: "",
           extraNotes: "",
         });
+        alert(editingService ? "Service updated successfully!" : "Service added successfully!");
+        await fetchServices();
       } else {
         const errorData = await response.json();
         setError(`Failed to save service: ${errorData.error}`);
@@ -150,13 +175,67 @@ const VendorDashboard = ({ setActivePage }) => {
       setError("Error saving service");
       console.error("Error saving service:", error);
     }
-  }, [vendorId, editingService, formData]);
+  }, [vendorId, editingService, formData, fetchServices]);
 
   const handleEdit = useCallback((service) => {
+    if (!service.id) {
+      setError("Cannot edit service: Missing service ID");
+      console.error("Edit failed: Missing service ID", service);
+      return;
+    }
     setEditingService(service);
     setFormData(service);
     setShowServiceForm(true);
   }, []);
+
+  const handleDeleteService = useCallback(async (serviceId) => {
+    if (!vendorId || !auth.currentUser) {
+      setError("User not authenticated");
+      console.error("Delete failed: vendorId not set");
+      return;
+    }
+    if (!serviceId) {
+      setError("Cannot delete service: Missing service ID");
+      console.error("Delete failed: serviceId not provided");
+      return;
+    }
+    if (!confirm("Are you sure you want to delete this service?")) {
+      return;
+    }
+
+    console.log("Attempting to delete service:", { vendorId, serviceId });
+    setDeleting(serviceId);
+    console.log("Deleting state set to:", serviceId);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(
+        `https://us-central1-planit-sdp.cloudfunctions.net/api/vendors/${vendorId}/services/${serviceId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Delete API error:", errorData);
+        throw new Error(errorData.error || "Failed to delete service on client side");
+      }
+
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+      alert("Service deleted successfully!");
+      await fetchServices();
+    } catch (error) {
+      setError(`Failed to delete service: ${error.message}`);
+      console.error("Error deleting service:", error);
+    } finally {
+      setDeleting(null);
+      console.log("Deleting state cleared");
+    }
+  }, [vendorId, fetchServices]);
 
   if (loading) return <div className="loading-screen">Loading...</div>;
   if (error) return <div className="error">{error}</div>;
@@ -240,6 +319,20 @@ const VendorDashboard = ({ setActivePage }) => {
               {contractStats.uploaded}/{contractStats.total}
             </p>
             <p className="summary-subtext">Contracts uploaded</p>
+          </div>
+        </div>
+
+        <div className="summary-card orange">
+          <div className="summary-card-header">
+            <div className="summary-icon orange">
+              <FileText size={24} />
+            </div>
+            <span className="summary-change">{services.length} active</span>
+          </div>
+          <div>
+            <h3 className="summary-label">Active Services</h3>
+            <p className="summary-value">{services.length}</p>
+            <p className="summary-subtext">Total services offered</p>
           </div>
         </div>
       </div>
@@ -385,19 +478,39 @@ const VendorDashboard = ({ setActivePage }) => {
         </div>
         <div className="card-content">
           {services.length === 0 && <p>No services added yet.</p>}
-          {services.map((service) => (
-            <div key={service.id} className="service-item">
+          {services.map((service, index) => (
+            <div key={service.id || `temp-${index}`} className="service-item">
               <div>
-                <h4>{service.serviceName}</h4>
-                <p>Cost: R{service.cost}</p>
+                <h4>{service.serviceName || "Unnamed Service"}</h4>
+                <p>Cost: R{service.cost || "N/A"}</p>
                 {service.chargeByHour && <p>Per Hour: R{service.chargeByHour}</p>}
                 {service.chargePerPerson && <p>Per Person: R{service.chargePerPerson}</p>}
                 {service.chargePerSquareMeter && <p>Per m²: R{service.chargePerSquareMeter}</p>}
                 {service.extraNotes && <p className="service-notes">{service.extraNotes}</p>}
+                {!service.id && (
+                  <p className="error-text">Warning: This service is missing an ID and cannot be edited or deleted.</p>
+                )}
               </div>
-              <button className="btn-secondary" onClick={() => handleEdit(service)}>
-                <Edit size={16} /> Edit
-              </button>
+              <div className="service-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => handleEdit(service)}
+                  disabled={!service.id}
+                  title={service.id ? "Edit service" : "Cannot edit: Missing service ID"}
+                  data-testid={`edit-service-${service.id || index}`}
+                >
+                  <Edit size={16} /> Edit
+                </button>
+                <button
+                  className="btn-delete"
+                  onClick={() => handleDeleteService(service.id)}
+                  disabled={deleting === service.id || !service.id}
+                  title={service.id ? "Delete service" : "Cannot delete: Missing service ID"}
+                  data-testid={`delete-service-${service.id || index}`}
+                >
+                  <Trash2 size={16} /> {deleting === service.id ? "Deleting..." : "Delete"}
+                </button>
+              </div>
             </div>
           ))}
         </div>

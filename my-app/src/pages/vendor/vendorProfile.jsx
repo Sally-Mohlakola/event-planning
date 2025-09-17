@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../firebase";
-import { Edit, Plus, X } from "lucide-react";
+import { Edit, Plus, X, Trash2 } from "lucide-react";
 import "./vendorProfile.css";
 
 const VendorProfile = () => {
@@ -14,6 +13,7 @@ const VendorProfile = () => {
   const [imageVersion, setImageVersion] = useState(Date.now());
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [editingService, setEditingService] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [formData, setFormData] = useState({
     serviceName: "",
     cost: "",
@@ -143,6 +143,59 @@ const VendorProfile = () => {
     setShowServiceForm(true);
     setError("");
   }, []);
+
+  const handleDeleteService = useCallback(async (serviceId) => {
+    if (!auth.currentUser) {
+      setError("User not authenticated");
+      console.error("Delete failed: User not authenticated");
+      return;
+    }
+    if (!serviceId) {
+      setError("Cannot delete service: Missing service ID");
+      console.error("Delete failed: serviceId not provided");
+      return;
+    }
+    if (!confirm("Are you sure you want to delete this service?")) {
+      return;
+    }
+
+    setDeleting(serviceId);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const vendorId = auth.currentUser.uid;
+      const response = await fetch(
+        `https://us-central1-planit-sdp.cloudfunctions.net/api/vendors/${vendorId}/services/${serviceId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Delete API error:", errorData);
+        let errorMessage = errorData.error || `Failed to delete service (Status: ${response.status})`;
+        if (errorData.details && errorData.details.includes("not defined")) {
+          errorMessage = "Server error: Firestore configuration issue. Contact support.";
+        } else if (errorData.error.includes("Permission denied")) {
+          errorMessage = "Permission denied: You are not authorized to delete this service.";
+        }
+        throw new Error(errorMessage);
+      }
+
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+      setError("");
+      await fetchServices();
+    } catch (error) {
+      setError(`Failed to delete service: ${error.message}`);
+      console.error("Error deleting service:", error);
+    } finally {
+      setDeleting(null);
+    }
+  }, [fetchServices]);
 
   const handleChange = useCallback((e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -279,13 +332,23 @@ const VendorProfile = () => {
                     {s.chargePerSquareMeter && <p>Per m²: R{s.chargePerSquareMeter}</p>}
                     {s.extraNotes && <p className="service-notes">{s.extraNotes}</p>}
                   </div>
-                  <button
-                    className="edit-service-btn"
-                    onClick={() => handleEditService(s)}
-                    aria-label={`Edit ${s.serviceName || "service"}`}
-                  >
-                    <Edit size={14} /> Edit
-                  </button>
+                  <div className="service-actions">
+                    <button
+                      className="edit-service-btn"
+                      onClick={() => handleEditService(s)}
+                      aria-label={`Edit ${s.serviceName || "service"}`}
+                    >
+                      <Edit size={14} /> Edit
+                    </button>
+                    <button
+                      className="delete-service-btn"
+                      onClick={() => handleDeleteService(s.id)}
+                      disabled={deleting === s.id || !s.id}
+                      aria-label={`Delete ${s.serviceName || "service"}`}
+                    >
+                      <Trash2 size={14} /> {deleting === s.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
                 </div>
               ))
             ) : (
