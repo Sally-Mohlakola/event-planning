@@ -22,6 +22,9 @@ export default function Login() {
         const encodedId = btoa(user.uid);
         localStorage.setItem('userId', encodedId);
         window.location.href = 'http://127.0.0.1:3000/test.html?userId=' + encodeURIComponent(encodedId);
+        window.location.href = 'https://event-flow-6514.onrender.com/manager/guest-invite?userId=' + encodeURIComponent(encodedId);
+        window.location.href = 'https://127.0.001:5000/manager/guest-invite?userId=' + encodeURIComponent(encodedId);
+        window.location.href = 'https://127.0.001:3000/manager/guest-invite?userId=' + encodeURIComponent(encodedId);
       }
     } catch (error) {
       console.error("Error signing in with Google:", error);
