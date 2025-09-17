@@ -1299,4 +1299,53 @@ app.put('/admin/me', authenticate, async (req, res) => {
   }
 });
 
+// admin planner management
+app.get('/admin/planners', [authenticate, isAdmin], async (req, res) => {
+  try {
+    const snapshot = await db.collection('Planner').get();
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    const planners = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(planners);
+  } catch (err) {
+    console.error('Error fetching planners:', err);
+    res.status(500).json({ message: 'Server error while fetching planners' });
+  }
+});
+
+app.put('/admin/planners/:plannerId/status', [authenticate, isAdmin], async (req, res) => {
+  const { plannerId } = req.params;
+  const { status } = req.body; // Expecting { "status": "suspended" } or { "status": "active" }
+
+  if (!status || !['active', 'suspended'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid status provided' });
+  }
+
+  try {
+    const plannerRef = db.collection('Planner').doc(plannerId);
+    await plannerRef.update({ status: status });
+    res.json({ message: `Planner status has been updated to ${status}` });
+  } catch (err) {
+    console.error('Error updating planner status:', err);
+    res.status(500).json({ message: 'Server error while updating planner' });
+  }
+});
+
+/**
+ * @route   DELETE /api/admin/planners/:plannerId
+ * @desc    Delete a planner's profile.
+ * @access  Private (Admin Only)
+ */
+app.delete('/admin/planners/:plannerId', [authenticate, isAdmin], async (req, res) => {
+    const { plannerId } = req.params;
+    try {
+        await db.collection('Planner').doc(plannerId).delete();
+        res.json({ message: 'Planner has been deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting planner:', err);
+        res.status(500).json({ message: 'Server error while deleting planner' });
+    }
+});
+
 exports.api = functions.https.onRequest(app);

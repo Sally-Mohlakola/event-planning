@@ -1,5 +1,5 @@
 import React from "react";
-import "./PlannerManagement.css";
+import "./AdminPlannerManagement.css";
 
 export default function PlannerManagement() {
 	return (

@@ -1,7 +1,7 @@
 import React from "react";
-import "./VendorManagement.css";
+import "./AdminVendorManagement.css";
 
-function VendorManagement() {
+function AdminVendorManagement() {
 	return (
 		<main className="main-container">
 			<div className="main-title">
@@ -11,4 +11,4 @@ function VendorManagement() {
 	);
 }
 
-export default VendorManagement;
+export default AdminVendorManagement;
