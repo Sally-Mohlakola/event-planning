@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import "./PlannerAllEvents.css"
 
 import { getAuth } from "firebase/auth";
@@ -64,6 +65,7 @@ export default function PlannerAllEvents({setActivePage, onSelectEvent}){
     const [statusFilter, setStatusFilter] = useState("All");
     const [sortBy, setSortBy] = useState("date");
     const [events, setEvents] = useState([]);
+    const navigate = useNavigate();
 
    
     const fetchPlannerEvents = async (plannerId) => {
@@ -114,9 +116,17 @@ export default function PlannerAllEvents({setActivePage, onSelectEvent}){
 
     return(
         <section className="events-list">
+
             <section className="events-header">
                 <h2>My Events</h2>
                 <p className="events-subtitle">Manage and track all your events</p>
+                <button 
+                    className="create-event-btn"
+                    onClick={() => navigate("/planner/new-event")}
+                >
+                    + New Event
+                </button>
+
             </section>
 
             <section className="events-controls">

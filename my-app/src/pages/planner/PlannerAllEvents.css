@@ -220,6 +220,22 @@
   transition: all 0.3s ease;
 }
 
+.create-event-btn button{
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(100deg, #1d4ed8, #7c3aed);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
 .select-btn {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
