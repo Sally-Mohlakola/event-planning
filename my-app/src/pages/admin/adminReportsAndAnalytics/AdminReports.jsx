@@ -14,9 +14,8 @@ import {
 	Pie,
 	Cell,
 } from "recharts";
-import "./Reports.css";
+import "./AdminReports.css";
 
-// More meaningful, event-planning specific data
 const monthlyFinancials = [
 	{ month: "April", budget: 15000, spending: 12500 },
 	{ month: "May", budget: 20000, spending: 21500 },
@@ -42,7 +41,7 @@ const guestRsvpData = [
 
 const COLORS = ["#2e7d32", "#ff6d00", "#d50000", "#2962ff"];
 
-function Reports() {
+function AdminReports() {
 	return (
 		<main className="main-container">
 			<div className="charts">
@@ -146,4 +145,4 @@ function Reports() {
 	);
 }
 
-export default Reports;
+export default AdminReports;

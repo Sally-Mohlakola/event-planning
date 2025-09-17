@@ -5,20 +5,20 @@ import {
 	BsPeopleFill,
 	BsFillBellFill,
 } from "react-icons/bs";
-import VendorApplications from "./VendorApplications";
-import "./AdminHome.css";
+import AdminVendorApplications from "../adminVendorManagement/AdminVendorApplications";
+import "./AdminHomeDashboard.css";
 
-function AdminHome() {
+function AdminHomeDashboard() {
 	return (
 		<main className="main-container">
 			<section className="vendor-applications">
 				<div className="main-title">
 					<h3>Pending Vendor Applications</h3>
 				</div>
-				<VendorApplications />
+				<AdminVendorApplications />
 			</section>
 		</main>
 	);
 }
 
-export default AdminHome;
+export default AdminHomeDashboard;
