@@ -1,1754 +1,570 @@
-/* VendorContract.css - Complete styling with e-signature components */
+/* src/vendor/VendorDashboard.css */
 
-/* ============== BASE STYLES ============== */
-.clients-page {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+.vendor-dashboard {
+  padding: 0;
 }
 
-.clients-page header {
-  text-align: center;
+/* Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 2rem;
 }
 
-.clients-page h1 {
-  font-size: 2rem;
+.dashboard-title {
+  font-size: 1.875rem;
   font-weight: 700;
   color: #1f2937;
   margin-bottom: 0.5rem;
 }
 
-.clients-page p {
+.dashboard-subtitle {
   color: #6b7280;
-  font-size: 1rem;
   margin: 0;
 }
 
-/* ============== STATS SUMMARY ============== */
-.stats-summary {
+.dashboard-actions {
   display: flex;
-  justify-content: center;
-  gap: 2rem;
-  margin: 2rem 0;
-  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
-.stat-item {
+
+.btn-primary {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1rem;
-  color: #374151;
-  font-weight: 500;
+  background: linear-gradient(100deg, #1d4ed8, #7c3aed);
+  color: white;
   padding: 0.75rem 1rem;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
 }
 
-.uploaded-stat span {
-  color: #10b981;
+.btn-primary:hover {
+  opacity: 0.9;
 }
 
-.pending-stat span {
-  color: #f59e0b;
-}
-
-/* ============== SEARCH BAR ============== */
-.search-container {
+.btn-secondary {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  max-width: 600px;
-  margin: 2rem auto;
-  position: relative;
+  gap: 0.5rem;
+  background: white;
+  border: 2px solid #1d4ed8;
+  color: #1d4ed8;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #dbeafe;
+}
+
+/* Summary Cards */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  height: 200px;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s ease;
+  height: 80%;
+}
+
+.summary-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.summary-icon {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  color: white;
+}
+
+.summary-icon.blue {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.summary-icon.green {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.summary-icon.yellow {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.summary-icon.purple {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.summary-change {
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.summary-label {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.summary-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+  margin-top: 0.25rem;
+  /* height: 0.1rem; */
+}
+
+.summary-subtext {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Main Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 350px;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Cards */
+.dashboard-card {
   background: white;
   border-radius: 0.75rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  padding: 0.5rem;
-}
-
-.search-input {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  outline: none;
-  background: transparent;
-}
-
-.search-input::placeholder {
-  color: #9ca3af;
-}
-
-.clear-search {
-  padding: 0.5rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #6b7280;
-  border-radius: 0.25rem;
-  transition: all 0.2s ease;
-}
-
-.clear-search:hover {
-  color: #374151;
-  background: #f3f4f6;
-}
-
-/* ============== SECTIONS ============== */
-.contracts-section {
-  margin-bottom: 2.5rem;
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #1f2937;
-}
-
-.uploaded-title {
-  color: #10b981;
-}
-
-.pending-title {
-  color: #f59e0b;
-}
-
-/* ============== CLIENT CARDS ============== */
-.clients-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.client-card {
-  background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.5rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.client-card:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-}
-
-.client-card.uploaded {
-  border-left: 4px solid #10b981;
-}
-
-.client-card.pending {
-  border-left: 4px solid #f59e0b;
-}
-
-/* ============== CLIENT INFO ============== */
-.client-info {
-  flex: 1;
-}
-
-.client-info p {
-  margin: 0.5rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #374151;
-  font-size: 0.95rem;
-}
-
-.client-info p:first-child {
-  margin-top: 0;
+.card-header h3 {
   font-weight: 600;
-  font-size: 1rem;
-}
-
-/* ============== CONTRACT ACTIONS ============== */
-.contract-section {
-  display: flex;
-  align-items: flex-start;
-  min-width: 200px;
-}
-
-.contract-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-width: 180px;
-}
-
-/* ============== BUTTONS ============== */
-.upload-btn {
-  background: #2563eb;
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  min-height: 44px;
-}
-
-.upload-btn:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-.upload-btn.secondary {
-  background: #f8fafc;
-  color: #475569;
-  border: 2px solid #e2e8f0;
-}
-
-.upload-btn.secondary:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.upload-btn.small {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-  min-height: 32px;
-}
-
-.contract-link {
-  background: #10b981;
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 44px;
-}
-
-.contract-link:hover {
-  background: #059669;
-  transform: translateY(-1px);
-}
-
-/* ============== E-SIGNATURE SPECIFIC BUTTONS ============== */
-.setup-signature-btn {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.setup-signature-btn:hover {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  transform: translateY(-1px);
-}
-
-.edit-signature-btn {
-  background: #f59e0b;
-  color: white;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-  border: none;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.edit-signature-btn:hover {
-  background: #d97706;
-}
-
-.delete-btn {
-  background: #dc2626;
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.delete-btn:hover {
-  background: #b91c1c;
-  transform: translateY(-1px);
-}
-
-.delete-btn.small {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-/* ============== CONTRACT ROWS (for multiple contracts) ============== */
-.contracts-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.contract-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: #f8fafc;
-  border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
-}
-
-.contract-row .contract-info {
-  flex: 1;
-}
-
-.contract-row .file-name {
-  font-size: 0.9rem;
+  color: #1f2937;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
-.file-name-btn {
+.view-all-link {
+  color: #1d4ed8;
+  font-weight: 500;
+  font-size: 0.875rem;
   background: none;
   border: none;
-  color: #2563eb;
   cursor: pointer;
-  padding: 0;
-  font-size: inherit;
-  text-decoration: underline;
+  transition: color 0.2s ease;
 }
 
-.file-name-btn:hover {
-  color: #1d4ed8;
+.view-all-link:hover {
+  color: #7c3aed;
 }
 
-.contract-row .contract-actions {
+.card-content {
+  padding: 1.5rem;
+}
+
+/* Booking Items */
+.booking-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.booking-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.booking-item:hover {
+  background-color: #f9fafb;
+  margin: 0 -1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  border-radius: 0.5rem;
+}
+
+.booking-header {
   display: flex;
-  gap: 0.5rem;
-  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
 }
 
-/* ============== STATUS BADGES ============== */
+.booking-header h4 {
+  font-weight: 500;
+  color: #1f2937;
+  margin: 0;
+}
+
 .status-badge {
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: capitalize;
-  white-space: nowrap;
 }
 
-.status-badge.draft {
-  background: #f3f4f6;
-  color: #374151;
+.status-badge.confirmed {
+  background-color: #d1fae5;
+  color: #065f46;
 }
 
-.status-badge.sent {
+.status-badge.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.review {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.booking-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.booking-footer .amount {
+  font-weight: 600;
+}
+
+/* Review Items */
+.review-item {
+  border-left: 4px solid #dbeafe;
+  padding-left: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.review-item:last-child {
+  margin-bottom: 0;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.review-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.review-user h4 {
+  font-weight: 500;
+  color: #1f2937;
+  margin: 0;
+}
+
+.rating {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.star {
+  color: #d1d5db;
+}
+
+.star.filled {
+  color: #fbbf24;
+  fill: currentColor;
+}
+
+.review-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.review-comment {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Contract Items */
+.contract-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.contract-item:last-child {
+  margin-bottom: 0;
+}
+
+.contract-item h4 {
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 0.875rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.contract-item p {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.contract-details {
+  text-align: right;
+}
+
+.contract-value {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin: 0 0 0.25rem 0;
+}
+
+/* Venue Items */
+.venue-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.venue-item:last-child {
+  margin-bottom: 0;
+}
+
+.venue-icon.available {
+  color: #10b981;
+}
+
+.venue-icon.booked {
+  color: #f59e0b;
+}
+
+.venue-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #1f2937;
+  margin: 0 0 0.125rem 0;
+}
+
+.venue-details {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Quick Actions */
+.quick-actions {
+  margin-top: 2rem;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.action-card {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.action-card:hover {
+  transform: scale(1.05);
+}
+
+.action-card.blue {
   background: #dbeafe;
   color: #1e40af;
 }
 
-.status-badge.in_progress {
-  background: #fef3c7;
-  color: #92400e;
+.action-card.blue:hover {
+  background: #bfdbfe;
 }
 
-.status-badge.completed {
+.action-card.green {
   background: #d1fae5;
   color: #065f46;
 }
 
-.status-badge.expired {
-  background: #fee2e2;
-  color: #991b1b;
+.action-card.green:hover {
+  background: #a7f3d0;
 }
 
-.status-badge.pending {
-  background: #fef3c7;
-  color: #92400e;
+.action-card.purple {
+  background: #e9d5ff;
+  color: #6b21a8;
 }
 
-.status-badge.confirmed {
-  background: #d1fae5;
-  color: #065f46;
+.action-card.purple:hover {
+  background: #ddd6fe;
 }
 
-.status-badge.active {
-  background: #d1fae5;
-  color: #065f46;
+.action-card.orange {
+  background: #fed7aa;
+  color: #9a3412;
 }
 
-.status-active {
-  color: #10b981;
+.action-card.orange:hover {
+  background: #fdba74;
+}
+
+.action-card p {
+  font-size: 0.875rem;
   font-weight: 500;
-}
-
-.status-pending {
-  color: #f59e0b;
-  font-weight: 500;
-}
-
-/* ============== SIGNATURE STATUS ============== */
-.signature-status {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.signature-info {
-  font-size: 0.8rem;
-  color: #6b7280;
-  font-style: italic;
-}
-
-/* ============== MODAL STYLES ============== */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  animation: modalFadeIn 0.3s ease-out;
-}
-
-@keyframes modalFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.modal-content {
-  background: white;
-  border-radius: 0.75rem;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 0;
-  position: relative;
-  width: 900px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
-  border-radius: 0.75rem 0.75rem 0 0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: #6b7280;
-  border-radius: 0.375rem;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.modal-body h4 {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.modal-body p {
-  margin: 0.5rem 0;
-  color: #4b5563;
-}
-
-.modal-body strong {
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
-  border-radius: 0 0 0.75rem 0.75rem;
-}
-
-/* ============== CONTRACT VIEWER ============== */
-.contract-viewer {
-  margin-top: 1.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  background: #f9fafb;
-}
-
-.contract-iframe {
-  width: 100%;
-  height: 600px;
-  border: none;
-  background: white;
-}
-
-.unsupported-file {
-  padding: 2rem;
-  text-align: center;
-  color: #6b7280;
-}
-
-.download-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #2563eb;
-  color: white;
-  text-decoration: none;
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.download-btn:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-/* ============== GOOGLE APIS SECTION ============== */
-.google-apis-section {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
-}
-
-.google-apis-url {
-  display: block;
-  background: white;
-  padding: 0.75rem;
-  border-radius: 0.375rem;
-  border: 1px solid #d1d5db;
-  word-break: break-all;
-  font-size: 0.8rem;
-  font-family: 'Monaco', 'Menlo', monospace;
-  color: #374151;
-  margin: 0.5rem 0;
-}
-
-.copy-btn {
-  padding: 0.5rem 1rem;
-  background: #059669;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.copy-btn:hover {
-  background: #047857;
-}
-
-/* ============== UPLOAD HISTORY ============== */
-.upload-history {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
-}
-
-.upload-history ul {
-  list-style: none;
-  padding: 0;
   margin: 0.5rem 0 0 0;
 }
 
-.upload-history li {
-  padding: 0.5rem 0;
-  font-size: 0.85rem;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.upload-history li:last-child {
-  border-bottom: none;
-}
-
-/* ============== LOADING AND ERROR STATES ============== */
-.loading-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 50vh;
-  gap: 1rem;
-}
-
-.spinner {
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid #2563eb;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error {
-  color: #dc2626;
-  text-align: center;
-  margin: 2rem 0;
-  font-weight: 500;
-}
-
-.no-clients, .no-results {
-  text-align: center;
-  color: #6b7280;
-  margin: 2rem 0;
-  font-size: 1rem;
-}
-
-/* ============== PDF SIGNATURE EDITOR ============== */
-.signature-editor {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: #f8fafc;
-}
-
-.editor-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.tool-group {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.tool-group h3 {
-  margin: 0;
-  color: #374151;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.tool-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: white;
-  border: 2px solid #d1d5db;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.tool-btn:hover {
-  border-color: #9ca3af;
-  background: #f9fafb;
-}
-
-.tool-btn.active {
-  background: #eff6ff;
-  border-color: #2563eb;
-}
-
-.action-group {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.save-btn, .send-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.save-btn {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.save-btn:hover {
-  background: #e5e7eb;
-}
-
-.send-btn {
-  background: #2563eb;
-  color: white;
-}
-
-.send-btn:hover {
-  background: #1d4ed8;
-}
-
-/* ============== PDF EDITOR CONTAINER ============== */
-.editor-content {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.pdf-editor-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  padding: 1rem;
-  overflow: auto;
-  background: #f1f5f9;
-}
-
-.pdf-viewer {
-  position: relative;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  overflow: visible;
-}
-
-.pdf-viewer-container {
-  position: relative;
-  border-radius: 0.5rem;
-  overflow: visible;
-  background: white;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.pdf-background {
-  display: block;
-  border-radius: 0.5rem;
-}
-
-/* Enhanced Signature Field Overlays */
-.signature-field-overlay {
-  border: 3px dashed;
-  background: rgba(37, 99, 235, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: move;
-  user-select: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 4px;
-  z-index: 10;
-  position: absolute;
-}
-
-.signature-field-overlay:hover {
-  transform: scale(1.02);
-  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
-  border-width: 3px;
-  z-index: 15;
-}
-
-.signature-field-overlay:active {
-  transform: scale(0.98);
-}
-
-/* Field Type Indicator */
-.field-indicator {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-/* Field Labels */
-.field-label-overlay {
-  position: absolute;
-  top: -24px;
-  left: 0;
-  padding: 2px 6px;
-  border-radius: 3px;
-  fontSize: 10px;
-  font-weight: 500;
-  white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  z-index: 20;
-  pointer-events: none;
-}
-
-/* Signer Role Indicator */
-.signer-role-indicator {
-  position: absolute;
-  bottom: -20px;
-  left: 0;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 1px 4px;
-  border-radius: 2px;
-  font-size: 9px;
-  text-transform: capitalize;
-  z-index: 20;
-  pointer-events: none;
-}
-
-/* Enhanced Delete Button */
-.delete-field-btn-overlay {
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #dc2626;
-  color: white;
-  border: 2px solid white;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
-  transition: all 0.2s ease;
-  z-index: 25;
-}
-
-.delete-field-btn-overlay:hover {
-  background: #b91c1c;
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.6);
-}
-
-.delete-field-btn-overlay:active {
-  transform: scale(1.05);
-}
-
-/* Placement Guide */
-.placement-guide {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  z-index: 100;
-  pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  animation: pulseGuide 2s infinite;
-}
-
-@keyframes pulseGuide {
-  0%, 100% { opacity: 0.9; }
-  50% { opacity: 0.7; }
-}
-
-/* Color-specific field styles */
-.signature-field-overlay[style*="rgb(37, 99, 235)"] { /* Blue - signature */
-  animation: signaturePulse 3s infinite;
-}
-
-.signature-field-overlay[style*="rgb(124, 58, 237)"] { /* Purple - initial */
-  animation: initialPulse 3s infinite;
-}
-
-.signature-field-overlay[style*="rgb(5, 150, 105)"] { /* Green - date */
-  animation: datePulse 3s infinite;
-}
-
-.signature-field-overlay[style*="rgb(217, 119, 6)"] { /* Orange - text */
-  animation: textPulse 3s infinite;
-}
-
-.signature-field-overlay[style*="rgb(220, 38, 38)"] { /* Red - checkbox */
-  animation: checkboxPulse 3s infinite;
-}
-
-@keyframes signaturePulse {
-  0%, 100% { border-color: #2563eb; }
-  50% { border-color: #3b82f6; }
-}
-
-@keyframes initialPulse {
-  0%, 100% { border-color: #7c3aed; }
-  50% { border-color: #8b5cf6; }
-}
-
-@keyframes datePulse {
-  0%, 100% { border-color: #059669; }
-  50% { border-color: #10b981; }
-}
-
-@keyframes textPulse {
-  0%, 100% { border-color: #d97706; }
-  50% { border-color: #f59e0b; }
-}
-
-@keyframes checkboxPulse {
-  0%, 100% { border-color: #dc2626; }
-  50% { border-color: #ef4444; }
-}
-
-/* Drag effects */
-.signature-field-overlay[draggable="true"]:active {
-  opacity: 0.8;
-  transform: rotate(2deg) scale(0.95);
-  z-index: 30;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-}
-
-/* Responsive adjustments for overlays */
-@media (max-width: 768px) {
-  .signature-field-overlay {
-    min-width: 80px;
-    min-height: 30px;
-    font-size: 9px;
-  }
-  
-  .field-label-overlay {
-    font-size: 8px;
-    top: -20px;
-  }
-  
-  .signer-role-indicator {
-    font-size: 8px;
-    bottom: -16px;
-  }
-  
-  .delete-field-btn-overlay {
-    width: 16px;
-    height: 16px;
-    top: -8px;
-    right: -8px;
-  }
-  
-  .placement-guide {
-    font-size: 10px;
-    padding: 6px 8px;
-  }
-}
-
-/* Disable animations on reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .signature-field-overlay,
-  .delete-field-btn-overlay,
-  .placement-guide {
-    animation: none !important;
-    transition: none !important;
-  }
-  
-  .signature-field-overlay:hover {
-    transform: none !important;
-  }
-}
-
-/* ============== FIELD PROPERTIES PANEL ============== */
-.field-properties-panel {
-  width: 320px;
-  background: white;
-  border-left: 1px solid #e5e7eb;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-.field-properties-panel h3 {
-  margin: 0 0 1rem 0;
-  color: #1f2937;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.fields-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.field-config {
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-}
-
-.field-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.field-header strong {
-  color: #1f2937;
-  font-size: 0.9rem;
-}
-
-.delete-btn-small {
-  background: none;
-  border: none;
-  color: #dc2626;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: all 0.2s ease;
-}
-
-.delete-btn-small:hover {
-  background: #fee2e2;
-}
-
-.config-row {
-  margin-bottom: 0.75rem;
-}
-
-.config-row label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.25rem;
-}
-
-.config-row input,
-.config-row select {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  background: white;
-  transition: border-color 0.2s ease;
-}
-
-.config-row input:focus,
-.config-row select:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.config-row input[type="checkbox"] {
-  width: auto;
-  margin-right: 0.5rem;
-}
-
-/* ============== CLIENT SIGNING INTERFACE ============== */
-.client-signing-interface {
-  min-height: 100vh;
-  background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-}
-
-.signing-header {
-  background: white;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.contract-info h1 {
-  margin: 0 0 0.5rem 0;
-  color: #1f2937;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.contract-info p {
-  margin: 0;
-  color: #6b7280;
-}
-
-.progress-info {
-  margin-top: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #2563eb, #1d4ed8);
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  font-size: 0.9rem;
-  color: #6b7280;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* Document Container */
-.document-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  padding: 1rem;
-  overflow: hidden;
-}
-
-.document-viewer {
-  position: relative;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  max-width: 800px;
-  width: 100%;
-}
-
-.contract-pdf {
-  width: 100%;
-  height: 600px;
-  border: none;
-  border-radius: 0.5rem;
-}
-
-.field-highlight {
-  position: absolute;
-  border: 3px solid #2563eb;
-  background: rgba(37, 99, 235, 0.1);
-  border-radius: 0.25rem;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.field-highlight::before {
-  content: '';
-  position: absolute;
-  top: -12px;
-  left: -3px;
-  right: -3px;
-  height: 3px;
-  background: #2563eb;
-  border-radius: 2px 2px 0 0;
-}
-
-.field-label {
-  position: absolute;
-  top: -30px;
-  left: 0;
-  background: #2563eb;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 0.25rem;
-  white-space: nowrap;
-}
-
-.required {
-  color: #dc2626;
-  margin-left: 0.25rem;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-/* Signing Panel */
-.signing-panel {
-  background: white;
-  border-top: 1px solid #e5e7eb;
-  padding: 1.5rem;
-  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.field-info h3 {
-  margin: 0 0 0.5rem 0;
-  color: #1f2937;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.field-info p {
-  margin: 0 0 1rem 0;
-  color: #6b7280;
-  font-size: 0.9rem;
-}
-
-/* Input Area */
-.input-area {
-  margin-bottom: 1.5rem;
-}
-
-.signature-pad-container {
-  border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
-  background: white;
-  padding: 1rem;
-}
-
-.signature-pad {
-  border: 1px dashed #d1d5db;
-  border-radius: 0.375rem;
-  cursor: crosshair;
-  background: #fefefe;
-  display: block;
-}
-
-.signature-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 0.75rem;
-}
-
-.clear-btn {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.clear-btn:hover {
-  background: #e5e7eb;
-}
-
-.signature-hint {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.field-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  background: white;
-}
-
-.field-input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.field-checkbox {
-  width: 20px;
-  height: 20px;
-  margin-right: 0.75rem;
-  cursor: pointer;
-}
-
-.checkbox-container {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #374151;
-}
-
-.checkbox-text {
-  user-select: none;
-}
-
-/* Navigation Buttons */
-.navigation-buttons {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120px;
-  justify-content: center;
-}
-
-.nav-btn.primary {
-  background: #2563eb;
-  color: white;
-  border: none;
-}
-
-.nav-btn.primary:hover:not(:disabled) {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-.nav-btn.secondary {
-  background: white;
-  color: #374151;
-  border: 2px solid #d1d5db;
-}
-
-.nav-btn.secondary:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.nav-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Signing Options */
-.signing-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.decline-link {
-  color: #dc2626;
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s ease;
-}
-
-.decline-link:hover {
-  color: #b91c1c;
-  text-decoration: underline;
-}
-
-.download-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #2563eb;
-  font-size: 0.9rem;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s ease;
-}
-
-.download-link:hover {
-  color: #1d4ed8;
-  text-decoration: underline;
-}
-
-/* Signing Complete */
-.signing-complete {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  padding: 2rem;
-}
-
-.completion-message {
-  text-align: center;
-  background: white;
-  padding: 3rem 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  max-width: 500px;
-  width: 100%;
-}
-
-.completion-message h2 {
-  margin: 1rem 0;
-  color: #1f2937;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.completion-message p {
-  margin: 0 0 2rem 0;
-  color: #6b7280;
-  font-size: 1rem;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.complete-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #10b981;
-  color: white;
-  padding: 0.75rem 2rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1rem;
-}
-
-.complete-btn:hover {
-  background: #059669;
-  transform: translateY(-1px);
-}
-
-.decline-btn {
-  background: white;
-  color: #374151;
-  border: 2px solid #d1d5db;
-  padding: 0.75rem 2rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1rem;
-}
-
-.decline-btn:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-/* ============== RESPONSIVE DESIGN ============== */
+/* Responsive Design */
 @media (max-width: 1024px) {
-  .clients-page {
-    padding: 1rem;
-  }
-  
-  .modal-content {
-    width: 95vw;
-    max-width: none;
-  }
-  
-  .editor-content {
+  .dashboard-header {
     flex-direction: column;
-  }
-  
-  .field-properties-panel {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid #e5e7eb;
-    max-height: 300px;
-  }
-  
-  .stats-summary {
     gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-sidebar {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
   }
 }
 
 @media (max-width: 768px) {
-  .client-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
+  .dashboard-grid {
+    grid-template-columns: 1fr;
   }
 
-  .contract-section {
-    min-width: auto;
+  .dashboard-sidebar {
+    grid-template-columns: 1fr;
   }
 
-  .contract-actions {
-    width: 100%;
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .contract-actions .upload-btn,
-  .contract-actions .contract-link,
-  .contract-actions .delete-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .contract-row {
-    flex-direction: column;
-    gap: 0.75rem;
-    align-items: stretch;
-  }
-
-  .contract-row .contract-actions {
-    flex-direction: row;
-    justify-content: center;
-  }
-
-  .stats-summary {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .search-container {
-    margin: 1rem;
-  }
-
-  .signing-header {
-    padding: 1rem;
-  }
-
-  .progress-info {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
-  }
-
-  .navigation-buttons {
-    flex-direction: column;
-  }
-
-  .signing-options {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .editor-toolbar {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
-    padding: 1rem;
-  }
-
-  .tool-group {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .action-group {
-    justify-content: center;
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 480px) {
-  .clients-page {
-    padding: 0.5rem;
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
 
-  .client-card {
-    padding: 1rem;
-  }
-
-  .contract-row .contract-actions {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .contract-iframe {
-    height: 400px;
-  }
-
-  .modal-body {
-    padding: 1rem;
-  }
-
-  .modal-header,
-  .modal-footer {
-    padding: 1rem;
-  }
-
-  .tool-btn {
-    padding: 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  .tool-group h3 {
-    font-size: 0.9rem;
+  .actions-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-/* ============== PRINT STYLES ============== */
-@media print {
-  .clients-page {
-    padding: 0;
-  }
-  
-  .search-container,
-  .contract-actions,
-  .modal-overlay,
-  .editor-toolbar {
-    display: none !important;
-  }
-  
-  .client-card {
-    break-inside: avoid;
-    box-shadow: none;
-    border: 1px solid #000;
-  }
-  
-  .contract-viewer {
-    border: none;
-  }
+.service-item {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
-/* ============== ACCESSIBILITY ENHANCEMENTS ============== */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+.service-item h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
-/* Focus indicators for keyboard navigation */
-button:focus-visible,
-.upload-btn:focus-visible,
-.contract-link:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
+.service-item p {
+  margin: 0.2rem 0;
+  color: #374151;
+  font-size: 0.875rem;
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .client-card {
-    border: 2px solid;
-  }
-  
-  .status-badge {
-    border: 1px solid;
-  }
-  
-  .signature-field {
-    border-width: 3px;
-  }
+.service-notes {
+  font-style: italic;
+  color: #6b7280;
 }
 
-/* Reduced motion for accessibility */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-  
-  .spinner {
-    animation: none;
-    border-top-color: transparent;
-  }
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-content input,
+.modal-content textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
