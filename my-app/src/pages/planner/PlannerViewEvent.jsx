@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import "./PlannerViewEvent.css";
 import { getAuth } from 'firebase/auth';
 import Papa from 'papaparse';
-import {Schedule} from './scheduler.jsx';
+import Scheduler from './scheduler.jsx';
 
 const appointments = [{ start: new Date(2023, 9, 20, 9, 0), end: new Date(2023, 9, 20, 10, 0), title: "Venue Visit", description: "Visit the venue to finalize layout and decorations." },
 { start: new Date(2023, 9, 21, 14, 0), end: new Date(2023, 9, 21, 15, 0), title: "Catering Meeting", description: "Discuss menu options and finalize catering details." },
