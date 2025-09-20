@@ -1377,6 +1377,65 @@ app.delete('/planner/:eventId/guests/:guestId', authenticate, async (req, res) =
   }
 });
 
+//Add Service
+app.post('/planner/:eventId/services', authenticate, async(req, res) =>{
+  try{
+    const eventId = req.params.eventId;
+
+    const eventSnap = await db.collection("Event").doc(eventId).get();
+    if(!eventSnap.exists){
+      return res.status(404).json({message: "Event not found"});
+    }
+    const event = eventSnap.data();
+
+    const data = req.body;
+
+    function estimateCost(data){
+            return Number(data.chargeByHour * (event.duration || 0)) +
+             Number(data.chargePerPerson * (event.expectedGuestCount || 0)) +
+             Number(data.cost || 0) +
+             Number(data.chargePerSquareMeter || 0);
+    }
+
+    const service = {
+      serviceName: data.serviceName,
+      vendorName: data.vendorName,
+      status: "pending",
+      estimatedCost: estimateCost(data),
+      negotiatedCost: 0,
+      vendorId: data.vendorId
+    }
+
+    const serviceSnap = await db.collection("Event").doc(eventId).collection("Services").doc(data.id).set(service);
+    if(!serviceSnap){
+      return res.status(500).json({messgae: "Failed to add service"});
+    }
+
+    res.status(200).json({message: "Service Added Successfully", id: serviceSnap.id});
+
+  } catch(err){
+    res.status(500).json({message: "Error adding service ", error: err.message});
+  }
+});
+
+//Get All Services
+app.get('/planner/:eventId/services', authenticate, async(req, res) => {
+  try{
+    const eventId = req.params.eventId;
+    const servicesSnap = await db.collection("Event").doc(eventId).collection("Services").get();
+
+    if(servicesSnap.empty){
+      return res.status(200).json({services: []});
+    }
+
+    const services = servicesSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+    return res.status(200).json({services});
+
+  } catch(err){
+    res.status(500).json({message: "Error getting services", error: err.message})
+  }
+});
+
 
 //================================================================
 //-- End of Planner routes

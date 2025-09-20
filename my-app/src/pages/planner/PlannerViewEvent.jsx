@@ -2,11 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import "./PlannerViewEvent.css";
 import { getAuth } from 'firebase/auth';
 import Papa from 'papaparse';
-import {Schedule} from './scheduler.jsx';
 
-const appointments = [{ start: new Date(2023, 9, 20, 9, 0), end: new Date(2023, 9, 20, 10, 0), title: "Venue Visit", description: "Visit the venue to finalize layout and decorations." },
-{ start: new Date(2023, 9, 21, 14, 0), end: new Date(2023, 9, 21, 15, 0), title: "Catering Meeting", description: "Discuss menu options and finalize catering details." },
-{ start: new Date(2023, 9, 22, 11, 0), end: new Date(2023, 9, 22, 12, 0), title: "Decor Planning", description: "Planning Decor"},];
 
 //Code for the pop up when manually adding a guest **********
 function AddGuestPopup({ isOpen, onClose, onSave }) {
@@ -228,6 +224,27 @@ function GuestRSVPSummary({guests}) {
 //End of code for guest RSVP summary bar *********
 
 //Code for one vendor list item **********
+function ServiceItem({service}) {
+    return(
+        <section className="vendor-item">
+            <section className="vendor-info">
+                <h4>{service.serviceName}</h4>
+                <p>Vendored By: {service.vendorName}</p>
+            </section>
+            <section className="vendor-cost">
+                <h4>Estimated Total Cost: </h4>
+                <p>R {service.estimatedCost}</p>
+            </section>
+            <section className="vendor-actions">
+                <button className="contact-btn">Contract</button>
+                <button className="remove-btn">Remove</button>
+            </section>
+        </section>
+    );
+}
+//End of code for one vendor list item **********
+
+//Code for one vendor list item **********
 function VendorItem({vendor}) {
     return(
         <section className="vendor-item">
@@ -420,7 +437,7 @@ function GuestImportWithValidation({ eventId, onImportComplete, onClose }) {
 
 //End of code for importing a guest list
 
-export default function PlannerViewEvent({event, setActivePage, onOpenMarketplace}) {
+export default function PlannerViewEvent({event, setActivePage}) {
     
     if(!event) {
         return <section>Loading Event...</section>;
@@ -433,6 +450,7 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
     const [eventData, setEventData] = useState(event);
     const [showAddGuestPopup, setShowAddGuestPopup] = useState(false);
     const [showImportGuestPopup, setShowImportGuestPopup] = useState(false);
+    const [services, setServices] = useState([]);
 
     const [editForm, setEditForm] = useState({...eventData});
 
@@ -512,6 +530,30 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
 
 
     }
+
+    const fetchServices = async() => {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
+
+        try{
+            const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/services`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if(!res.ok) return [];
+
+            const data = await res.json();
+            console.log("Data: ", data);
+            return data.services;
+        }catch(err){
+            console.error("Failed to fetch services")
+        }
+    }
+
     useEffect(() => {
         async function loadGuests() {
             const guests = await fetchGuests();
@@ -526,6 +568,15 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
             setVendors(vendors);
         }
         loadVendors();
+    }, []);
+
+    useEffect(() => {
+        async function loadServices() {
+            const services = await fetchServices();
+            setServices(services);
+            console.log(services);
+        }
+        loadServices();
     }, []);
 
     useEffect(() => {
@@ -559,10 +610,26 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
         }));
     };
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
+    function formatDate(date) {
+        if (!date) return "";
+
+        if(typeof date === 'object' && typeof date._seconds === 'number' && typeof date._nanoseconds === 'number') {
+        const jsDate = new Date( date._seconds * 1000 + date._nanoseconds / 1e6);
+        return jsDate.toLocaleString();
+        }
+
+        // Already a JS Date
+        if (date instanceof Date) {
         return date.toLocaleString();
-    };
+        }
+
+        // String
+        if (typeof date === "string") {
+        return new Date(date).toLocaleString();
+        }
+
+        return String(date); // fallback
+    }
 
     const onSave = async (guestInfo) => {
         const auth = getAuth();
@@ -646,7 +713,7 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
                         className={`tab-btn ${activeTab === "vendors" ? "active" : ""}`}
                         onClick={() => setActiveTab("vendors")}
                     >
-                        Vendors
+                        Services
                     </button>
                     <button 
                         className={`tab-btn ${activeTab === "tasks" ? "active" : ""}`}
@@ -891,15 +958,15 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
                     {activeTab === "vendors" && (
                         <section className="vendors-content">
                             <section className="vendors-header">
-                                <h3>Event Vendors</h3>
+                                <h3>Event Services</h3>
                                 <button className="add-vendor-btn" onClick={() => setActivePage("vendor")}>+ Add Vendor</button>
                             </section>
                             <section className="vendors-list">
-                                {vendors && vendors.length > 0 ? vendors.map((vendor) => (
-                                    <VendorItem key={vendor.id} vendor={vendor} />
+                                {services && services.length > 0 ? services.map((service) => (
+                                    <ServiceItem key={service.id} service={service} />
                                 )) : (
                                     <section className="empty-state">
-                                        <p>No vendors added yet. Click "Add Vendor" to start building your vendor list.</p>
+                                        <p>No services added yet. Click "Add Vendor" to start building your services list.</p>
                                     </section>
                                 )}
                             </section>
@@ -928,12 +995,6 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
                                         </section>
                                     )}
                                 </section>
-                        </section>
-                    )}
-
-                    {activeTab === "schedule" && (
-                        <section className="schedule-content">
-                            {/*Schedule(appointments={appointments});*/}
                         </section>
                     )}
 
