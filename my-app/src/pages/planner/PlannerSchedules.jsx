@@ -54,7 +54,7 @@ export default function PlannerSchedules() {
     const user = auth.currentUser;
     const token = await user.getIdToken(true);
 
-    const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/schedules`, {
+    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -70,7 +70,7 @@ export default function PlannerSchedules() {
     const user = auth.currentUser;
     const token = await user.getIdToken(true);
 
-    const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/schedules/${scheduleId}/items`, {
+    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules/${scheduleId}/items`, {
       method: 'POST',
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -91,7 +91,7 @@ export default function PlannerSchedules() {
     const user = auth.currentUser;
     const token = await user.getIdToken(true);
 
-    const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/schedules`, {
+    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules`, {
       method: 'POST',
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -116,7 +116,7 @@ export default function PlannerSchedules() {
     if (!file) showNotification('error', 'No file provided');
 
     //Ask backend for signed upload URL
-    const res1 = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/schedules/upload-url`, {
+    const res1 = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules/upload-url`, {
       method: "POST",
       headers: { 
         "Authorization": `Bearer ${token}`,
@@ -141,7 +141,7 @@ export default function PlannerSchedules() {
     if (!res2.ok) showNotification("error", "Failed to upload file to storage");
 
     //Tell backend to save metadata + generate permanent link
-    const res3 = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/schedules/save-file`, {
+    const res3 = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules/save-file`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -166,7 +166,7 @@ export default function PlannerSchedules() {
     const user = auth.currentUser;
     const token = await user.getIdToken(true);
 
-    const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/schedules/${scheduleId}/items/${itemId}`, {
+    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules/${scheduleId}/items/${itemId}`, {
       method: 'DELETE',
       headers: {
         "Authorization": `Bearer ${token}`
@@ -185,7 +185,7 @@ export default function PlannerSchedules() {
     const user = auth.currentUser;
     const token = await user.getIdToken(true);
 
-    const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/schedules/${scheduleId}/items/${itemId}`, {
+    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules/${scheduleId}/items/${itemId}`, {
       method: 'PUT',
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -206,7 +206,7 @@ export default function PlannerSchedules() {
     const user = auth.currentUser;
     const token = await user.getIdToken(true);
 
-    const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/schedules/${scheduleId}`, {
+    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules/${scheduleId}`, {
       method: 'DELETE',
       headers: {
         "Authorization": `Bearer ${token}`
@@ -222,7 +222,7 @@ export default function PlannerSchedules() {
   }
 
    //****************************** End of API call functions ******************************//
-   
+
   const showNotification = (type, message) => {
     setNotification({ show: true, type, message });
     setTimeout(() => {

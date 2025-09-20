@@ -537,7 +537,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
         const token = await user.getIdToken(true);
 
         try{
-            const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/services`, {
+            const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/services`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${token}`

@@ -317,7 +317,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         const token = await user.getIdToken(true);
 
         try{
-            const res = fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/services`, {
+            const res = fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/services`, {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`,
