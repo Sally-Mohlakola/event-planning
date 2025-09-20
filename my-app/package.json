@@ -17,6 +17,8 @@
     "express": "^5.1.0",
     "firebase": "^12.1.0",
     "firebase-admin": "^13.5.0",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.542.0",
     "multer": "^2.0.2",
     "papaparse": "^5.5.3",

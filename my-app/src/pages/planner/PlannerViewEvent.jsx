@@ -857,7 +857,7 @@ export default function PlannerViewEvent({event, setActivePage, onOpenMarketplac
                                             </section>
                                             <section className="guest-rsvp">
                                                 <span className={`rsvp-badge ${guest.rsvpStatus}`}>
-                                                    {guest.rsvpStatus === 'accept' ? 'Confirmed' : 
+                                                    {guest.rsvpStatus === 'accepted' ? 'Confirmed' : 
                                                      guest.rsvpStatus === 'declined' ? 'Declined' : 
                                                      'Pending'}
                                                 </span>
