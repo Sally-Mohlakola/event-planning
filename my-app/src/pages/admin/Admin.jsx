@@ -1,4 +1,4 @@
-//Overall Admin App
+//Admin App
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -10,14 +10,11 @@ import {
 	BarChart3,
 	House,
 } from "lucide-react";
-import AdminHome from "./AdminHome.jsx";
+import AdminHome from "./adminHomeDashboard/AdminHomeDashboard.jsx";
+import AdminReports from "./adminReportsAndAnalytics/AdminReports.jsx";
+import AdminAllEvents from "./adminEventManagement/AdminAllEvents.jsx";
+import AdminProfile from "./adminProfile/AdminProfile.jsx";
 import "./Admin.css";
-import Reports from "./Reports.jsx";
-
-import AdminAllEvents from "./AdminAllEvents.jsx";
-
-import AdminProfile from "./AdminProfile.jsx";
-
 
 const Admin = () => {
 	//Using to page to the selected tab
@@ -72,14 +69,13 @@ const Admin = () => {
 			case "home":
 				return <AdminHome setActivePage={setActivePage} />;
 			case "event-management":
-    			return <AdminAllEvents setActivePage={setActivePage}/>;
-
+				return <AdminAllEvents setActivePage={setActivePage} />;
 			case "planner-management":
 				return renderPlaceholderPage("Planner Management");
 			case "vendor-management":
 				return renderPlaceholderPage("Vendor Management");
 			case "reports":
-				return <Reports setActivePage={setActivePage} />;
+				return <AdminReports setActivePage={setActivePage} />;
 			case "my-profile":
 				return <AdminProfile setActivePage={setActivePage} />;
 			default:

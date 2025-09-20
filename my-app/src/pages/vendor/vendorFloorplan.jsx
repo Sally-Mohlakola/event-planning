@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./VendorFloorplan.css";
+import "./vendorFloorplan.css";
 
 const dummyClients = [
   {

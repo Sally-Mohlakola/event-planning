@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../../firebase"; // Ensure this path is correct
+import { auth } from "../../../firebase"; // Ensure this path is correct
 import "./AdminCreateProfile.css";
 
 export default function AdminCreateProfile() {

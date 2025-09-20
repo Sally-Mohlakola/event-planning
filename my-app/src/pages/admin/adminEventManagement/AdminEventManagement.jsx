@@ -1,7 +1,7 @@
 import React from "react";
-import "./EventManagement.css";
+import "./AdminEventManagement.css";
 
-export default function EventManagement() {
+export default function AdminEventManagement() {
 	return (
 		<main className="main-container">
 			<div className="main-title">

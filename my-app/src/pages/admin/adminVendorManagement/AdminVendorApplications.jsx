@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { auth } from "../../firebase"; // Make sure this path is correct
-import Popup from "./Popup"; // Import the new Popup component
-import "./VendorApplications.css";
+import { auth } from "../../../firebase"; // Make sure this path is correct
+import Popup from "../adminGeneralComponents/Popup";
+import "./AdminVendorApplications.css";
 
-function VendorApplications() {
+function AdminVendorApplications() {
 	const [applications, setApplications] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -174,4 +174,4 @@ function VendorApplications() {
 	);
 }
 
-export default VendorApplications;
+export default AdminVendorApplications;
