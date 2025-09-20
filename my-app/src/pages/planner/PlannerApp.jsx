@@ -21,6 +21,7 @@ import PlannerViewEvent from "./PlannerViewEvent";
 import PlannerAllEvents from "./PlannerAllEvents";
 import PlannerContract from "./PlannerContract";
 import PlannerFloorPlan from "./PlannerFloorPlan";
+import PlannerSchedules from "./PlannerSchedules";
 
 const PlannerApp = () => {
 	//USing to page to the selected tab
@@ -33,7 +34,7 @@ const PlannerApp = () => {
 		{ id: "dashboard", label: "Dashboard", icon: BarChart3 },
 		{ id: "events", label: "Events", icon: Calendar },
 		{ id: "vendor", label: "Vendor Marketplace", icon: Users },
-		{ id: "guest management", label: "Guest Management", icon: Users },
+		{ id: "schedule management", label: "Schedule Management", icon: Users },
 		{ id: "floorplan", label: "Floorplan", icon: MapPin },
 		{ id: "documents", label: "Documents", icon: FileText },
 	];
@@ -86,8 +87,8 @@ const PlannerApp = () => {
 				);
 			case "floorplan":
 				return <PlannerFloorPlan setActivePage={setActivePage} />;
-			case "guest management":
-				return renderPlaceholderPage("Guest Management");
+			case "schedule management":
+				return <PlannerSchedules setActivePage={setActivePage} />;
 			case "documents":
 				return <PlannerContract setActivePage={setActivePage} />;
 			case "selected-event":

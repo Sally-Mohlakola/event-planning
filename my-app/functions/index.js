@@ -25,6 +25,22 @@ function authenticateApiKey(req, res, next) {
   next();
 }
 
+// Auth middleware
+async function authenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ message: 'No token provided' });
+
+  try {
+    const token = authHeader.split('Bearer ')[1];
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.uid = decoded.uid;
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'Invalid token' });
+  }
+}
+
 // Rate limiting middleware (basic in-memory limiter for demo; use Redis or Firestore for production)
 const rateLimit = require('express-rate-limit');
 const guestListLimiter = rateLimit({
@@ -42,8 +58,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-
-
 const app = express();
 app.use(cors({
   origin: [
@@ -53,25 +67,11 @@ app.use(cors({
     'https://event-flow-6514.onrender.com/'
   ],
 }));
-app.use(express.json());
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Auth middleware
-async function authenticate(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ message: 'No token provided' });
 
-  try {
-    const token = authHeader.split('Bearer ')[1];
-    const decoded = await admin.auth().verifyIdToken(token);
-    req.uid = decoded.uid;
-    next();
-  } catch (err) {
-    console.error(err);
-    res.status(401).json({ message: 'Invalid token' });
-  }
-}
+app.use(express.json());
 
 //VENDOR
 //=============================================
@@ -323,7 +323,10 @@ app.get("/analytics/:vendorId", authenticate, async (req, res) => {
 
 
 
-//==============================================================
+//================================================================
+//-- Planner Routes
+//================================================================
+
 
 app.post('/event/apply', authenticate, async (req, res) => {
   try {
@@ -754,8 +757,6 @@ exports.sendInvitationOnGuestAdded = onDocumentCreated('Event/{eventId}/Guests/{
 
       const acceptUrl = `https://witty-stone-03009b61e.1.azurestaticapps.net/planner/rsvp/${eventId}/${guestToken}/accept`;
       const declineUrl = `https://witty-stone-03009b61e.1.azurestaticapps.net/planner/rsvp/${eventId}/${guestToken}/decline`;
-      const tempacceptUrl = `http://localhost:5173/planner/rsvp/${eventId}/${guestToken}/accept`;
-      const tempdeclineUrl = `http://localhost:5173/planner/rsvp/${eventId}/${guestToken}/decline`;
 
       const mailOptions = {
         from: 'noreply.planit.online@gmail.com',
@@ -1059,6 +1060,386 @@ app.get("/planner/:eventId/:guestId/sendReminder", authenticate, async (req, res
     });
   }
 });
+
+//Create Schedule doc for event
+app.post('/planner/:eventId/schedules', authenticate, async (req, res) => {
+  try {
+
+    const eventId = req.params.eventId;
+   
+    const schedule = req.body;
+
+    if (!eventId || !schedule.scheduleTitle) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Create a new schedule under the event
+    const scheduleRef = await db
+      .collection("Event")
+      .doc(eventId)
+      .collection("Schedules")
+      .add({
+        scheduleTitle: schedule.scheduleTitle,
+      });
+
+
+    return res.status(200).json({
+      message: "Schedule created successfully",
+      scheduleId: scheduleRef.id,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Create Item doc for Schedule
+app.post('/planner/:eventId/schedules/:scheduleId/items', authenticate, async (req, res) => {
+  try {
+
+    const eventId = req.params.eventId;
+    const scheduleId = req.params.scheduleId;
+   
+    const item = req.body;
+
+    if (!eventId || !scheduleId || !item) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Create a new schedule under the event
+    const itemRef = await db
+      .collection("Event")
+      .doc(eventId)
+      .collection("Schedules")
+      .doc(scheduleId)
+      .collection("Items")
+      .add({
+        title: item.title,
+        time: String(item.time),
+        duration: item.duration || null,
+        description: item.description || "",
+      });
+
+
+    return res.json({
+      message: "Item created successfully",
+      scheduleId: itemRef.id,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Get Schedules for an event
+app.get('/planner/:eventId/schedules', authenticate, async (req, res) => {
+  try {
+
+    const eventId = req.params.eventId;
+
+    const schedulesSnapshot = await db
+      .collection("Event")
+      .doc(eventId)
+      .collection("Schedules")
+      .get();
+
+    const schedules = [];
+
+    for (const doc of schedulesSnapshot.docs) {
+      const scheduleData = doc.data();
+
+      // Fetch items for this schedule
+      const itemsSnapshot = await db
+        .collection("Event")
+        .doc(eventId)
+        .collection("Schedules")
+        .doc(doc.id)
+        .collection("Items")
+        .orderBy("time", "asc")
+        .get();
+
+      const items = itemsSnapshot.docs.map(itemDoc => ({
+        id: itemDoc.id,
+        ...itemDoc.data(),
+      }));
+
+      schedules.push({
+        id: doc.id,
+        ...scheduleData,
+        items,
+      });
+    }
+
+    return res.status(200).json({schedules});
+
+  } catch (error) {
+    console.error("Error fetching schedules:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Update an item in a schedule
+app.put('/planner/:eventId/schedules/:scheduleId/items/:itemId', authenticate, async (req, res) => {
+  try {
+    const { eventId, scheduleId, itemId } = req.params;
+    const updatedItem = req.body;
+
+    if (!eventId || !scheduleId || !itemId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    await db.collection("Event")
+      .doc(eventId)
+      .collection("Schedules")
+      .doc(scheduleId)
+      .collection("Items")
+      .doc(itemId)
+      .update({
+        ...updatedItem,
+      });
+
+    res.json({ message: "Item updated successfully" });
+  } catch (error) {
+    console.error("Error updating schedule item:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Generate signed URL to upload PDF
+app.post("/planner/:eventId/schedules/upload-url", authenticate, async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const { fileName, contentType } = req.body;
+
+    if (!eventId || !fileName || !contentType) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const filePath = `Schedules/${eventId}/${fileName}`;
+    const file = bucket.file(filePath);
+
+    const [uploadUrl] = await file.getSignedUrl({
+      version: "v4",
+      action: "write",
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+      contentType,
+    });
+
+    return res.status(200).json({
+      message: "Upload URL generated successfully",
+      uploadUrl,
+      filePath,
+    });
+  } catch (error) {
+    console.error("Error generating upload URL:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Save uploaded PDF metadata to Firestore
+app.post("/planner/:eventId/schedules/save-file", authenticate, async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const { filePath, title } = req.body;
+
+    if (!eventId || !filePath || !title) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const file = bucket.file(filePath);
+
+    // Get metadata
+    let [metadata] = await file.getMetadata();
+    let downloadToken = metadata.metadata?.firebaseStorageDownloadTokens;
+
+    // If no token, generate one
+    if (!downloadToken) {
+      downloadToken = uuidv4();
+      await file.setMetadata({
+        metadata: { firebaseStorageDownloadTokens: downloadToken },
+      });
+      [metadata] = await file.getMetadata();
+    }
+
+    // Construct permanent Firebase download URL
+    const permanentUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(
+      filePath
+    )}?alt=media&token=${downloadToken}`;
+
+    // Save schedule doc for this file
+    const scheduleRef = await db
+      .collection("Event")
+      .doc(eventId)
+      .collection("Schedules")
+      .add({
+        scheduleTitle: title,
+        filePath,
+        url: permanentUrl,
+      });
+
+    return res.status(200).json({
+      message: "File metadata saved successfully",
+      scheduleId: scheduleRef.id,
+      url: permanentUrl,
+    });
+  } catch (error) {
+    console.error("Error saving file metadata:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+//Upload image for an event
+app.post('/event/apply-with-image', authenticate, upload.single("image"), async (req, res) => {
+  try {
+    const {
+      name, description, theme, location, budget, expectedGuestCount,
+      duration, eventCategory, notes, specialRequirements = [], style = [],
+      tasks = [], vendoringCategoriesNeeded = [], files = null, schedules = null,
+      services = null, date, plannerId
+    } = req.body;
+
+    let imageUrl = "";
+    if (req.file) {
+      const fileName = `events/${plannerId}/${uuidv4()}-${req.file.originalname}`;
+      const fileRef = bucket.file(fileName);
+      await fileRef.save(req.file.buffer, { contentType: req.file.mimetype });
+      await fileRef.makePublic();
+      imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+    }
+
+    const newEvent = {
+      name, description, theme, location,
+      budget: Number(budget),
+      expectedGuestCount: Number(expectedGuestCount),
+      duration: Number(duration),
+      eventCategory, notes,
+      specialRequirements, style, tasks, vendoringCategoriesNeeded,
+      files, schedules, services,
+      date: date ? new Date(date) : null,
+      eventImage: imageUrl,
+      status: "planning",
+      plannerId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const docRef = await db.collection("Event").add(newEvent);
+    res.status(200).json({ message: "Event created successfully", id: docRef.id, event: newEvent });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Delete schedule item
+app.delete('/planner/:eventId/schedules/:scheduleId/items/:itemId', authenticate, async (req, res) => {
+  try {
+    const { eventId, scheduleId, itemId } = req.params;
+    await db.collection("Event").doc(eventId)
+      .collection("Schedules").doc(scheduleId)
+      .collection("Items").doc(itemId).delete();
+    res.json({ message: "Schedule item deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting schedule item", error: err.message });
+  }
+});
+
+// Delete schedule
+app.delete('/planner/:eventId/schedules/:scheduleId', authenticate, async (req, res) => {
+  try {
+    const { eventId, scheduleId } = req.params;
+    await db.collection("Event").doc(eventId).collection("Schedules").doc(scheduleId).delete();
+    res.json({ message: "Schedule deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting schedule", error: err.message });
+  }
+});
+
+// Delete vendor
+app.delete('/planner/:eventId/vendors/:vendorId', authenticate, async (req, res) => {
+  try {
+    const { eventId, vendorId } = req.params;
+    await db.collection("Event").doc(eventId).collection("Vendors").doc(vendorId).delete();
+    res.json({ message: "Vendor deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting vendor", error: err.message });
+  }
+});
+
+// Delete guest
+app.delete('/planner/:eventId/guests/:guestId', authenticate, async (req, res) => {
+  try {
+    const { eventId, guestId } = req.params;
+    await db.collection("Event").doc(eventId).collection("Guests").doc(guestId).delete();
+    res.json({ message: "Guest deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting guest", error: err.message });
+  }
+});
+
+//Add Service
+app.post('/planner/:eventId/services', authenticate, async(req, res) =>{
+  try{
+    const eventId = req.params.eventId;
+
+    const eventSnap = await db.collection("Event").doc(eventId).get();
+    if(!eventSnap.exists){
+      return res.status(404).json({message: "Event not found"});
+    }
+    const event = eventSnap.data();
+
+    const data = req.body;
+
+    function estimateCost(data){
+            return Number(data.chargeByHour * (event.duration || 0)) +
+             Number(data.chargePerPerson * (event.expectedGuestCount || 0)) +
+             Number(data.cost || 0) +
+             Number(data.chargePerSquareMeter || 0);
+    }
+
+    const service = {
+      serviceName: data.serviceName,
+      vendorName: data.vendorName,
+      status: "pending",
+      estimatedCost: estimateCost(data),
+      negotiatedCost: 0,
+      vendorId: data.vendorId
+    }
+
+    const serviceSnap = await db.collection("Event").doc(eventId).collection("Services").doc(data.id).set(service);
+    if(!serviceSnap){
+      return res.status(500).json({messgae: "Failed to add service"});
+    }
+
+    res.status(200).json({message: "Service Added Successfully", id: serviceSnap.id});
+
+  } catch(err){
+    res.status(500).json({message: "Error adding service ", error: err.message});
+  }
+});
+
+//Get All Services
+app.get('/planner/:eventId/services', authenticate, async(req, res) => {
+  try{
+    const eventId = req.params.eventId;
+    const servicesSnap = await db.collection("Event").doc(eventId).collection("Services").get();
+
+    if(servicesSnap.empty){
+      return res.status(200).json({services: []});
+    }
+
+    const services = servicesSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+    return res.status(200).json({services});
+
+  } catch(err){
+    res.status(500).json({message: "Error getting services", error: err.message})
+  }
+});
+
+
+//================================================================
+//-- End of Planner routes
+//================================================================
 
 /**
  * @route   GET /api/admin/vendor-applications

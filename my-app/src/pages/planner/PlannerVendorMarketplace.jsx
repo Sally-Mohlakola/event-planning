@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
 import './PlannerVendorMarketplace.css';
+import { X, MapPin, Phone, Mail, AlertCircle, Clock, DollarSign, Users, Square, Calendar, FileText } from 'lucide-react';
 
-function VendorCard({ vendor, event, onViewMore, onAddVendor }) {
+function VendorCard({ vendor, onViewMore, onAddVendor }) {
     return (
         <article className="vendor-card">
             <img src={vendor.profilePic} alt={vendor.businessName} className="vendor-image" />
@@ -26,8 +27,9 @@ function VendorCard({ vendor, event, onViewMore, onAddVendor }) {
     );
 }
 
-function EventSelectionModal({ isOpen, events, onSelect, onClose}) {
+function EventSelectionModal({ isOpen, events, onSelect, onClose, purpose}) {
     if (!isOpen) return null;
+
 
     return (
         <section className="modal-overlay" onClick={onClose}>
@@ -65,64 +67,141 @@ function EventSelectionModal({ isOpen, events, onSelect, onClose}) {
     );
 }
 
-function VendorDetailsModal({ isOpen, vendor, onClose }) {
-    if (!isOpen || !vendor) return null;
+function VendorModal({vendor, onClose, addService }) {
 
-    return (
-        <section className="modal-overlay" onClick={onClose}>
-            <section className="modal-content vendor-details-modal" onClick={(e) => e.stopPropagation()}>
-                <header className="modal-header">
-                    <h2>Vendor Details</h2>
-                    <button className="modal-close" onClick={onClose}>×</button>
-                </header>
-                <main className="modal-body">
-                    <section className="vendor-detail-content">
-                        <img src={vendor.profilePic} alt={vendor.businessName} className="vendor-detail-image" />
-                        <section className="vendor-info-section">
-                            <h3>{vendor.businessName || vendor.name}</h3>
-                            <p className="vendor-category-detail">{vendor.category}</p>
-                            <section className="vendor-ratings-location">
-                                <p><strong>Rating:</strong> {vendor.rating}</p>
-                                <p><strong>Location:</strong> {vendor.location}</p>
-                            </section>
-                            {vendor.description && (
-                                <section className="vendor-description">
-                                    <h4>Description</h4>
-                                    <p>{vendor.description}</p>
-                                </section>
-                            )}
-                            {vendor.services && (
-                                <section className="vendor-services">
-                                    <h4>Services</h4>
-                                    <ul>
-                                        {vendor.services.map((service, index) => (
-                                            <li key={index}>{service}</li>
-                                        ))}
-                                    </ul>
-                                </section>
-                            )}
-                            {vendor.contact && (
-                                <section className="vendor-contact">
-                                    <h4>Contact Information</h4>
-                                    <p><strong>Email:</strong> {vendor.contact.email}</p>
-                                    <p><strong>Phone:</strong> {vendor.contact.phone}</p>
-                                </section>
-                            )}
-                        </section>
-                    </section>
-                </main>
-                <footer className="modal-footer">
-                    <button className="btn btn-primary">Add to Event</button>
-                    <button className="btn btn-secondary" onClick={onClose}>Close</button>
-                </footer>
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const formatChargeType = (service) => {
+    if (service.chargeByHour > 0) return " Per Hour";
+    if (service.chargePerPerson > 0) return " Per Person";
+    if (service.chargePerSquareMeter > 0) return " Per Square Meter";
+    return " Fixed Rate";
+  };
+
+  const getChargeAmount = (service) => {
+    if (service.chargeByHour > 0) return `R ${service.cost}`;
+    if (service.chargePerPerson > 0) return `R ${service.chargePerPerson}`;
+    if (service.chargePerSquareMeter > 0) return `R ${service.chargePerSquareMeter}`;
+    return `R ${service.cost}`;
+  };
+
+  return (
+    <section className="vendor-modal-overlay">
+      <section className="vendor-modal-container">
+        {/* Header */}
+        <section className="vendor-modal-header">
+          <button onClick={onClose} className="vendor-modal-close-btn">
+            <X size={24} />
+          </button>
+          <section className="vendor-modal-header-info">
+            <img
+              src={vendor.profilePic}
+              alt={vendor.businessName}
+              className="vendor-modal-image"
+            />
+            <section className="vendor-modal-header-text">
+              <h2 className="vendor-modal-business-name">{vendor.businessName}</h2>
+              <p className="vendor-modal-category">{vendor.category}</p>
+              <section className="vendor-modal-rating-location">
+                <section className="vendor-modal-rating">{vendor.rating}</section>
+                <section className="vendor-modal-location">
+                  <MapPin size={14} />
+                  <span>{vendor.location}</span>
+                </section>
+              </section>
             </section>
+          </section>
         </section>
-    );
+
+        {/* Tabs */}
+        <section className="vendor-modal-tabs">
+          <section
+            onClick={() => setActiveTab("overview")}
+            className={`vendor-modal-tab ${
+              activeTab === "overview" ? "active-tab" : ""
+            }`}
+          >
+            Overview
+          </section>
+          <section
+            onClick={() => setActiveTab("services")}
+            className={`vendor-modal-tab ${
+              activeTab === "services" ? "active-tab" : ""
+            }`}
+          >
+            Services ({vendor.services.length})
+          </section>
+        </section>
+
+        {/* Content */}
+        <section className="vendor-modal-content">
+          {activeTab === "overview" && (
+            <section className="vendor-modal-overview">
+              <h3>About</h3>
+              <p>{vendor.description}</p>
+
+              <h3>Contact Information</h3>
+              <section className="vendor-modal-contact-grid">
+                <section className="vendor-modal-contact-item">
+                  <Phone size={18} />
+                  <span>{vendor.phone}</span>
+                </section>
+                <section className="vendor-modal-contact-item">
+                  <Mail size={18} />
+                  <span>{vendor.email}</span>
+                </section>
+              </section>
+            </section>
+          )}
+
+          {activeTab === "services" && (
+            <section className="vendor-modal-services">
+              {vendor.services.map((service, idx) => (
+                <section key={idx} className="vendor-modal-service-card">
+                  <section className="vendor-modal-service-header">
+                    <h3>{service.serviceName}</h3>
+                    <section className="vendor-modal-service-price">
+                      <span>{getChargeAmount(service)}</span>
+                      <small>{formatChargeType(service)}</small>
+                    </section>
+                  </section>
+
+                  {service.extraNotes && (
+                    <p className="vendor-modal-service-notes">{service.extraNotes}</p>
+                  )}
+
+                  <section className="vendor-modal-service-details">
+                    <span>Hourly: R {service.chargeByHour}</span>
+                    <span>Per Person: R {service.chargePerPerson}</span>
+                    <span>Per m²: R {service.chargePerSquareMeter}</span>
+                    <span>Base: R {service.cost}</span>
+                  </section>
+                  <section>
+                    <button className='vendor-modal-footer-btn-primary' onClick={() => addService(vendor, service)}>
+                        Add Service
+                    </button>
+                  </section>
+                </section>
+              ))}
+            </section>
+          )}
+        </section>
+
+        {/* Footer */}
+        <section className="vendor-modal-footer">
+          <button onClick={onClose} className="vendor-modal-footer-btn">
+            Close
+          </button>
+          <button className="vendor-modal-footer-btn-primary">Contact Vendor</button>
+        </section>
+      </section>
+    </section>
+  );
 }
 
+
 export default function PlannerVendorMarketplace({ event = null, plannerId, setActivePage }) {
-    console.log("PlannerVendorMarketplace loaded with event:");
-    console.log(event);
+
     const [activeTab, setActiveTab] = useState(event ? 'event-specific' : 'all-events');
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All");
@@ -133,15 +212,14 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
     const [showEventModal, setShowEventModal] = useState(false);
     const [showVendorModal, setShowVendorModal] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState(null);
-    const [modalPurpose, setModalPurpose] = useState(activeTab === 'event-specific' ? "recommend" : "addVendor"); 
     const [pendingVendorId, setPendingVendorId] = useState(null);
+    const [selectedVendorForModal, setSelectedVendorForModal] = useState(null);
+    const [modalPurpose, setModalPurpose] = useState(null);
+    const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+    const [service, setService] = useState(null);
+    
 
-    useEffect(() => {
-        if(event){
-            setSelectedEvent(event);
-        }
-    }, [event]);
-
+    //All calls to api here
     const fetchAllEventsVendors = async () => {
         const auth = getAuth();
         const user = auth.currentUser;
@@ -157,8 +235,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         if (!res.ok) return [];
         const data = await res.json();
         return data.vendors || [];
-    }
-
+    };
     const fetchEventSpecificVendors = async (eventId) => {
         const auth = getAuth();
         const user = auth.currentUser;
@@ -174,7 +251,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         if (!res.ok) return [];
         const data = await res.json();
         return data.vendors || [];
-    }
+    };
 
     const fetchEvents = async () => {
         const auth = getAuth();
@@ -191,7 +268,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         if (!res.ok) return [];
         const data = await res.json();
         return data.events || [];
-    }
+    };
 
     const addVendorToEvent = async (vendorId, eventId) => {
         const auth = getAuth();
@@ -213,7 +290,55 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
             console.error("Error adding vendor to event:", err);
         }
 
-    }
+    };
+
+    const fetchVendorServices = async (vendorId) => {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
+
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/vendors/${vendorId}/services`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if(!res){
+            showNotification("error", "Failed to fetch vendor services");
+        }
+        const data = await res.json();
+
+        return data;
+    };
+
+    const addService = async (eventId, service) => {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
+
+        try{
+            const res = fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/services`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(service)
+            });
+            return res;
+        }
+        catch(err){
+            console.error("Error Adding Service to Event: ", err);
+        }
+    };
+    //End of calls to api
+
+    const showNotification = (type, message) => {
+        setNotification({ show: true, type, message });
+        setTimeout(() => {
+        setNotification({ show: false, type: '', message: '' });
+        }, 4000);
+    };
 
     useEffect(() => {
         async function loadInitialData() {
@@ -242,6 +367,13 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         setModalPurpose(activeTab === 'event-specific' ? "recommend" : "addVendor");
     }, [activeTab]);
 
+    useEffect(() => {
+        if(event){
+            setSelectedEvent(event);
+        }
+    }, [event]);
+
+    //Functionality Functions
     const handleTabChange = (tab) => {
         setActiveTab(tab);
         setVendors([]);
@@ -258,8 +390,21 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         setLoading(false);
     };
 
-    const handleViewVendor = (vendor) => {
+    const handleViewVendor = async (vendor) => {
+
+        const services = await fetchVendorServices(vendor.id);
+        console.log(services);
+        if(services === null){
+            console.log("failed")
+           alert("Failed to get services as json");
+            return;
+        }
+        const vendorInfo = {
+            ...vendor,
+            services: services
+        }
         setSelectedVendor(vendor);
+        setSelectedVendorForModal(vendorInfo);
         setShowVendorModal(true);
     };
 
@@ -273,10 +418,12 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         }
     };
 
-    const handleEventPicked = async (vendor) => {
+    const handleEventPicked = async (vendor, service) => {
+        setService(service);
         if (activeTab === "event-specific") {
             if (selectedEvent) {
                 await handleAddVendor(selectedEvent, vendor);
+                await handleAddService(selectedEvent.id, vendor, service);
             } else {
                 alert("Please select an event first.");
             }
@@ -288,6 +435,22 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         }
     };
 
+    const handleAddService = async (eventId, vendor, service) => {
+        const data = {
+            vendorId: vendor.id,
+            vendorName: vendor.businessName,
+            ...service
+        }
+        console.log(data);
+        const res = await addService(eventId, data);
+        if(!res){
+            alert("Failed to add service");
+        }
+        else{
+            alert("Services Addedd successfully");
+        }
+    }
+
     const filteredVendors = vendors.filter(v =>
         ((v.businessName?.toLowerCase().includes(search.toLowerCase()) || 
           v.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -295,10 +458,22 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         (categoryFilter === "All" || v.category === categoryFilter)
     );
 
+    //End of functionality functions
     const categories = ["All", "Catering", "Entertainment", "Decor", "Photography", "Venue", "Florist", "Music"];
 
     return (
         <main className="vendor-marketplace">
+        {/* Custom Notification */}
+      {notification.show && (
+        <section className={`ps-notification ps-notification-${notification.type}`}>
+          <section className="ps-notification-content">
+            {notification.type === 'success' && <CheckCircle className="ps-notification-icon" />}
+            {notification.type === 'error' && <AlertCircle className="ps-notification-icon" />}
+            {notification.type === 'info' && <AlertCircle className="ps-notification-icon" />}
+            <span>{notification.message}</span>
+          </section>
+        </section>
+      )}
             <header className="marketplace-header">
                 <h1 className="marketplace-title">Vendor Marketplace</h1>
                 <p className="marketplace-subtitle">Discover and connect with top-rated event vendors</p>
@@ -376,7 +551,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
                             key={vendor.id} 
                             vendor={vendor} 
                             event={selectedEvent}
-                            onViewMore={handleViewVendor}
+                            onViewMore={(vendor) => handleViewVendor(vendor)}
                             onAddVendor={(vendor) => handleEventPicked(vendor)}
                             />
                         ))
@@ -397,6 +572,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
                 onSelect={async (event) => {
                     if (pendingVendorId) {
                         await handleAddVendor(event, { id: pendingVendorId });
+                        await handleAddService(event.id, selectedVendorForModal, service);
                         setPendingVendorId(null);
                     } else {
                         handleEventSelect(event);
@@ -406,14 +582,16 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
                 onClose={() => setShowEventModal(false)}
             />
 
-            <VendorDetailsModal
-                isOpen={showVendorModal}
-                vendor={selectedVendor}
+             {showVendorModal && (<VendorModal
+                vendor={selectedVendorForModal}
+                addService={handleEventPicked}
                 onClose={() => {
                     setShowVendorModal(false);
                     setSelectedVendor(null);
+                    setSelectedVendorForModal(null);
                 }}
-            />
+                />
+            )}
         </main>
     );
 }

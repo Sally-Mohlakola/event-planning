@@ -1,3 +1,230 @@
+/* Notification */
+.ps-notification {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1100;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  color: white;
+  animation: slideIn 0.3s ease;
+}
+.ps-notification-success { background: var(--success); }
+.ps-notification-error { background: var(--danger); }
+.ps-notification-info { background: var(--info); }
+.ps-notification-content { display: flex; align-items: center; gap: 12px; }
+.ps-notification-icon { width: 20px; height: 20px; }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+
+/* Vendor Details Popup*/
+/* Overlay */
+.vendor-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  z-index: 50;
+}
+
+/* Container */
+.vendor-modal-container {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.vendor-modal-header {
+  background: #ffffff;
+  color: #000000;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #e2e8f0;
+  z-index: 100;
+}
+
+.vendor-modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: black;
+}
+
+.vendor-modal-header-info {
+  display: flex;
+  gap: 16px;
+}
+
+.vendor-modal-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.vendor-modal-header-text {
+  flex: 1;
+}
+
+.vendor-modal-business-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.vendor-modal-category {
+  color: #000000;
+  margin-bottom: 8px;
+}
+
+.vendor-modal-rating-location {
+  display: flex;
+  gap: 16px;
+  font-size: 0.875rem;
+}
+
+/* Tabs */
+.vendor-modal-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.vendor-modal-tab {
+  padding: 12px 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.vendor-modal-tab.active-tab {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+/* Content */
+.vendor-modal-content {
+  padding: 24px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.vendor-modal-contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.vendor-modal-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.vendor-modal-services {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vendor-modal-service-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  transition: box-shadow 0.2s ease;
+}
+
+.vendor-modal-service-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.vendor-modal-service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.vendor-modal-service-price {
+  text-align: right;
+}
+
+.vendor-modal-service-notes {
+  margin-bottom: 12px;
+  color: #4b5563;
+}
+
+.vendor-modal-service-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vendor-modal-service-timestamps {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* Footer */
+.vendor-modal-footer {
+  background: #f9fafb;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.vendor-modal-footer-btn {
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  background: transparent;
+}
+
+.vendor-modal-footer-btn-primary {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.vendor-modal-footer-btn-primary:hover {
+  background: #1d4ed8;
+}
+
 /* Vendor Marketplace Styles */
 .vendor-marketplace {
     padding: 2rem;
