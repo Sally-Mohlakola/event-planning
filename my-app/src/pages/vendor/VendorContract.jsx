@@ -756,11 +756,13 @@ const VendorContract = ({ setActivePage }) => {
               </div>
             </div>
             {iframeSrc ? (
-              <iframe
-                src={iframeSrc}
-                style={{ width: '100%', height: '500px', border: 'none' }}
-                title="Contract Preview"
-              />
+              <div className="contract-viewer">
+                <iframe
+                  src={iframeSrc}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  title="Contract Preview"
+                />
+              </div>
             ) : (
               <p>Preview not available for this file type. Please download to view.</p>
             )}
