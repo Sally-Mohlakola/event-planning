@@ -68,7 +68,7 @@ export default function PlannerAllEvents({setActivePage, onSelectEvent}){
     const navigate = useNavigate();
 
    
-    const fetchPlannerEvents = async (plannerId) => {
+    const fetchPlannerEvents = async () => {
 
         const auth = getAuth();
         const user = auth.currentUser;
@@ -86,11 +86,11 @@ export default function PlannerAllEvents({setActivePage, onSelectEvent}){
     };
 
     useEffect(() => {
-    async function loadEvents() {
-        const events = await fetchPlannerEvents(plannerId);
-        setEvents(events);
-    }
-    loadEvents();
+        async function loadEvents() {
+            const events = await fetchPlannerEvents(plannerId);
+            setEvents(events);
+        }
+        loadEvents();
     }, [plannerId]);
 
     const filteredEvents = events
