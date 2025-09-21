@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Upload, User, FileText, Mail, Calendar, Clock, Search, Eye, X } from "lucide-react";
+import { Upload, User, FileText, Mail, Calendar, Clock, Search, Eye, X, Trash2 } from "lucide-react";
 import { auth, storage, db } from "../../firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, collection, setDoc, updateDoc, getDocs } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { doc, collection, setDoc, updateDoc, getDocs, onSnapshot, deleteDoc } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import "./VendorContract.css";
 
@@ -26,6 +26,7 @@ const VendorContract = ({ setActivePage }) => {
   const [selectedContract, setSelectedContract] = useState(null);
   const [showContractModal, setShowContractModal] = useState(false);
   const [iframeSrc, setIframeSrc] = useState(null);
+  const [notification, setNotification] = useState("");
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const cacheKey = `vendorClients_${auth.currentUser?.uid}`;
@@ -44,15 +45,14 @@ const VendorContract = ({ setActivePage }) => {
         const vendorContractsSnapshot = await getDocs(vendorContractsRef);
         vendorContractsSnapshot.forEach(doc => {
           const data = doc.data();
-          if (data.signatureWorkflow?.workflowStatus === "completed") {
-            contractsData.push({ id: doc.id, ...data });
-          }
+          contractsData.push({ id: doc.id, ...data });
         });
       }
 
       setAllContracts(contractsData);
     } catch (error) {
       console.error("Error loading contracts:", error);
+      setError("Failed to load contracts: " + error.message);
     }
   }, []);
 
@@ -106,6 +106,47 @@ const VendorContract = ({ setActivePage }) => {
       setLoading(false);
     }
   }, []);
+
+  // Listen for real-time updates to contracts
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    
+    const vendorId = auth.currentUser.uid;
+    const unsubscribeFunctions = [];
+
+    const eventsRef = collection(db, "Event");
+    getDocs(eventsRef).then(snapshot => {
+      snapshot.forEach(eventDoc => {
+        const vendorContractsRef = collection(db, "Event", eventDoc.id, "Vendors", vendorId, "Contracts");
+        const unsubscribe = onSnapshot(vendorContractsRef, (vendorContractsSnapshot) => {
+          const updatedContracts = [];
+          vendorContractsSnapshot.forEach(doc => {
+            const data = doc.data();
+            updatedContracts.push({ id: doc.id, ...data });
+            if (data.signatureWorkflow?.workflowStatus === "completed" && 
+                data.signedAt && 
+                (Date.now() - new Date(data.signedAt).getTime()) < 5 * 60 * 1000) {
+              setNotification(`Contract "${data.fileName}" for event "${data.eventName}" has been signed!`);
+              setTimeout(() => setNotification(""), 5000);
+            }
+          });
+
+          setAllContracts(prev => {
+            const existingIds = new Set(prev.map(c => c.id));
+            const newContracts = updatedContracts.filter(c => !existingIds.has(c.id));
+            const updatedExisting = prev.map(existing => {
+              const updatedContract = updatedContracts.find(c => c.id === existing.id);
+              return updatedContract || existing;
+            });
+            return [...updatedExisting, ...newContracts];
+          });
+        });
+        unsubscribeFunctions.push(unsubscribe);
+      });
+    });
+
+    return () => unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
+  }, [auth.currentUser]);
 
   useEffect(() => {
     const initializeContracts = async () => {
@@ -165,7 +206,7 @@ const VendorContract = ({ setActivePage }) => {
     return () => unsubscribe();
   }, [fetchClients]);
 
-  // Group contracts by eventId for multiple contracts per client
+  // Define groupedContracts before getContractInfo
   const groupedContracts = useMemo(() => {
     const groups = {};
     allContracts.forEach(contract => {
@@ -177,7 +218,6 @@ const VendorContract = ({ setActivePage }) => {
     return groups;
   }, [allContracts]);
 
-  // Persistent counters based on Firestore data
   const clientsWithContracts = useMemo(() => {
     const eventIdsWithContracts = new Set(allContracts.map(c => c.eventId));
     return clients.filter(client => eventIdsWithContracts.has(client.eventId));
@@ -185,14 +225,85 @@ const VendorContract = ({ setActivePage }) => {
 
   const uploadedCount = clientsWithContracts.length;
   const pendingCount = clients.length - uploadedCount;
-  const signedCount = allContracts.length; // Assuming all loaded contracts are signed
+  const signedCount = allContracts.filter(c => c.signatureWorkflow?.workflowStatus === "completed").length;
+
+  const getContractInfo = useCallback((eventId) => groupedContracts[eventId] || [], [groupedContracts]);
+
+  const deleteContract = useCallback(async (eventId, contractId, contractUrl, signedDocumentUrl = null) => {
+    if (!auth.currentUser) {
+      setError("User not authenticated");
+      return;
+    }
+
+    const confirmDelete = window.confirm("Are you sure you want to delete this contract? This action cannot be undone.");
+    if (!confirmDelete) return;
+
+    try {
+      const vendorId = auth.currentUser.uid;
+      const contractRef = doc(db, "Event", eventId, "Vendors", vendorId, "Contracts", contractId);
+
+      // Delete the contract document from Firestore
+      await deleteDoc(contractRef);
+
+      // Delete the contract file from Firebase Storage
+      const storageRef = ref(storage, contractUrl);
+      await deleteObject(storageRef).catch(err => {
+        console.warn("Failed to delete contract file from storage:", err);
+      });
+
+      // Delete the signed document if it exists
+      if (signedDocumentUrl) {
+        const signedStorageRef = ref(storage, signedDocumentUrl);
+        await deleteObject(signedStorageRef).catch(err => {
+          console.warn("Failed to delete signed contract file from storage:", err);
+        });
+      }
+
+      // Update local state
+      setAllContracts(prev => prev.filter(contract => contract.id !== contractId));
+      setClients(prev =>
+        prev.map(client =>
+          client.eventId === eventId
+            ? {
+                ...client,
+                contractUrl: null,
+                firstuploaded: null,
+                lastedited: null,
+              }
+            : client
+        )
+      );
+
+      // Log deletion in audit collection
+      await setDoc(doc(collection(db, "ContractAudit")), {
+        contractId,
+        eventId,
+        vendorId,
+        action: "contract_deleted",
+        performedBy: vendorId,
+        performedAt: new Date().toISOString(),
+        details: {
+          fileName: contractUrl.split('/').pop().split('?')[0],
+          deletedAt: new Date().toISOString(),
+        },
+      });
+
+      setNotification("Contract deleted successfully!");
+      setTimeout(() => setNotification(""), 5000);
+    } catch (error) {
+      console.error("Error deleting contract:", error);
+      setError("Failed to delete contract: " + error.message);
+      setNotification("Failed to delete contract");
+      setTimeout(() => setNotification(""), 5000);
+    }
+  }, []);
 
   const createOrUpdateContractEntry = useCallback(async (eventId, contractUrl, fileName, fileSize, clientInfo, isUpdate = false, replacingContractId = null) => {
     const vendorId = auth.currentUser?.uid || '';
     const currentTime = { seconds: Math.floor(Date.now() / 1000) };
 
     try {
-      const contractId = uuidv4();
+      const contractId = isUpdate && replacingContractId ? replacingContractId : uuidv4();
       const newContract = {
         id: contractId,
         eventId,
@@ -205,7 +316,7 @@ const VendorContract = ({ setActivePage }) => {
         fileName,
         fileSize,
         status: "active",
-        firstuploaded: currentTime,
+        firstuploaded: isUpdate ? clientInfo.firstuploaded || currentTime : currentTime,
         lastedited: currentTime,
         uploadHistory: [{
           uploadDate: currentTime,
@@ -213,16 +324,27 @@ const VendorContract = ({ setActivePage }) => {
           fileSize,
           action: replacingContractId ? `replacement for ${replacingContractId}` : "initial_upload"
         }],
-        createdAt: currentTime,
+        createdAt: isUpdate ? clientInfo.createdAt || currentTime : currentTime,
         updatedAt: currentTime
       };
+
+      if (isUpdate && replacingContractId) {
+        newContract.uploadHistory = [
+          ...(clientInfo.uploadHistory || []),
+          ...newContract.uploadHistory
+        ];
+      }
 
       const contractRef = doc(db, "Event", eventId, "Vendors", vendorId, "Contracts", contractId);
       await setDoc(contractRef, newContract);
       
-      setAllContracts(prev => [...prev, newContract]);
+      setAllContracts(prev => {
+        if (isUpdate && replacingContractId) {
+          return prev.map(c => c.id === replacingContractId ? newContract : c);
+        }
+        return [...prev, newContract];
+      });
 
-      // Update client with latest contractUrl if needed
       setClients(prev =>
         prev.map(c => c.eventId === eventId ? { 
           ...c, 
@@ -232,9 +354,10 @@ const VendorContract = ({ setActivePage }) => {
         } : c)
       );
 
-      console.log(`${replacingContractId ? 'Updated' : 'New'} contract saved to Firestore:`, contractId);
+      console.log(`${isUpdate ? 'Updated' : 'New'} contract saved to Firestore:`, contractId);
     } catch (error) {
       console.error("Error in contract management:", error);
+      setError("Failed to save contract: " + error.message);
     }
   }, []);
 
@@ -293,12 +416,12 @@ const VendorContract = ({ setActivePage }) => {
     return allContracts.filter(contract => contract.signatureWorkflow?.workflowStatus === "completed");
   }, [allContracts]);
 
-  const getContractInfo = useCallback((eventId) => groupedContracts[eventId] || [], [groupedContracts]);
-
   const viewContractDetails = useCallback((contract) => {
     setSelectedContract(contract);
     setShowContractModal(true);
-    if (contract.fileName.toLowerCase().endsWith('.pdf')) {
+    if (contract.signedDocumentUrl && contract.signatureWorkflow?.workflowStatus === "completed") {
+      setIframeSrc(`${contract.signedDocumentUrl}#toolbar=1&navpanes=0&scrollbar=1`);
+    } else if (contract.fileName.toLowerCase().endsWith('.pdf')) {
       setIframeSrc(`${contract.contractUrl}#toolbar=1&navpanes=0&scrollbar=1`);
     }
   }, []);
@@ -350,22 +473,39 @@ const VendorContract = ({ setActivePage }) => {
                           title="Click to view contract details"
                         >
                           {contract.fileName}
+                          {contract.signatureWorkflow?.workflowStatus === "completed" && " (Signed)"}
                         </button>
                         <span>({new Date(contract.lastedited.seconds * 1000).toLocaleDateString()})</span>
                       </p>
                       <span className={`status-${contract.status}`}>{contract.status}</span>
+                      {contract.signatureWorkflow?.workflowStatus && (
+                        <span className={`status-badge ${contract.signatureWorkflow.workflowStatus}`}>
+                          {contract.signatureWorkflow.workflowStatus.replace("_", " ")}
+                        </span>
+                      )}
                     </div>
-                    <label className="upload-btn secondary small">
-                      <Upload size={12} />
-                      Edit
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        hidden
+                    <div className="contract-buttons">
+                      <label className="upload-btn secondary small">
+                        <Upload size={12} />
+                        Edit
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          hidden
+                          disabled={uploading === client.eventId}
+                          onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0], contract.id)}
+                        />
+                      </label>
+                      <button
+                        className="delete-btn small"
+                        onClick={() => deleteContract(contract.eventId, contract.id, contract.contractUrl, contract.signedDocumentUrl)}
+                        title="Delete contract"
                         disabled={uploading === client.eventId}
-                        onChange={e => e.target.files[0] && handleFileUpload(client.eventId, e.target.files[0], contract.id)}
-                      />
-                    </label>
+                      >
+                        <Trash2 size={12} />
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -391,6 +531,11 @@ const VendorContract = ({ setActivePage }) => {
       <header>
         <h1>Contract Management</h1>
         <p>Manage contracts for your events and clients.</p>
+        {notification && (
+          <div className="notification success">
+            {notification}
+          </div>
+        )}
         <div className="stats-summary">
           <div className="stat-item">
             <FileText size={20} />
@@ -469,8 +614,17 @@ const VendorContract = ({ setActivePage }) => {
                     title="Click to view signed contract details"
                   >
                     {contract.fileName}
+                    {contract.signatureWorkflow?.workflowStatus === "completed" && " (Signed)"}
                   </button>
                   <span>({new Date(contract.lastedited.seconds * 1000).toLocaleDateString()})</span>
+                  <button
+                    className="delete-btn small"
+                    onClick={() => deleteContract(contract.eventId, contract.id, contract.contractUrl, contract.signedDocumentUrl)}
+                    title="Delete contract"
+                  >
+                    <Trash2 size={12} />
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}
@@ -502,6 +656,9 @@ const VendorContract = ({ setActivePage }) => {
               )}
               {selectedContract.lastedited && (
                 <p><strong>Last Updated:</strong> {new Date(selectedContract.lastedited.seconds * 1000).toLocaleString()}</p>
+              )}
+              {selectedContract.signedAt && (
+                <p><strong>Signed At:</strong> {new Date(selectedContract.signedAt).toLocaleString()}</p>
               )}
               <div className="google-apis-section">
                 <p><strong>Google APIs URL:</strong></p>
@@ -557,7 +714,7 @@ const VendorContract = ({ setActivePage }) => {
                   <div className="unsupported-file">
                     <p>Preview not available for {selectedContract.fileName}. Please download to view.</p>
                     <a
-                      href={selectedContract.contractUrl}
+                      href={selectedContract.signedDocumentUrl || selectedContract.contractUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="download-btn"
@@ -571,12 +728,23 @@ const VendorContract = ({ setActivePage }) => {
             </div>
             <div className="modal-footer">
               <a
-                href={selectedContract.contractUrl}
-                download={selectedContract.fileName}
+                href={selectedContract.signedDocumentUrl || selectedContract.contractUrl}
+                download={selectedContract.signedDocumentUrl ? `signed_${selectedContract.fileName}` : selectedContract.fileName}
                 className="download-btn"
               >
-                Download Contract
+                Download {selectedContract.signedDocumentUrl ? 'Signed' : ''} Contract
               </a>
+              <button
+                className="delete-btn"
+                onClick={() => {
+                  deleteContract(selectedContract.eventId, selectedContract.id, selectedContract.contractUrl, selectedContract.signedDocumentUrl);
+                  setShowContractModal(false);
+                  setIframeSrc(null);
+                }}
+              >
+                <Trash2 size={16} />
+                Delete Contract
+              </button>
             </div>
           </div>
         </div>
