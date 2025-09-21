@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../../firebase";
 import { Edit, Mail, Phone } from "lucide-react";
-//import "./AdminProfile.css";
+import "./AdminProfile.css";
 
 const AdminProfile = () => {
 	const navigate = useNavigate();
@@ -83,17 +83,15 @@ const AdminProfile = () => {
 				</button>
 			</div>
 
-			<div className="admin-profile-image-circle">
-				<img
-					className="admin-profile-picture"
-					src={
-						admin.profilePic
-							? `${admin.profilePic}?v=${imageVersion}`
-							: "/default-avatar.png"
-					}
-					alt="Admin"
-				/>
-			</div>
+			<img
+				className="admin-profile-picture"
+				src={
+					admin.profilePic
+						? `${admin.profilePic}?v=${imageVersion}`
+						: "/default-avatar.png"
+				}
+				alt="Admin's Profile Picture"
+			/>
 
 			{/* Admin Information Card */}
 			<div className="profile-card">

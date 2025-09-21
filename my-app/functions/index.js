@@ -1887,3 +1887,44 @@ app.delete("/vendors/:vendorId/services/:serviceId", authenticate, async (req, r
     res.status(500).json({ error: errorMessage, details: error.message });
   }
 });
+
+/**
+ * @route   GET /api/admin/vendors
+ * @desc    Get a list of all vendors (approved, pending, etc.).
+ * @access  Private (Admin Only)
+ */
+app.get('/admin/vendors', authenticate, async (req, res) => {
+  try {
+    const snapshot = await db.collection('Vendor').get();
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    const vendors = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    res.json(vendors);
+  } catch (err) {
+    console.error('Error fetching vendors:', err);
+    res.status(500).json({ message: 'Server error while fetching vendors' });
+  }
+});
+
+/**
+ * @route   GET /api/admin/planners
+ * @desc    Get a list of all planners.
+ * @access  Private (Admin Only)
+ */
+app.get('/admin/planners', authenticate, async (req, res) => {
+  try {
+    const snapshot = await db.collection('Planner').get();
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    const planners = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(planners);
+  } catch (err) {
+    console.error('Error fetching planners:', err);
+    res.status(500).json({ message: 'Server error while fetching planners' });
+  }
+});

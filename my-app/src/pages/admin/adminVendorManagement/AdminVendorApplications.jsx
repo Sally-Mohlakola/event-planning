@@ -73,8 +73,9 @@ function AdminVendorApplications() {
 	if (error) return <h3>Error: {error}</h3>;
 
 	return (
-		<main className="main-container">
-			<div className="applications-list">
+		<section className="main-container">
+			<h1>Pending Vendor Applications</h1>
+			<section className="applications-list">
 				{applications.length > 0 ? (
 					<table className="vendor-table">
 						<thead>
@@ -100,7 +101,7 @@ function AdminVendorApplications() {
 				) : (
 					<p>There are no pending applications found.</p>
 				)}
-			</div>
+			</section>
 
 			{/* The Popup for displaying vendor details */}
 			<Popup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
@@ -170,7 +171,7 @@ function AdminVendorApplications() {
 					</div>
 				)}
 			</Popup>
-		</main>
+		</section>
 	);
 }
 

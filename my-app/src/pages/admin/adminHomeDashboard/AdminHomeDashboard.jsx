@@ -5,19 +5,14 @@ import {
 	BsPeopleFill,
 	BsFillBellFill,
 } from "react-icons/bs";
-import AdminVendorApplications from "../adminVendorManagement/AdminVendorApplications";
+import AdminReports from "../adminReportsAndAnalytics/AdminReports.jsx";
 import "./AdminHomeDashboard.css";
 
 function AdminHomeDashboard() {
 	return (
-		<main className="main-container">
-			<section className="vendor-applications">
-				<div className="main-title">
-					<h3>Pending Vendor Applications</h3>
-				</div>
-				<AdminVendorApplications />
-			</section>
-		</main>
+		<sections className="vendor-applications">
+			<AdminReports />
+		</sections>
 	);
 }
 
