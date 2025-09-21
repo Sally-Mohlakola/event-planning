@@ -232,15 +232,26 @@ function ServiceItem({service, showChat}) {
                 <h4>{service.serviceName}</h4>
                 <p>Vendored By: {service.vendorName}</p>
             </section>
-            <section className="vendor-cost">
-                <h4>Estimated Total Cost: </h4>
-                <p>R {service.estimatedCost}</p>
+            {service.status === "confirmed" ? ( 
+                <section className="vendor-cost">
+                    <h4>Confirmed Total Cost: </h4>
+                    <p>R {service.finalPrice}</p>
+                </section>) : (
+                    <section className="vendor-cost">
+                    <h4>Estimated Total Cost: </h4>
+                    <p>R {service.estimatedCost}</p>
+                </section>
+                )}
+
+            <section className='serviceitem-footer'>
+                <section className="vendor-actions">
+                    <button className="contact-btn">Contract</button>
+                    <button onClick={() => showChat(service)} className="remove-btn">Chat</button>
+                    <button className="remove-btn">Remove</button>
+                </section>
+                <section className={service.status === "confirmed" ? "serviceitem-status confirmed" : "serviceitem-status pending"}>${service.status}</section>
             </section>
-            <section className="vendor-actions">
-                <button className="contact-btn">Contract</button>
-                <button onClick={() => showChat(service)} className="remove-btn">Chat</button>
-                <button className="remove-btn">Remove</button>
-            </section>
+
         </section>
     );
 }

@@ -3,11 +3,7 @@ import { Send, Check, CheckCheck, Clock, User, Building2, X } from 'lucide-react
 import './ChatComponent.css';
 import { getAuth } from 'firebase/auth';
 
-const ChatComponent = ({ plannerId, vendorId, eventId,
-  currentUser,
-  otherUser,
-  serviceType = 'Wedding Photography', closeChat
-}) => {
+const ChatComponent = ({ plannerId, vendorId, eventId, currentUser, otherUser, closeChat}) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -167,8 +163,6 @@ const ChatComponent = ({ plannerId, vendorId, eventId,
             </section>
             </section>
             <section className="service-context">
-            <span className="service-label">Service:</span>
-            <span className="service-name">{serviceType}</span>
             <button onClick={() => closeChat()}><X/></button>
             </section>
         </header>

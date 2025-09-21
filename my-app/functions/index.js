@@ -163,7 +163,7 @@ app.put('/vendor/me', authenticate, async (req, res) => {
 
 //These functions are for getting vendor bookings to work with planner service requests
 // Get the services a vendor has been booked for
-app.get('/vendor/bookings', authenticate, async (req, res) => {
+app.get('/vendor/bookings/services', authenticate, async (req, res) => {
   try {
     const vendorID = req.uid;
     const eventsSnapshot = await db.collection("Event").get();
@@ -188,6 +188,7 @@ app.get('/vendor/bookings', authenticate, async (req, res) => {
 
         vendorBookings.push({
           eventId: eventDoc.id,
+          eventPlanner: eventData.plannerId,
           eventName: eventData.name,
           description: eventData.description,
           date: eventData.date,
@@ -2016,12 +2017,24 @@ app.delete("/vendors/:vendorId/services/:serviceId", authenticate, async (req, r
   }
 });
 
+async function addAuditLog(eventId, vendorId, contractId, action, details = {}) {
+  const logRef = db.collection("Event").doc(eventId)
+    .collection("AuditLogs").doc();
 
-app.post('/api/contracts/:contractId/signature-fields', authenticate, async (req, res) => {
+  await logRef.set({
+    vendorId,
+    contractId,
+    action,
+    details,
+    createdAt: new Date()
+  });
+}
+
+app.post('/contracts/:contractId/signature-fields', authenticate, async (req, res) => {
   try {
     const { contractId } = req.params;
-    const { eventId, signatureFields, signers } = req.body;
-    const vendorId = req.user.uid;
+    const { eventId, signatureFields, signers, vendorId } = req.body;
+
 
     // Validate that user owns this contract
     const contractRef = db.collection('Event').doc(eventId)
@@ -2064,5 +2077,153 @@ app.post('/api/contracts/:contractId/signature-fields', authenticate, async (req
   } catch (error) {
     console.error('Error saving signature fields:', error);
     res.status(500).json({ error: 'Failed to save signature fields' });
+  }
+});
+
+// -------------------------
+// Fetch services for contract entry (planner + vendor)
+// GET /:vendorId/:eventId/services-for-contract
+// -------------------------
+app.get('/:vendorId/:eventId/services-for-contract', authenticate, async (req, res) => {
+  try {
+    const { vendorId, eventId } = req.params;
+
+    // Get all services for this vendor under this event
+    const servicesSnap = await db
+      .collection('Event')
+      .doc(eventId)
+      .collection('Services')
+      .where('vendorId', '==', vendorId)
+      .get();
+
+    if (servicesSnap.empty) {
+      return res.json({ services: [] });
+    }
+
+    const services = servicesSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json({ services });
+  } catch (err) {
+    console.error('Error fetching services for contract:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// -------------------------
+// Update final prices when contract is uploaded
+// POST /:vendorId/:eventId/update-final-prices
+// Body: { finalPrices: { serviceId: price, ... } }
+// -------------------------
+app.post('/:vendorId/:eventId/update-final-prices', authenticate, async (req, res) => {
+  try {
+    const { vendorId, eventId } = req.params;
+    const { finalPrices } = req.body;
+
+    if (!finalPrices || typeof finalPrices !== 'object') {
+      return res.status(400).json({ message: 'Invalid finalPrices object' });
+    }
+
+    const batch = db.batch();
+
+    for (const [serviceId, price] of Object.entries(finalPrices)) {
+      const serviceRef = db
+        .collection('Event')
+        .doc(eventId)
+        .collection('Services')
+        .doc(serviceId);
+
+      batch.update(serviceRef, { finalPrice: price });
+    }
+
+    await batch.commit();
+
+    res.json({ message: 'Final prices updated successfully' });
+  } catch (err) {
+    console.error('Error updating final prices:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// -------------------------
+// Fetch final prices for a contract
+// GET /:eventId/:vendorId/contract-prices-final
+// -------------------------
+app.get('/:eventId/:vendorId/contract-prices-final', authenticate, async (req, res) => {
+  try {
+    const { eventId, vendorId } = req.params;
+
+    const servicesSnap = await db
+      .collection('Event')
+      .doc(eventId)
+      .collection('Services')
+      .where('vendorId', '==', vendorId)
+      .get();
+
+    if (servicesSnap.empty) {
+      return res.json({ finalPrices: {} });
+    }
+
+    const finalPrices = {};
+    servicesSnap.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.finalPrice !== undefined) {
+        finalPrices[doc.id] = data.finalPrice;
+      }
+    });
+
+    res.json({ finalPrices });
+  } catch (err) {
+    console.error('Error fetching final prices:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Confirm all services for a vendor in an event (after contract signed)
+app.post('/planner/:eventId/:vendorId/confirm-services', authenticate, async (req, res) => {
+  try {
+
+    const { eventId, vendorId } = req.params;
+
+    if (!eventId || !vendorId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Get all services for this vendor in this event
+    const servicesRef = db.collection("Event")
+      .doc(eventId)
+      .collection("Services")
+      .where("vendorId", "==", vendorId);
+
+    const servicesSnapshot = await servicesRef.get();
+
+    if (servicesSnapshot.empty) {
+      return res.status(404).json({ message: "No services found for this vendor in this event" });
+    }
+
+    // Batch update all to "confirmed"
+    const batch = db.batch();
+    servicesSnapshot.forEach((svcDoc) => {
+      batch.update(svcDoc.ref, {
+        status: "confirmed",
+        updatedAt: new Date()
+      });
+    });
+    await batch.commit();
+
+
+    res.status(200).json({
+      message: `${servicesSnapshot.size} services confirmed successfully.`,
+      eventId,
+      vendorId
+    });
+
+  } catch (error) {
+    console.error("Error confirming services:", error);
+    res.status(500).json({ error: "Failed to confirm services" });
   }
 });

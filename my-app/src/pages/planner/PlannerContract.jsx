@@ -27,6 +27,32 @@ const PlannerContract = ({ setActivePage }) => {
   const canvasRefs = useRef({});
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
+  const confirmRelevantServices = async(eventId, vendorId) => {
+      if (!auth.currentUser) {
+        setError("User not authenticated");
+        setLoading(false);
+        return;
+    }
+
+
+    try{
+      const token = await auth.currentUser.getIdToken();
+
+      const res = await fetch(
+        `http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/${vendorId}/confirm-services`, 
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if(!res.ok) alert("Failed to confirm services");
+      return res;
+    }catch(err){
+      console.error(err);
+    }
+  }
+
   const fetchEventsAndContracts = useCallback(async () => {
     if (!auth.currentUser) {
       setError("User not authenticated");
@@ -210,7 +236,7 @@ const PlannerContract = ({ setActivePage }) => {
 
       const allSigned = updatedFields.every(field => !field.required || field.signed);
       const response = await fetch(
-        `https://us-central1-planit-sdp.cloudfunctions.net/api/contracts/${selectedContract.id}/signature-fields`,
+        `http://127.0.0.1:5001/planit-sdp/us-central1/api/contracts/${selectedContract.id}/signature-fields`,
         {
           method: "POST",
           headers: {
@@ -221,6 +247,7 @@ const PlannerContract = ({ setActivePage }) => {
             eventId: selectedContract.eventId,
             signatureFields: updatedFields,
             signers: selectedContract.signers || [],
+            vendorId: selectedContract.vendorId
           }),
         }
       );
@@ -228,6 +255,11 @@ const PlannerContract = ({ setActivePage }) => {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to update contract");
+      }
+
+      const res = await confirmRelevantServices(selectedContract.eventId, selectedContract.vendorId);
+      if(res.ok){
+        alert("Services confirmed successfully!");
       }
 
       setShowSignModal(false);
