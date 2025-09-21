@@ -2,6 +2,9 @@ import { useRef, useEffect, useState } from 'react';
 import "./PlannerViewEvent.css";
 import { getAuth } from 'firebase/auth';
 import Papa from 'papaparse';
+import Scheduler from './scheduler.jsx';
+
+
 
 
 //Code for the pop up when manually adding a guest **********
