@@ -1655,7 +1655,7 @@ app.get('/public/event/:eventId/guests', async (req, res) => {
   }
 });
 
-exports.api = functions.https.onRequest(app);
+
 
 
 // =================================================================
@@ -1979,3 +1979,104 @@ app.get('/admin/planners', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching planners' });
   }
 });
+
+
+// GET /analytics/:vendorId
+app.get("/analytics/:vendorId", authenticate, async (req, res) => {
+  const { vendorId } = req.params;
+
+  try {
+    // Get Analytics doc
+    const analyticsRef = db.collection("Analytics").doc(vendorId);
+    const analyticsDoc = await analyticsRef.get();
+
+    if (!analyticsDoc.exists) {
+      return res.status(404).json({ message: "Analytics not found" });
+    }
+
+    // Get Reviews subcollection
+    const reviewsSnapshot = await analyticsRef.collection("Reviews").get();
+    const reviews = reviewsSnapshot.docs.map((doc) => ({
+      id: doc.id, // ✅ include Firestore doc id
+      ...doc.data(),
+    }));
+
+    // Send combined response
+    res.json({
+      id: analyticsDoc.id,
+      ...analyticsDoc.data(),
+      reviews,
+    });
+  } catch (err) {
+    console.error("Error fetching analytics:", err);
+    res.status(500).json({ message: "Server error while fetching analytics" });
+  }
+});
+
+// POST /analytics/:vendorId/reviews/:reviewId/reply
+app.post("/analytics/:vendorId/reviews/:reviewId/reply", authenticate, async (req, res) => {
+  const { vendorId, reviewId } = req.params;
+  const { reply } = req.body;
+
+  if (!reply || !reply.trim()) {
+    return res.status(400).json({ message: "Reply text is required" });
+  }
+
+  try {
+    const reviewRef = db
+      .collection("Analytics")
+      .doc(vendorId)
+      .collection("Reviews")
+      .doc(reviewId);
+
+    const reviewDoc = await reviewRef.get();
+    if (!reviewDoc.exists) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    // update only reply field
+    await reviewRef.update({ reply });
+
+    // return updated review with id
+    const updated = await reviewRef.get();
+    res.json({ id: updated.id, ...updated.data() });
+  } catch (err) {
+    console.error("Error adding reply:", err);
+    res.status(500).json({ message: "Server error while adding reply" });
+  }
+});
+
+app.post(
+  "/api/analytics/:vendorId/reviews/:reviewId/deleteReply",
+  authenticate,
+  async (req, res) => {
+    const { vendorId, reviewId } = req.params;
+
+    try {
+      const reviewRef = db
+        .collection("Analytics")
+        .doc(vendorId)
+        .collection("Reviews")
+        .doc(reviewId);
+
+      const reviewSnap = await reviewRef.get();
+      if (!reviewSnap.exists) {
+        return res.status(404).json({ message: "Review not found" });
+      }
+
+      // Delete only the reply field
+      await reviewRef.update({
+        reply: admin.firestore.FieldValue.delete(),
+      });
+
+      res.json({ message: "Reply deleted successfully" });
+    } catch (err) {
+      console.error("Error deleting reply:", err);
+      res
+        .status(500)
+        .json({ message: "Server error while deleting reply" });
+    }
+  }
+);
+
+exports.api = functions.https.onRequest(app);
