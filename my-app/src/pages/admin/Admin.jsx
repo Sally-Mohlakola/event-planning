@@ -25,16 +25,10 @@ const Admin = () => {
 	const navigate = useNavigate();
 
 	const navigationItems = [
-		{ id: "home", label: "Home", icon: House },
-
+		{ id: "home", label: "Reports & Analytics", icon: House },
 		{ id: "event-management", label: "Event Management", icon: Calendar },
 		{ id: "planner-management", label: "Planner Management", icon: Users },
 		{ id: "vendor-management", label: "Vendor Management", icon: Users },
-		{
-			id: "reports",
-			label: "Reports & Detailed Analytics",
-			icon: BarChart3,
-		},
 		{ id: "my-profile", label: "My Profile", icon: User },
 	];
 
@@ -76,8 +70,6 @@ const Admin = () => {
 				return <AdminPlannerManagement setActivePage={setActivePage} />;
 			case "vendor-management":
 				return <AdminVendorManagement setActivePage={setActivePage} />;
-			case "reports":
-				return <AdminReports setActivePage={setActivePage} />;
 			case "my-profile":
 				return <AdminProfile setActivePage={setActivePage} />;
 			default:
