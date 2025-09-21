@@ -13,6 +13,7 @@ function EventCard({ event, onSelectEvent, onDeleteEvent }) {
 		});
 	};
 
+
 	const getStatusColor = (status) => {
 		switch (status) {
 			case "upcoming":

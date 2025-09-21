@@ -1888,6 +1888,57 @@ app.delete("/vendors/:vendorId/services/:serviceId", authenticate, async (req, r
   }
 });
 
+
+app.post('/api/contracts/:contractId/signature-fields', authenticate, async (req, res) => {
+  try {
+    const { contractId } = req.params;
+    const { eventId, signatureFields, signers } = req.body;
+    const vendorId = req.user.uid;
+
+    // Validate that user owns this contract
+    const contractRef = db.collection('Event').doc(eventId)
+      .collection('Vendors').doc(vendorId)
+      .collection('Contracts').doc(contractId);
+    
+    const contractDoc = await contractRef.get();
+    if (!contractDoc.exists) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+
+    // Update contract with signature workflow
+    await contractRef.update({
+      signatureWorkflow: {
+        isElectronic: true,
+        workflowStatus: 'draft',
+        expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        reminderSettings: {
+          enabled: true,
+          frequency: 3,
+          maxReminders: 3
+        }
+      },
+      signatureFields: signatureFields,
+      signers: signers || [],
+      updatedAt: new Date()
+    });
+
+    // Add audit log
+    await addAuditLog(eventId, vendorId, contractId, 'signature_fields_defined', {
+      fieldsCount: signatureFields.length,
+      signersCount: signers?.length || 0
+    });
+
+    res.status(200).json({ 
+      message: 'Signature fields saved successfully',
+      contractId: contractId
+    });
+
+  } catch (error) {
+    console.error('Error saving signature fields:', error);
+    res.status(500).json({ error: 'Failed to save signature fields' });
+  }
+});
+
 /**
  * @route   GET /api/admin/vendors
  * @desc    Get a list of all vendors (approved, pending, etc.).
