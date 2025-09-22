@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { auth } from "../../../firebase"; // Make sure this path is correct
+import { auth } from "../../../firebase"; 
 import Popup from "../adminGeneralComponents/Popup";
 import "./AdminVendorApplications.css";
 
@@ -8,7 +8,8 @@ function AdminVendorApplications() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	// State for the Popup
+	
+
 	const [isPopupOpen, setIsPopupOpen] = useState(false);
 	const [selectedVendor, setSelectedVendor] = useState(null);
 
@@ -37,7 +38,7 @@ function AdminVendorApplications() {
 		fetchApplications();
 	}, []);
 
-	// Function to handle approving or rejecting a vendor
+	
 	const handleUpdateStatus = async (vendorId, status) => {
 		try {
 			const apiUrl = `https://us-central1-planit-sdp.cloudfunctions.net/api/admin/vendor-applications/${vendorId}`;
@@ -54,7 +55,7 @@ function AdminVendorApplications() {
 				throw new Error(`Failed to ${status} vendor`);
 			}
 
-			// If successful, remove the application from the list in the UI
+			
 			setApplications((prev) =>
 				prev.filter((app) => app.id !== vendorId)
 			);
@@ -73,8 +74,9 @@ function AdminVendorApplications() {
 	if (error) return <h3>Error: {error}</h3>;
 
 	return (
-		<main className="main-container">
-			<div className="applications-list">
+		<section className="main-container">
+			<h1>Pending Vendor Applications</h1>
+			<section className="applications-list">
 				{applications.length > 0 ? (
 					<table className="vendor-table">
 						<thead>
@@ -100,7 +102,7 @@ function AdminVendorApplications() {
 				) : (
 					<p>There are no pending applications found.</p>
 				)}
-			</div>
+			</section>
 
 			{/* The Popup for displaying vendor details */}
 			<Popup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
@@ -170,7 +172,7 @@ function AdminVendorApplications() {
 					</div>
 				)}
 			</Popup>
-		</main>
+		</section>
 	);
 }
 
