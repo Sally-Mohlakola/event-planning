@@ -15,6 +15,8 @@ import AdminReports from "./adminReportsAndAnalytics/AdminReports.jsx";
 import AdminAllEvents from "./adminEventManagement/AdminAllEvents.jsx";
 import AdminProfile from "./adminProfile/AdminProfile.jsx";
 import "./Admin.css";
+import AdminVendorManagement from "./adminVendorManagement/AdminVendorManagement.jsx";
+import AdminPlannerManagement from "./adminPlannerManagement/AdminPlannerManagement.jsx";
 
 const Admin = () => {
 	//Using to page to the selected tab
@@ -23,16 +25,10 @@ const Admin = () => {
 	const navigate = useNavigate();
 
 	const navigationItems = [
-		{ id: "home", label: "Home", icon: House },
-
+		{ id: "home", label: "Reports & Analytics", icon: House },
 		{ id: "event-management", label: "Event Management", icon: Calendar },
 		{ id: "planner-management", label: "Planner Management", icon: Users },
 		{ id: "vendor-management", label: "Vendor Management", icon: Users },
-		{
-			id: "reports",
-			label: "Reports & Detailed Analytics",
-			icon: BarChart3,
-		},
 		{ id: "my-profile", label: "My Profile", icon: User },
 	];
 
@@ -71,11 +67,9 @@ const Admin = () => {
 			case "event-management":
 				return <AdminAllEvents setActivePage={setActivePage} />;
 			case "planner-management":
-				return renderPlaceholderPage("Planner Management");
+				return <AdminPlannerManagement setActivePage={setActivePage} />;
 			case "vendor-management":
-				return renderPlaceholderPage("Vendor Management");
-			case "reports":
-				return <AdminReports setActivePage={setActivePage} />;
+				return <AdminVendorManagement setActivePage={setActivePage} />;
 			case "my-profile":
 				return <AdminProfile setActivePage={setActivePage} />;
 			default:

@@ -1,0 +1,185 @@
+.planner-management-page .page-header {
+    margin-bottom: 2rem;
+}
+
+.planner-management-page .filters-section {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Search bar and filter dropdown */
+.search-bar {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0,0,0,0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-grow: 1;
+    min-width: 250px;
+}
+
+.search-bar svg {
+    color: var(--muted);
+    margin-right: 0.5rem;
+}
+
+.search-bar input {
+    background: none;
+    border: none;
+    color: var(--white);
+    outline: none;
+    width: 100%;
+    font-size: 1rem;
+}
+
+.filters-section select {
+    padding: 0.6rem 1rem;
+    border-radius: 2rem;
+    background-color: rgba(0,0,0,0.2);
+    color: var(--white);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+/* Planner Grid */
+.planner-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Individual Planner Summary Card */
+.planner-summary-card {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.planner-summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.planner-card-info {
+    flex-grow: 1;
+}
+
+.planner-card-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--white);
+    font-size: 1.2rem;
+}
+
+.planner-status-tag {
+    color: var(--white);
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+
+.planner-status-tag.status-active { background-color: #2e7d32; }
+.planner-status-tag.status-suspended { background-color: #d50000; }
+
+.planner-stat {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.planner-stat span {
+    color: var(--white);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-right: 0.25rem;
+    display: block;
+}
+
+.btn-view-details {
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 2rem;
+    background: var(--purple-700);
+    color: var(--white);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-view-details:hover {
+    background-color: var(--blue-700);
+}
+
+/* Modal specific styles for Planner Pop-up */
+.planner-modal-details {
+    text-align: center;
+}
+
+.planner-modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.planner-modal-name {
+    color: #000;
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.planner-modal-body .planner-contact-info {
+    color: #000;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.planner-modal-body p {
+    color: #000;
+    margin: 0.75rem 0;
+}
+
+.planner-modal-body strong {
+    color: #000;
+    opacity: 0.9;
+}
+
+.planner-modal-footer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+}
+
+.btn-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 2rem;
+    background: var(--blue-700);
+    color: var(--white);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-edit:hover {
+    background-color: var(--purple-700);
+}
