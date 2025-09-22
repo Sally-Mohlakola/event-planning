@@ -503,7 +503,7 @@ const PlannerContract = ({ setActivePage }) => {
             signers: selectedContract.signers || [],
             vendorId: selectedContract.vendorId
           }),
-        }
+        });
 
       
       const contractRef = doc(
