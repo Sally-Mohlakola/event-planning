@@ -2228,7 +2228,7 @@ app.post('/planner/:eventId/:vendorId/confirm-services', authenticate, async (re
     res.status(500).json({ error: "Failed to confirm services" });
   }
 });
-=======
+
 /**
  * @route   GET /api/admin/vendors
  * @desc    Get a list of all vendors (approved, pending, etc.).
