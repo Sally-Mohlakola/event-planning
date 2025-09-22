@@ -39,7 +39,7 @@ const PlannerContract = ({ setActivePage }) => {
       const token = await auth.currentUser.getIdToken();
 
       const res = await fetch(
-        `http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${eventId}/${vendorId}/confirm-services`, 
+        `https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/${vendorId}/confirm-services`, 
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` }
@@ -236,7 +236,7 @@ const PlannerContract = ({ setActivePage }) => {
 
       const allSigned = updatedFields.every(field => !field.required || field.signed);
       const response = await fetch(
-        `http://127.0.0.1:5001/planit-sdp/us-central1/api/contracts/${selectedContract.id}/signature-fields`,
+        `https://us-central1-planit-sdp.cloudfunctions.net/api/contracts/${selectedContract.id}/signature-fields`,
         {
           method: "POST",
           headers: {

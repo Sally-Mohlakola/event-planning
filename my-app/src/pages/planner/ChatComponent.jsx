@@ -35,7 +35,7 @@ const ChatComponent = ({ plannerId, vendorId, eventId, currentUser, otherUser, c
             const user = auth.currentUser;
             const token = await user.getIdToken(true);
 
-            const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/chats/${eventId}/${plannerId}/${vendorId}/messages`, {
+            const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/chats/${eventId}/${plannerId}/${vendorId}/messages`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -54,7 +54,7 @@ const ChatComponent = ({ plannerId, vendorId, eventId, currentUser, otherUser, c
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
 
-        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/chats/${eventId}/${plannerId}/${vendorId}/messages`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/chats/${eventId}/${plannerId}/${vendorId}/messages`, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,

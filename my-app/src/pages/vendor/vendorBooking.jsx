@@ -51,7 +51,7 @@ const VendorBooking = ({ setActivePage }) => {
       try {
         const token = await auth.currentUser.getIdToken();
         const res = await fetch(
-          "http://127.0.0.1:5001/planit-sdp/us-central1/api/vendor/bookings/services",
+          "https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/bookings/services",
           {
             headers: {
               Authorization: `Bearer ${token}`,

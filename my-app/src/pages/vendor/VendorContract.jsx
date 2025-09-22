@@ -54,7 +54,7 @@ const VendorContract = ({ setActivePage }) => {
     try {
       const token = await auth.currentUser.getIdToken();
       // Placeholder URL - replace with actual API endpoint
-      const url = `http://127.0.0.1:5001/planit-sdp/us-central1/api/${vendorId}/${eventId}/services-for-contract`;
+      const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/${vendorId}/${eventId}/services-for-contract`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -82,7 +82,7 @@ const VendorContract = ({ setActivePage }) => {
     try {
       const token = await auth.currentUser.getIdToken();
       // Placeholder URL - replace with actual API endpoint
-      const url = `http://127.0.0.1:5001/planit-sdp/us-central1/api/${vendorId}/${eventId}/update-final-prices`;
+      const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/${vendorId}/${eventId}/update-final-prices`;
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -107,7 +107,7 @@ const VendorContract = ({ setActivePage }) => {
     try {
       const token = await auth.currentUser.getIdToken();
       // Placeholder URL - replace with actual API endpoint
-      const url = `http://127.0.0.1:5001/planit-sdp/us-central1/api/${eventId}/${vendorId}/contract-prices-final`;
+      const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/${eventId}/${vendorId}/contract-prices-final`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });

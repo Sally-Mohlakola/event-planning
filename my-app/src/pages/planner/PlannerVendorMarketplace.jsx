@@ -224,7 +224,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
 
-        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/${plannerId}/bestVendors`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${plannerId}/bestVendors`, {
             headers: {
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
@@ -240,7 +240,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId, setA
         const user = auth.currentUser;
         const token = await user.getIdToken(true);
 
-        const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/events/${eventId}/bestVendors`, {
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/events/${eventId}/bestVendors`, {
             headers: {
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
