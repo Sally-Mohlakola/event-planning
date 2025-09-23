@@ -2228,7 +2228,7 @@ app.post('/planner/:eventId/:vendorId/confirm-services', authenticate, async (re
     res.status(500).json({ error: "Failed to confirm services" });
   }
 });
-=======
+
 /**
  * @route   GET /api/admin/vendors
  * @desc    Get a list of all vendors (approved, pending, etc.).
@@ -2368,6 +2368,204 @@ app.post(
     }
   }
 );
+
+
+
+
+
+
+// =================================================================
+// --- Floorplan API  ROUTES ---
+// =================================================================
+
+// Upload floorplan (image or PDF) - only for authenticated vendors
+app.post('/vendor/floorplans/upload', authenticate, upload.single('floorplan'), async (req, res) => {
+  try {
+    const vendorId = req.uid;
+    const { eventId } = req.body; // optional, link to an event
+
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const fileRef = bucket.file(`floorplans/vendors/${vendorId}/${Date.now()}_${req.file.originalname}`);
+    await fileRef.save(req.file.buffer, { contentType: req.file.mimetype });
+    await fileRef.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+
+    const docRef = db.collection('Vendor').doc(vendorId).collection('floorplans').doc();
+    await docRef.set({
+      eventId: eventId || null,
+      url,
+      filename: req.file.originalname,
+      uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ message: 'Floorplan uploaded', url, id: docRef.id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Get all floorplans for the authenticated vendor
+
+app.get('/vendor/floorplans', authenticate, async (req, res) => {
+  try {
+    const vendorId = req.uid;
+    const snapshot = await db.collection('Vendor').doc(vendorId)
+      .collection('floorplans')
+      .orderBy('uploadedAt', 'desc')
+      .get();
+
+    const floorplans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(floorplans);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Update floorplan metadata (e.g., filename, associated event)-vendor only
+
+app.put('/vendor/floorplans/:floorplanId', authenticate, async (req, res) => {
+  try {
+    const vendorId = req.uid;
+    const { floorplanId } = req.params;
+    const { filename, eventId } = req.body;
+
+    await db.collection('Vendor').doc(vendorId)
+      .collection('floorplans')
+      .doc(floorplanId)
+      .update({
+        ...(filename && { filename }),
+        ...(eventId && { eventId }),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+    res.json({ message: 'Floorplan updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Delete a floorplan - vendor only
+
+app.delete('/vendor/floorplans/:floorplanId', authenticate, async (req, res) => {
+  try {
+    const vendorId = req.uid;
+    const { floorplanId } = req.params;
+
+    // Get document to delete file from storage
+    const docRef = db.collection('Vendor').doc(vendorId).collection('floorplans').doc(floorplanId);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) return res.status(404).json({ message: 'Floorplan not found' });
+
+    const fileUrl = docSnap.data().url;
+    const filePath = fileUrl.split(`https://storage.googleapis.com/${bucket.name}/`)[1];
+    if (filePath) await bucket.file(filePath).delete();
+
+    await docRef.delete();
+    res.json({ message: 'Floorplan deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+//Event (Planner) Floorplan APIs
+// Upload floorplan (image or PDF) to an event - planner only
+app.post('/event/:eventId/floorplans/upload', authenticate, upload.single('floorplan'), async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { vendorId } = req.body; // optional
+
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const fileRef = bucket.file(`floorplans/events/${eventId}/${Date.now()}_${req.file.originalname}`);
+    await fileRef.save(req.file.buffer, { contentType: req.file.mimetype });
+    await fileRef.makePublic();
+    const url = `https://storage.googleapis.com/${bucket.name}/${fileRef.name}`;
+
+    const docRef = db.collection('Event').doc(eventId).collection('floorplans').doc();
+    await docRef.set({
+      vendorId: vendorId || null,
+      url,
+      filename: req.file.originalname,
+      uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ message: 'Floorplan uploaded to event', url, id: docRef.id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// Get all floorplans for a specific event - planner only
+
+app.get('/event/:eventId/floorplans', authenticate, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const snapshot = await db.collection('Event').doc(eventId)
+      .collection('floorplans')
+      .orderBy('uploadedAt', 'desc')
+      .get();
+
+    const floorplans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(floorplans);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// Update floorplan metadata (e.g., filename, associated vendor) - planner only
+app.put('/event/:eventId/floorplans/:floorplanId', authenticate, async (req, res) => {
+  try {
+    const { eventId, floorplanId } = req.params;
+    const { filename, vendorId } = req.body;
+
+    await db.collection('Event').doc(eventId)
+      .collection('floorplans')
+      .doc(floorplanId)
+      .update({
+        ...(filename && { filename }),
+        ...(vendorId && { vendorId }),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+    res.json({ message: 'Event floorplan updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Delete a floorplan from an event - planner only
+
+app.delete('/event/:eventId/floorplans/:floorplanId', authenticate, async (req, res) => {
+  try {
+    const { eventId, floorplanId } = req.params;
+
+    const docRef = db.collection('Event').doc(eventId).collection('floorplans').doc(floorplanId);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) return res.status(404).json({ message: 'Floorplan not found' });
+
+    const fileUrl = docSnap.data().url;
+    const filePath = fileUrl.split(`https://storage.googleapis.com/${bucket.name}/`)[1];
+    if (filePath) await bucket.file(filePath).delete();
+
+    await docRef.delete();
+    res.json({ message: 'Floorplan deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
 
 exports.api = functions.https.onRequest(app);
 
