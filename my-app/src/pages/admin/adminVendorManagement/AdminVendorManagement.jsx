@@ -24,7 +24,9 @@ function AdminVendorManagement() {
 			? auth.currentUser.getIdToken()
 			: Promise.reject("Not logged in");
 
-	// Fetch all vendors on component mount
+	
+
+			
 	useEffect(() => {
 		const fetchVendors = async () => {
 			try {

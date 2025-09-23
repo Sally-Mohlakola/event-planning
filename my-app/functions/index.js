@@ -159,6 +159,60 @@ app.put('/vendor/me', authenticate, async (req, res) => {
   }
 });
 
+//These functions are for getting vendor bookings to work with planner service requests
+// Get the services a vendor has been booked for
+app.get('/vendor/bookings/services', authenticate, async (req, res) => {
+  try {
+    const vendorID = req.uid;
+    const eventsSnapshot = await db.collection("Event").get();
+    const vendorBookings = [];
+
+    for (const eventDoc of eventsSnapshot.docs) {
+      const eventData = eventDoc.data();
+
+      // Get all services for this event
+      const servicesSnapshot = await db
+        .collection("Event")
+        .doc(eventDoc.id)
+        .collection("Services")
+        .where("vendorId", "==", vendorID)
+        .get();
+
+      if (!servicesSnapshot.empty) {
+        const vendorServices = servicesSnapshot.docs.map(svcDoc => ({
+          serviceId: svcDoc.id,
+          ...svcDoc.data()
+        }));
+
+        vendorBookings.push({
+          eventId: eventDoc.id,
+          eventPlanner: eventData.plannerId,
+          eventName: eventData.name,
+          description: eventData.description,
+          date: eventData.date,
+          location: eventData.location,
+          budget: eventData.budget,
+          expectedGuestCount: eventData.expectedGuestCount,
+          style: eventData.style,
+          specialRequirements: eventData.specialRequirements || [],
+          eventCategory: eventData.eventCategory,
+          theme: eventData.theme,
+
+          // all services from this event assigned to this vendor
+          vendorServices,
+        });
+      }
+    }
+
+    res.json({ vendorID, bookings: vendorBookings });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+
+
 
 //Get the vendor bookings from the Event collection
 // completely donw
@@ -578,46 +632,70 @@ app.post('/planner/events/:eventId/guests/import', authenticate, async (req, res
   }
 });
 
-//Fetch and filter best vendors
-//Will perhaps make logic more complex in the future
+// Helper: Score a vendor based on category, profile, and services
+const scoreVendor = (vendor, eventCategory, eventRequirements = {}) => {
+  let score = 0;
 
+  // Category match (strong weight)
+  if (vendor.category && vendor.category.toLowerCase() === eventCategory.toLowerCase()) score += 50;
+
+  // Profile completeness
+  if (vendor.profilePic && vendor.profilePic.trim() !== "") score += 20;
+  if (vendor.description && vendor.description.trim() !== "") score += 20;
+  if (vendor.businessName && vendor.businessName.trim() !== "") score += 10;
+
+  // Services: check if vendor has services that fit requirements
+  if (vendor.services && vendor.services.length > 0) {
+    vendor.services.forEach(service => {
+      // Match service name with event category loosely
+      if (service.name && eventCategory && service.name.toLowerCase().includes(eventCategory.toLowerCase())) {
+        score += 30; // relevant service
+      }
+
+      // Reward lower base cost
+      if (service.cost && service.cost < 5000) score += 10; // arbitrary threshold
+      else if (service.cost && service.cost < 10000) score += 5;
+    });
+  }
+
+  return score;
+};
+
+// Fetch best vendors for a specific event
 app.get('/planner/events/:eventId/bestvendors', authenticate, async (req, res) => {
-try {
-    const eventId = req.params.eventId;
-    if (!eventId) {
-      return res.status(400).json({ error: "eventId is required" });
-    }
+  try {
+    const { eventId } = req.params;
+    if (!eventId) return res.status(400).json({ error: "eventId is required" });
 
-    // Fetch the event document to get its category
     const eventSnap = await db.collection("Event").doc(eventId).get();
-    if (!eventSnap.exists) {
-      return res.status(404).json({ error: "Event not found" });
-    }
+    if (!eventSnap.exists) return res.status(404).json({ error: "Event not found" });
 
     const event = eventSnap.data();
     const category = event.eventCategory;
 
     // Fetch approved vendors
-    const vendorSnap = await db
-      .collection("Vendor")
+    const vendorSnap = await db.collection("Vendor")
       .where("status", "==", "approved")
       .get();
 
     if (vendorSnap.empty) return res.status(200).json({ vendors: [] });
 
-    const vendors = vendorSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Fetch vendor services for each vendor
+    const vendors = [];
+    for (const doc of vendorSnap.docs) {
+      const vendor = { id: doc.id, ...doc.data() };
 
-    // Apply scoring
-    const scoredVendors = vendors.map(vendor => {
-      let score = 0;
-      if (vendor.category && vendor.category.toLowerCase() === category.toLowerCase()) score += 50;
-      if (vendor.profilePic && vendor.profilePic.trim() !== "") score += 20;
-      if (vendor.description && vendor.description.trim() !== "") score += 20;
-      if (vendor.businessName && vendor.businessName.trim() !== "") score += 10;
-      return { ...vendor, score };
-    });
+      // Get services for this vendor
+      const servicesSnap = await db.collection("Vendor").doc(doc.id).collection("Services").get();
+      vendor.services = servicesSnap.docs.map(s => ({ id: s.id, ...s.data() }));
 
-    const sortedVendors = scoredVendors.sort((a, b) => b.score - a.score);
+      // Score the vendor
+      vendor.score = scoreVendor(vendor, category);
+      vendors.push(vendor);
+    }
+
+    // Sort by score descending
+    const sortedVendors = vendors.sort((a, b) => b.score - a.score);
 
     res.status(200).json({ vendors: sortedVendors });
   } catch (err) {
@@ -626,73 +704,54 @@ try {
   }
 });
 
-//Fetch and filter best vendors for all events
-//Will perhaps make logic more complex in the future
+// Fetch best vendors for a planner (all events)
 app.get('/planner/:plannerId/bestvendors', authenticate, async (req, res) => {
-  try{
-    const plannerId = req.params.plannerId;
-    if (!plannerId) {
-      return res.status(400).json({ error: "Missing plannerId" });
-    }
+  try {
+    const { plannerId } = req.params;
+    if (!plannerId) return res.status(400).json({ error: "Missing plannerId" });
 
     // Get all events created by this planner
-    const eventsSnap = await db
-      .collection("Event")
-      .where("plannerId", "==", plannerId)
-      .get();
+    const eventsSnap = await db.collection("Event").where("plannerId", "==", plannerId).get();
+    const categories = new Set();
 
-    if (eventsSnap.empty) {
-      // Get all vendors, no sorting will be done
-      const vendorsSnap = await db
-      .collection("Vendor")
+    eventsSnap.forEach(doc => {
+      const data = doc.data();
+      if (data.eventCategory) categories.add(data.eventCategory.toLowerCase());
+    });
+
+    // Fetch approved vendors
+    const vendorSnap = await db.collection("Vendor")
       .where("status", "==", "approved")
       .get();
-      const vendors = vendorsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return res.status(200).json({ vendors });
-    }
 
-    // Collect unique categories across all events
-    const categories = new Set();
-    eventsSnap.forEach((doc) => {
-      const data = doc.data();
-      if (data.category) {
-        categories.add(data.category.toLowerCase());
-      }
-    });
+    if (vendorSnap.empty) return res.status(200).json({ vendors: [] });
 
-    if (categories.size === 0) {
-      return res.status(400).json({ error: "No categories found in planner's events" });
-    }
+    const vendors = [];
+    for (const doc of vendorSnap.docs) {
+      const vendor = { id: doc.id, ...doc.data() };
 
-    // Get all vendors
-    const vendorsSnap = await db.collection("Vendor").get();
+      // Get services
+      const servicesSnap = await db.collection("Vendor").doc(doc.id).collection("Service").get();
+      vendor.services = servicesSnap.docs.map(s => ({ id: s.id, ...s.data() }));
 
-    const vendors = vendorsSnap.docs.map((doc) => {
-      const v = doc.data();
-      v.id = doc.id;
-
-      // Score vendors: +1 for each matching category
+      // Score vendor based on multiple categories
       let score = 0;
-      if (v.category) {
-        categories.forEach((cat) => {
-          if (v.category.toLowerCase() === cat) {
-            score++;
-          }
-        });
-      }
-      return { ...v, score };
-    });
+      categories.forEach(cat => {
+        score += scoreVendor(vendor, cat);
+      });
+      vendor.score = score;
 
-    // Sort vendors by score (highest first)
+      vendors.push(vendor);
+    }
+
     const sorted = vendors.sort((a, b) => b.score - a.score);
-
-    return res.json({ vendors: sorted });
-  }
-  catch(error){
-    console.error("Error recommending vendors: ", error);
-    res.status(500).json({message: "Internal Server error"});
+    res.status(200).json({ vendors: sorted });
+  } catch (err) {
+    console.error("Error recommending vendors:", err);
+    res.status(500).json({ error: "Internal Server error" });
   }
 });
+
 
 //Add a vendor to an event
 app.post('/planner/:eventId/vendors/:vendorId', authenticate, async (req, res) => {
@@ -1434,6 +1493,76 @@ app.get('/planner/:eventId/services', authenticate, async(req, res) => {
   }
 });
 
+//CHATS
+const getChatId = (eventId, plannerId, vendorId) => {
+  return `${eventId}_${plannerId}_${vendorId}`;
+};
+
+app.post('/chats/:eventId/:plannerId/:vendorId/messages', authenticate, async (req, res) => {
+  try {
+    const { eventId, plannerId, vendorId } = req.params;
+    const { senderId, senderName, senderType, content } = req.body;
+    console.log("SENT FIELDS: ", senderId, " ", senderName, " ", senderType, " ", content);
+    if (!content || !senderId || !senderName || !senderType) {
+      return res.status(400).json({ error: "Missing required message fields" });
+    }
+
+
+    const chatId = getChatId(eventId, plannerId, vendorId);
+    const chatRef = db.collection("Chats").doc(chatId);
+
+    // ensure chat doc exists
+    const chatSnap = await chatRef.get();
+    if (!chatSnap.exists) {
+      await chatRef.set({
+        eventId,
+        plannerId,
+        vendorId,
+        createdAt: new Date(),
+      });
+    }
+
+    // add new message
+    const messageRef = await chatRef.collection("messages").add({
+      senderId,
+      senderName,
+      senderType,
+      content,
+      createdAt: new Date(),
+      status: "sent",
+    });
+
+    res.status(201).json({ id: messageRef.id, content });
+  } catch (err) {
+    console.error("Error saving message:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get('/chats/:eventId/:plannerId/:vendorId/messages', authenticate, async (req, res) => {
+  try {
+    const { eventId, plannerId, vendorId } = req.params;
+    const chatId = getChatId(eventId, plannerId, vendorId);
+
+    const messagesSnap = await db
+      .collection("Chats")
+      .doc(chatId)
+      .collection("messages")
+      .orderBy("createdAt", "asc")
+      .get();
+
+    const messages = messagesSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json({ messages });
+  } catch (err) {
+    console.error("Error fetching messages:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 //================================================================
 //-- End of Planner routes
@@ -1865,12 +1994,24 @@ app.delete("/vendors/:vendorId/services/:serviceId", authenticate, async (req, r
   }
 });
 
+async function addAuditLog(eventId, vendorId, contractId, action, details = {}) {
+  const logRef = db.collection("Event").doc(eventId)
+    .collection("AuditLogs").doc();
 
-app.post('/api/contracts/:contractId/signature-fields', authenticate, async (req, res) => {
+  await logRef.set({
+    vendorId,
+    contractId,
+    action,
+    details,
+    createdAt: new Date()
+  });
+}
+
+app.post('/contracts/:contractId/signature-fields', authenticate, async (req, res) => {
   try {
     const { contractId } = req.params;
-    const { eventId, signatureFields, signers } = req.body;
-    const vendorId = req.user.uid;
+    const { eventId, signatureFields, signers, vendorId } = req.body;
+
 
     // Validate that user owns this contract
     const contractRef = db.collection('Event').doc(eventId)
@@ -1916,7 +2057,11 @@ app.post('/api/contracts/:contractId/signature-fields', authenticate, async (req
   }
 });
 
-// Get a list of all vendors (approved, pending, etc.)
+/**
+ * @route   GET /api/admin/vendors
+ * @desc    Get a list of all vendors (approved, pending, etc.).
+ * @access  Private (Admin Only)
+ */
 app.get('/admin/vendors', authenticate, async (req, res) => {
   try {
     const snapshot = await db.collection('Vendor').get();
@@ -1948,6 +2093,442 @@ app.get('/admin/planners', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching planners' });
   }
 });
+
+// -------------------------
+// Fetch services for contract entry (planner + vendor)
+// GET /:vendorId/:eventId/services-for-contract
+// -------------------------
+app.get('/:vendorId/:eventId/services-for-contract', authenticate, async (req, res) => {
+  try {
+    const { vendorId, eventId } = req.params;
+
+    // Get all services for this vendor under this event
+    const servicesSnap = await db
+      .collection('Event')
+      .doc(eventId)
+      .collection('Services')
+      .where('vendorId', '==', vendorId)
+      .get();
+
+    if (servicesSnap.empty) {
+      return res.json({ services: [] });
+    }
+
+    const services = servicesSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json({ services });
+  } catch (err) {
+    console.error('Error fetching services for contract:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// -------------------------
+// Update final prices when contract is uploaded
+// POST /:vendorId/:eventId/update-final-prices
+// Body: { finalPrices: { serviceId: price, ... } }
+// -------------------------
+app.post('/:vendorId/:eventId/update-final-prices', authenticate, async (req, res) => {
+  try {
+    const { vendorId, eventId } = req.params;
+    const { finalPrices } = req.body;
+
+    if (!finalPrices || typeof finalPrices !== 'object') {
+      return res.status(400).json({ message: 'Invalid finalPrices object' });
+    }
+
+    const batch = db.batch();
+
+    for (const [serviceId, price] of Object.entries(finalPrices)) {
+      const serviceRef = db
+        .collection('Event')
+        .doc(eventId)
+        .collection('Services')
+        .doc(serviceId);
+
+      batch.update(serviceRef, { finalPrice: price });
+    }
+
+    await batch.commit();
+
+    res.json({ message: 'Final prices updated successfully' });
+  } catch (err) {
+    console.error('Error updating final prices:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// -------------------------
+// Fetch final prices for a contract
+// GET /:eventId/:vendorId/contract-prices-final
+// -------------------------
+app.get('/:eventId/:vendorId/contract-prices-final', authenticate, async (req, res) => {
+  try {
+    const { eventId, vendorId } = req.params;
+
+    const servicesSnap = await db
+      .collection('Event')
+      .doc(eventId)
+      .collection('Services')
+      .where('vendorId', '==', vendorId)
+      .get();
+
+    if (servicesSnap.empty) {
+      return res.json({ finalPrices: {} });
+    }
+
+    const finalPrices = {};
+    servicesSnap.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.finalPrice !== undefined) {
+        finalPrices[doc.id] = data.finalPrice;
+      }
+    });
+
+    res.json({ finalPrices });
+  } catch (err) {
+    console.error('Error fetching final prices:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Confirm all services for a vendor in an event (after contract signed)
+app.post('/planner/:eventId/:vendorId/confirm-services', authenticate, async (req, res) => {
+  try {
+
+    const { eventId, vendorId } = req.params;
+
+    if (!eventId || !vendorId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Get all services for this vendor in this event
+    const servicesRef = db.collection("Event")
+      .doc(eventId)
+      .collection("Services")
+      .where("vendorId", "==", vendorId);
+
+    const servicesSnapshot = await servicesRef.get();
+
+    if (servicesSnapshot.empty) {
+      return res.status(404).json({ message: "No services found for this vendor in this event" });
+    }
+
+    // Batch update all to "confirmed"
+    const batch = db.batch();
+    servicesSnapshot.forEach((svcDoc) => {
+      batch.update(svcDoc.ref, {
+        status: "confirmed",
+        updatedAt: new Date()
+      });
+    });
+    await batch.commit();
+
+
+    res.status(200).json({
+      message: `${servicesSnapshot.size} services confirmed successfully.`,
+      eventId,
+      vendorId
+    });
+
+  } catch (error) {
+    console.error("Error confirming services:", error);
+    res.status(500).json({ error: "Failed to confirm services" });
+  }
+});
+
+// -------------------------
+// Fetch services for contract entry (planner + vendor)
+// GET /:vendorId/:eventId/services-for-contract
+// -------------------------
+app.get('/:vendorId/:eventId/services-for-contract', authenticate, async (req, res) => {
+  try {
+    const { vendorId, eventId } = req.params;
+
+    // Get all services for this vendor under this event
+    const servicesSnap = await db
+      .collection('Event')
+      .doc(eventId)
+      .collection('Services')
+      .where('vendorId', '==', vendorId)
+      .get();
+
+    if (servicesSnap.empty) {
+      return res.json({ services: [] });
+    }
+
+    const services = servicesSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.status(200).json({ services });
+  } catch (err) {
+    console.error('Error fetching services for contract:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// -------------------------
+// Update final prices when contract is uploaded
+// POST /:vendorId/:eventId/update-final-prices
+// Body: { finalPrices: { serviceId: price, ... } }
+// -------------------------
+app.post('/:vendorId/:eventId/update-final-prices', authenticate, async (req, res) => {
+  try {
+    const { vendorId, eventId } = req.params;
+    const { finalPrices } = req.body;
+
+    if (!finalPrices || typeof finalPrices !== 'object') {
+      return res.status(400).json({ message: 'Invalid finalPrices object' });
+    }
+
+    const batch = db.batch();
+
+    for (const [serviceId, price] of Object.entries(finalPrices)) {
+      const serviceRef = db
+        .collection('Event')
+        .doc(eventId)
+        .collection('Services')
+        .doc(serviceId);
+
+      batch.update(serviceRef, { finalPrice: price });
+    }
+
+    await batch.commit();
+
+    res.json({ message: 'Final prices updated successfully' });
+  } catch (err) {
+    console.error('Error updating final prices:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// -------------------------
+// Fetch final prices for a contract
+// GET /:eventId/:vendorId/contract-prices-final
+// -------------------------
+app.get('/:eventId/:vendorId/contract-prices-final', authenticate, async (req, res) => {
+  try {
+    const { eventId, vendorId } = req.params;
+
+    const servicesSnap = await db
+      .collection('Event')
+      .doc(eventId)
+      .collection('Services')
+      .where('vendorId', '==', vendorId)
+      .get();
+
+    if (servicesSnap.empty) {
+      return res.json({ finalPrices: {} });
+    }
+
+    const finalPrices = {};
+    servicesSnap.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.finalPrice !== undefined) {
+        finalPrices[doc.id] = data.finalPrice;
+      }
+    });
+
+    res.json({ finalPrices });
+  } catch (err) {
+    console.error('Error fetching final prices:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Confirm all services for a vendor in an event (after contract signed)
+app.post('/planner/:eventId/:vendorId/confirm-services', authenticate, async (req, res) => {
+  try {
+
+    const { eventId, vendorId } = req.params;
+
+    if (!eventId || !vendorId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Get all services for this vendor in this event
+    const servicesRef = db.collection("Event")
+      .doc(eventId)
+      .collection("Services")
+      .where("vendorId", "==", vendorId);
+
+    const servicesSnapshot = await servicesRef.get();
+
+    if (servicesSnapshot.empty) {
+      return res.status(404).json({ message: "No services found for this vendor in this event" });
+    }
+
+    // Batch update all to "confirmed"
+    const batch = db.batch();
+    servicesSnapshot.forEach((svcDoc) => {
+      batch.update(svcDoc.ref, {
+        status: "confirmed",
+        updatedAt: new Date()
+      });
+    });
+    await batch.commit();
+
+
+    res.status(200).json({
+      message: `${servicesSnapshot.size} services confirmed successfully.`,
+      eventId,
+      vendorId
+    });
+
+  } catch (error) {
+    console.error("Error confirming services:", error);
+    res.status(500).json({ error: "Failed to confirm services" });
+  }
+});
+
+/**
+ * @route   GET /api/admin/vendors
+ * @desc    Get a list of all vendors (approved, pending, etc.).
+ * @access  Private (Admin Only)
+ */
+app.get('/admin/vendors', authenticate, async (req, res) => {
+  try {
+    const snapshot = await db.collection('Vendor').get();
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    const vendors = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    res.json(vendors);
+  } catch (err) {
+    console.error('Error fetching vendors:', err);
+    res.status(500).json({ message: 'Server error while fetching vendors' });
+  }
+});
+
+/**
+ * @route   GET /api/admin/planners
+ * @desc    Get a list of all planners.
+ * @access  Private (Admin Only)
+ */
+app.get('/admin/planners', authenticate, async (req, res) => {
+  try {
+    const snapshot = await db.collection('Planner').get();
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    const planners = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(planners);
+  } catch (err) {
+    console.error('Error fetching planners:', err);
+    res.status(500).json({ message: 'Server error while fetching planners' });
+  }
+});
+
+
+// GET /analytics/:vendorId
+app.get("/analytics/:vendorId", authenticate, async (req, res) => {
+  const { vendorId } = req.params;
+
+  try {
+    // Get Analytics doc
+    const analyticsRef = db.collection("Analytics").doc(vendorId);
+    const analyticsDoc = await analyticsRef.get();
+
+    if (!analyticsDoc.exists) {
+      return res.status(404).json({ message: "Analytics not found" });
+    }
+
+    // Get Reviews subcollection
+    const reviewsSnapshot = await analyticsRef.collection("Reviews").get();
+    const reviews = reviewsSnapshot.docs.map((doc) => ({
+      id: doc.id, // ✅ include Firestore doc id
+      ...doc.data(),
+    }));
+
+    // Send combined response
+    res.json({
+      id: analyticsDoc.id,
+      ...analyticsDoc.data(),
+      reviews,
+    });
+  } catch (err) {
+    console.error("Error fetching analytics:", err);
+    res.status(500).json({ message: "Server error while fetching analytics" });
+  }
+});
+
+// POST /analytics/:vendorId/reviews/:reviewId/reply
+app.post("/analytics/:vendorId/reviews/:reviewId/reply", authenticate, async (req, res) => {
+  const { vendorId, reviewId } = req.params;
+  const { reply } = req.body;
+
+  if (!reply || !reply.trim()) {
+    return res.status(400).json({ message: "Reply text is required" });
+  }
+
+  try {
+    const reviewRef = db
+      .collection("Analytics")
+      .doc(vendorId)
+      .collection("Reviews")
+      .doc(reviewId);
+
+    const reviewDoc = await reviewRef.get();
+    if (!reviewDoc.exists) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    // update only reply field
+    await reviewRef.update({ reply });
+
+    // return updated review with id
+    const updated = await reviewRef.get();
+    res.json({ id: updated.id, ...updated.data() });
+  } catch (err) {
+    console.error("Error adding reply:", err);
+    res.status(500).json({ message: "Server error while adding reply" });
+  }
+});
+
+app.post(
+  "/api/analytics/:vendorId/reviews/:reviewId/deleteReply",
+  authenticate,
+  async (req, res) => {
+    const { vendorId, reviewId } = req.params;
+
+    try {
+      const reviewRef = db
+        .collection("Analytics")
+        .doc(vendorId)
+        .collection("Reviews")
+        .doc(reviewId);
+
+      const reviewSnap = await reviewRef.get();
+      if (!reviewSnap.exists) {
+        return res.status(404).json({ message: "Review not found" });
+      }
+
+      // Delete only the reply field
+      await reviewRef.update({
+        reply: admin.firestore.FieldValue.delete(),
+      });
+
+      res.json({ message: "Reply deleted successfully" });
+    } catch (err) {
+      console.error("Error deleting reply:", err);
+      res
+        .status(500)
+        .json({ message: "Server error while deleting reply" });
+    }
+  }
+);
 
 
 // ===============
@@ -2351,3 +2932,105 @@ app.get('/public/analytics/platform-summary-debug', async (req, res) => {
 });
 
 exports.api = functions.https.onRequest(app);
+
+
+// GET /analytics/:vendorId
+app.get("/analytics/:vendorId", authenticate, async (req, res) => {
+  const { vendorId } = req.params;
+
+  try {
+    // Get Analytics doc
+    const analyticsRef = db.collection("Analytics").doc(vendorId);
+    const analyticsDoc = await analyticsRef.get();
+
+    if (!analyticsDoc.exists) {
+      return res.status(404).json({ message: "Analytics not found" });
+    }
+
+    // Get Reviews subcollection
+    const reviewsSnapshot = await analyticsRef.collection("Reviews").get();
+    const reviews = reviewsSnapshot.docs.map((doc) => ({
+      id: doc.id, // ✅ include Firestore doc id
+      ...doc.data(),
+    }));
+
+    // Send combined response
+    res.json({
+      id: analyticsDoc.id,
+      ...analyticsDoc.data(),
+      reviews,
+    });
+  } catch (err) {
+    console.error("Error fetching analytics:", err);
+    res.status(500).json({ message: "Server error while fetching analytics" });
+  }
+});
+
+// POST /analytics/:vendorId/reviews/:reviewId/reply
+app.post("/analytics/:vendorId/reviews/:reviewId/reply", authenticate, async (req, res) => {
+  const { vendorId, reviewId } = req.params;
+  const { reply } = req.body;
+
+  if (!reply || !reply.trim()) {
+    return res.status(400).json({ message: "Reply text is required" });
+  }
+
+  try {
+    const reviewRef = db
+      .collection("Analytics")
+      .doc(vendorId)
+      .collection("Reviews")
+      .doc(reviewId);
+
+    const reviewDoc = await reviewRef.get();
+    if (!reviewDoc.exists) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    // update only reply field
+    await reviewRef.update({ reply });
+
+    // return updated review with id
+    const updated = await reviewRef.get();
+    res.json({ id: updated.id, ...updated.data() });
+  } catch (err) {
+    console.error("Error adding reply:", err);
+    res.status(500).json({ message: "Server error while adding reply" });
+  }
+});
+
+app.post(
+  "/api/analytics/:vendorId/reviews/:reviewId/deleteReply",
+  authenticate,
+  async (req, res) => {
+    const { vendorId, reviewId } = req.params;
+
+    try {
+      const reviewRef = db
+        .collection("Analytics")
+        .doc(vendorId)
+        .collection("Reviews")
+        .doc(reviewId);
+
+      const reviewSnap = await reviewRef.get();
+      if (!reviewSnap.exists) {
+        return res.status(404).json({ message: "Review not found" });
+      }
+
+      // Delete only the reply field
+      await reviewRef.update({
+        reply: admin.firestore.FieldValue.delete(),
+      });
+
+      res.json({ message: "Reply deleted successfully" });
+    } catch (err) {
+      console.error("Error deleting reply:", err);
+      res
+        .status(500)
+        .json({ message: "Server error while deleting reply" });
+    }
+  }
+);
+
+exports.api = functions.https.onRequest(app);
+
