@@ -2369,5 +2369,116 @@ app.post(
   }
 );
 
+// Add this new endpoint to your Express app in index.js, after the existing routes
+
+app.post('/planner/:eventId/vendors/:vendorId/floorplan-base64', authenticate, async (req, res) => {
+  try {
+    console.log('Processing base64 floorplan upload for:', {
+      eventId: req.params.eventId,
+      vendorId: req.params.vendorId,
+      user: req.user ? { uid: req.user.uid, email: req.user.email } : 'No user'
+    });
+
+    const { eventId, vendorId } = req.params;
+    const { imageData, fileName, mimeType } = req.body;
+
+    // Validate parameters
+    if (!eventId || !vendorId || eventId.includes('/') || vendorId.includes('/')) {
+      console.error(`Invalid parameters: eventId=${eventId}, vendorId=${vendorId}`);
+      return res.status(400).json({ message: 'Invalid eventId or vendorId' });
+    }
+
+    // Validate request body
+    if (!imageData || !fileName || !mimeType) {
+      console.error('Missing required fields in request body:', { imageData: !!imageData, fileName, mimeType });
+      return res.status(400).json({ message: 'Missing imageData, fileName, or mimeType' });
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(mimeType)) {
+      console.error(`Invalid file type: ${mimeType}`);
+      return res.status(400).json({ message: 'Invalid file type. Only images are allowed.' });
+    }
+
+    // Check for authenticated user
+   // if (!req.user || !req.user.uid) {
+     ////\\ console.error('No authenticated user found:', req.user);
+     // return res.status(401).json({ message: 'Unauthorized: No authenticated user' });
+   // }
+
+    // Convert base64 to buffer
+    const fileBuffer = Buffer.from(imageData, 'base64');
+    console.log('Converted base64 to buffer:', { size: fileBuffer.length, type: mimeType });
+
+    // Upload to Firebase Storage
+    const storageFileName = `Floorplans/${eventId}/${vendorId}/${uuidv4()}-${fileName}`;
+    const fileRef = bucket.file(storageFileName);
+    console.log('Uploading file to Storage:', storageFileName);
+
+    try {
+      await fileRef.save(fileBuffer, { 
+        metadata: {
+          contentType: mimeType,
+          metadata: {
+            uploadedBy: req.user.uid,
+            uploadedAt: new Date().toISOString()
+          }
+        }
+      });
+      
+      console.log('File saved to Storage');
+      await fileRef.makePublic();
+      console.log('File made public');
+      
+      const floorplanUrl = `https://storage.googleapis.com/${bucket.name}/${storageFileName}`;
+      console.log(`File uploaded to Storage: ${floorplanUrl}`);
+
+      // Save to Firestore
+      const floorplanRef = db.collection('Event').doc(eventId).collection('Floorplans').doc(vendorId);
+      console.log('Checking Firestore document:', floorplanRef.path);
+      
+      const docSnap = await floorplanRef.get();
+      if (!docSnap.exists) {
+        console.log('Creating new Firestore document');
+        await floorplanRef.set({
+          floorplanUrl,
+          uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
+          uploadedBy: req.user.uid,
+        });
+        console.log(`Created new floorplan document for eventId=${eventId}, vendorId=${vendorId}`);
+      } else {
+        console.log('Updating existing Firestore document');
+        await floorplanRef.update({
+          floorplanUrl,
+          uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
+          uploadedBy: req.user.uid,
+        });
+        console.log(`Updated floorplan document for eventId=${eventId}, vendorId=${vendorId}`);
+      }
+
+      return res.json({ message: 'Floorplan uploaded successfully', floorplanUrl });
+      
+    } catch (storageErr) {
+      console.error('Storage upload error:', storageErr.message, storageErr.stack, {
+        fileName: storageFileName,
+        bufferSize: fileBuffer.length,
+        fileType: mimeType,
+      });
+      throw new Error(`Failed to upload file to Storage: ${storageErr.message}`);
+    }
+  } catch (err) {
+    console.error('Base64 floorplan upload error:', err.message, err.stack, {
+      eventId: req.params.eventId,
+      vendorId: req.params.vendorId,
+      user: req.user ? { uid: req.user.uid, email: req.user.email } : 'No user'
+    });
+    return res.status(500).json({ 
+      message: 'Server error during floorplan upload', 
+      error: err.message 
+    });
+  }
+});
+
 exports.api = functions.https.onRequest(app);
 

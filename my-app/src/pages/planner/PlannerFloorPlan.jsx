@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { auth } from "../../firebase"; // your firebase auth
+import { getAuth } from "firebase/auth";
 import "./PlannerFloorPlan.css";
 
 const TEMPLATES = [
@@ -30,57 +30,106 @@ const ITEM_PROTOTYPES = {
 
 let nextId = 1;
 
-const PlannerFloorPlan = ({ eventId, setActivePage }) => {
-  const [venues, setVenues] = useState([]);
-  const [selectedVenue, setSelectedVenue] = useState("");
+const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
+  const [events, setEvents] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState(initialEventId || "");
+  const [vendors, setVendors] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState("");
   const [template, setTemplate] = useState(TEMPLATES[0].id);
-  const [items, setItems] = useState([]); // {id, type, x, y, w, h, shape, color, rotation}
+  const [items, setItems] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const containerRef = useRef(null);
 
-  // Drag state refs to avoid re-renders
-  const dragRef = useRef({ 
-    dragging: false, 
-    id: null, 
-    offsetX: 0, 
+  const dragRef = useRef({
+    dragging: false,
+    id: null,
+    offsetX: 0,
     offsetY: 0,
     pointerId: null,
     startX: 0,
-    startY: 0 
+    startY: 0,
   });
 
-  // Fetch venues (unchanged)
+  // Fetch planner's events
   useEffect(() => {
-    const fetchVenues = async () => {
+    const fetchEvents = async () => {
       try {
-        const token = auth.currentUser ? await auth.currentUser.getIdToken() : "";
-        const res = await fetch("/api/venues", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (!res.ok) {
-          setVenues([
-            { id: "venue1", name: "Grand Hall" },
-            { id: "venue2", name: "Beach Resort" },
-            { id: "venue3", name: "Conference Center" },
-          ]);
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) {
+          console.warn("No authenticated user, skipping event fetch");
+          setEvents([]);
           return;
         }
+        const token = await user.getIdToken(true);
+        console.log("Fetching events from https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events");
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error(`Fetch events failed with status ${res.status}: ${text.slice(0, 100)}...`);
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         const data = await res.json();
-        setVenues(data.venues || []);
+        console.log("Events fetched:", data);
+        setEvents(data.events || []);
+        if (!selectedEventId && data.events?.length > 0) {
+          setSelectedEventId(data.events[0].id);
+        }
       } catch (err) {
-        console.error("Fetch venues failed, using fallback", err);
-        setVenues([
-          { id: "venue1", name: "Grand Hall" },
-          { id: "venue2", name: "Beach Resort" },
-          { id: "venue3", name: "Conference Center" },
-        ]);
+        console.error("Fetch events error:", err.message);
+        setEvents([]);
+        alert("Failed to fetch events. Please try again.");
       }
     };
-    fetchVenues();
+    fetchEvents();
   }, []);
 
-  // Add a new item (centered)
+  // Fetch vendors when selectedEventId changes
+  useEffect(() => {
+    if (!selectedEventId) {
+      setVendors([]);
+      setSelectedVendor("");
+      return;
+    }
+    const fetchVendors = async () => {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = user ? await user.getIdToken(true) : "";
+        console.log(`Fetching vendors for event ${selectedEventId}`);
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${selectedEventId}/vendors`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error(`Fetch vendors failed with status ${res.status}: ${text.slice(0, 100)}...`);
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        console.log("Vendors fetched:", data);
+        if (data.message === "No vendors found for this event") {
+          setVendors([]);
+        } else {
+          setVendors(data.vendors || []);
+        }
+      } catch (err) {
+        console.error("Fetch vendors error:", err.message);
+        setVendors([]);
+        alert("Failed to fetch vendors. Please try again.");
+      }
+    };
+    fetchVendors();
+  }, [selectedEventId]);
+
   const addItem = (key) => {
     const proto = ITEM_PROTOTYPES[key];
     const container = containerRef.current;
@@ -98,7 +147,6 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
     setIsDirty(true);
   };
 
-  // Remove selected item
   const removeSelected = () => {
     if (!selectedId) return;
     setItems((prev) => prev.filter((it) => it.id !== selectedId));
@@ -106,7 +154,6 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
     setIsDirty(true);
   };
 
-  // Pointer handlers for drag (improved for re-selection and click detection)
   const onPointerDownItem = (e, id) => {
     e.preventDefault();
     e.stopPropagation();
@@ -118,11 +165,8 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
     const mouseY = e.clientY - rect.top;
     const it = items.find((i) => i.id === id);
     if (!it) return;
-    
-    // Always select the item on down
+
     setSelectedId(id);
-    
-    // Record start position to detect if it's a click or drag
     dragRef.current = {
       dragging: false,
       id,
@@ -136,23 +180,24 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
 
   const onPointerMove = (e) => {
     if (!dragRef.current.id || dragRef.current.pointerId !== e.pointerId) return;
-    
+
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-    
-    // Check if movement is enough to start dragging (threshold to distinguish click from drag)
-    const threshold = 5; // pixels
-    if (!dragRef.current.dragging && 
-        (Math.abs(mouseX - dragRef.current.startX) > threshold || 
-         Math.abs(mouseY - dragRef.current.startY) > threshold)) {
+
+    const threshold = 5;
+    if (
+      !dragRef.current.dragging &&
+      (Math.abs(mouseX - dragRef.current.startX) > threshold ||
+        Math.abs(mouseY - dragRef.current.startY) > threshold)
+    ) {
       dragRef.current.dragging = true;
     }
-    
+
     if (!dragRef.current.dragging) return;
-    
+
     const { id, offsetX, offsetY } = dragRef.current;
     setItems((prev) =>
       prev.map((it) =>
@@ -191,25 +236,18 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
 
   const onPointerUp = (e) => {
     if (dragRef.current.id && dragRef.current.pointerId === e.pointerId) {
-      // If not dragged (click), we can do something if needed, but selection is already set
-      dragRef.current = { 
-        dragging: false, 
-        id: null, 
-        offsetX: 0, 
-        offsetY: 0, 
+      dragRef.current = {
+        dragging: false,
+        id: null,
+        offsetX: 0,
+        offsetY: 0,
         pointerId: null,
         startX: 0,
-        startY: 0 
+        startY: 0,
       };
     }
   };
 
-  // Click on empty canvas does not deselect
-  const onCanvasClick = (e) => {
-    // Do nothing to prevent deselection
-  };
-
-  // Scale selected item
   const scaleSelected = (factor) => {
     if (!selectedId) return;
     setItems((prev) =>
@@ -232,7 +270,6 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
     setIsDirty(true);
   };
 
-  // Rotate selected item
   const rotateSelected = (delta) => {
     if (!selectedId) return;
     setItems((prev) =>
@@ -254,10 +291,12 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
     setIsDirty(true);
   };
 
-  // Export to PNG
-  const exportToPNG = () => {
+  const createFloorplanBlob = () => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {
+      throw new Error("Canvas container not found");
+    }
+
     const rect = container.getBoundingClientRect();
     const canvas = document.createElement("canvas");
     const scale = 2;
@@ -265,7 +304,7 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
     canvas.height = Math.round(rect.height * scale);
     const ctx = canvas.getContext("2d");
 
-    // Background
+    // Draw background
     const tpl = TEMPLATES.find((t) => t.id === template) || TEMPLATES[0];
     ctx.fillStyle = tpl.color || "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -294,6 +333,7 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
       const w = Math.round(it.w * scale);
       const h = Math.round(it.h * scale);
       const rotation = (it.rotation || 0) * (Math.PI / 180);
+
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(rotation);
@@ -307,9 +347,10 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
         ctx.fillRect(-w / 2, -h / 2, w, h);
       }
 
-      // Label
       if (it.type !== "chair" && it.type !== "light") {
-        ctx.fillStyle = ["piano", "stage", "drink_bar", "walkway_carpet", "catering_stand", "exit_door", "head_table"].includes(it.type) ? "#fff" : "#000";
+        ctx.fillStyle = ["piano", "stage", "drink_bar", "walkway_carpet", "catering_stand", "exit_door", "head_table"].includes(it.type)
+          ? "#fff"
+          : "#000";
         const fontSize = (Math.min(it.w, it.h) < 50 ? 10 : 12) * scale;
         ctx.font = `${fontSize}px sans-serif`;
         ctx.textAlign = "center";
@@ -319,74 +360,117 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
       ctx.restore();
     });
 
-    // Download
-    const dataUrl = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `floorplan-${eventId || "event"}-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    return dataURLtoBlob(dataUrl);
+    // Convert to base64
+    return new Promise((resolve) => {
+      const dataUrl = canvas.toDataURL("image/png", 0.9);
+      const base64Data = dataUrl.split(",")[1]; // Remove "data:image/png;base64," prefix
+      resolve({ base64Data, mimeType: "image/png", fileName: `floorplan-${selectedEventId || "event"}.png` });
+    });
   };
 
-  // Convert dataUrl to blob
-  const dataURLtoBlob = (dataurl) => {
-    const arr = dataurl.split(",");
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) u8arr[n] = bstr.charCodeAt(n);
-    return new Blob([u8arr], { type: mime });
-  };
+  const uploadToVendor = async () => {
+    if (!selectedEventId) {
+      alert("Please choose an event first.");
+      return;
+    }
+    if (!selectedVendor) {
+      alert("Please choose a vendor to upload to.");
+      return;
+    }
 
-  // Upload floorplan PNG to a venue
-  const uploadToVenue = async () => {
-    if (!selectedVenue) {
-      alert("Please choose a venue to upload to.");
-      return;
-    }
-    if (!eventId) {
-      alert("Missing eventId — upload requires an event context.");
-      return;
-    }
     try {
-      const blob = exportToPNG();
-      const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
-      const fd = new FormData();
-      fd.append("file", blob, `floorplan-${eventId}.png`);
-      fd.append("eventId", eventId);
-      fd.append("venueId", selectedVenue);
+      const { base64Data, mimeType, fileName } = await createFloorplanBlob();
 
-      const res = await fetch(`/api/event/${eventId}/venue/${selectedVenue}/floorplan`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
+      const auth = getAuth();
+      const user = auth.currentUser;
+console.log("Current user:", user);
+if (!user) {
+  console.error("No authenticated user");
+  alert("Please log in to upload the floorplan.");
+  return;
+}
+      if (!user) {
+        console.error("No authenticated user");
+        alert("Please log in to upload the floorplan.");
+        return;
+      }
+
+      const token = await user.getIdToken(true);
+      console.log("Uploading floorplan:", {
+        eventId: selectedEventId,
+        vendorId: selectedVendor,
+        url: `https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${selectedEventId}/vendors/${selectedVendor}/floorplan-base64`,
+        token: token.substring(0, 10) + "...",
+        base64Length: base64Data.length,
+        mimeType,
+        fileName,
       });
+
+      const res = await fetch(
+        `https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${selectedEventId}/vendors/${selectedVendor}/floorplan-base64`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageData: base64Data,
+            fileName,
+            mimeType,
+          }),
+        }
+      );
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(text || "Upload failed");
+        console.error(`Upload failed with status ${res.status}: ${text}`);
+        throw new Error(`Upload failed: ${text}`);
       }
 
       const data = await res.json();
-      alert(data.message || "Uploaded successfully");
+      console.log("Upload response:", data);
+      alert(data.message || "Floorplan uploaded successfully");
+      setIsDirty(false);
     } catch (err) {
-      console.error("Upload error", err);
-      alert("Upload failed: " + (err.message || err));
+      console.error("Upload error:", err.message);
+      alert("Upload failed: " + err.message);
+      console.log(selectedVendor);
     }
   };
 
-  // Save/Load local
+  const exportToPNG = async () => {
+    try {
+      const { base64Data, fileName } = await createFloorplanBlob();
+      const dataUrl = `data:image/png;base64,${base64Data}`;
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (error) {
+      console.error("Export to PNG failed:", error);
+      alert("Failed to export floorplan: " + error.message);
+    }
+  };
+
   const saveLocal = () => {
-    localStorage.setItem(`floorplan-${eventId || "anon"}`, JSON.stringify({ template, items }));
+    if (!selectedEventId) {
+      alert("Please select an event to save the draft.");
+      return;
+    }
+    localStorage.setItem(`floorplan-${selectedEventId}`, JSON.stringify({ template, items }));
     setIsDirty(false);
     alert("Draft saved locally");
   };
 
   const loadLocal = () => {
-    const raw = localStorage.getItem(`floorplan-${eventId || "anon"}`);
+    if (!selectedEventId) {
+      alert("Please select an event to load the draft.");
+      return;
+    }
+    const raw = localStorage.getItem(`floorplan-${selectedEventId}`);
     if (!raw) return alert("No saved draft found");
     try {
       const obj = JSON.parse(raw);
@@ -396,7 +480,7 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
       }
       alert("Draft loaded");
     } catch (e) {
-      console.error(e);
+      console.error("Load draft failed:", e);
       alert("Failed to load draft");
     }
   };
@@ -412,18 +496,34 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
 
       <div className="floorplan-content">
         <aside className="floorplan-sidebar">
-          <h3>Choose venue</h3>
-          <div className="venue-list">
-            {venues.map((v) => (
-              <button
-                key={v.id}
-                className={`venue-item ${selectedVenue === v.id ? "selected" : ""}`}
-                onClick={() => setSelectedVenue(v.id)}
-              >
-                {v.name}
-              </button>
+          <h3>Choose Event</h3>
+          <select
+            value={selectedEventId}
+            onChange={(e) => setSelectedEventId(e.target.value)}
+            className="event-select"
+          >
+            <option value="">Select an event</option>
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.name || event.id}
+              </option>
             ))}
-          </div>
+          </select>
+
+          <h3>Choose Vendor</h3>
+          <select
+            value={selectedVendor}
+            onChange={(e) => setSelectedVendor(e.target.value)}
+            className="vendor-select"
+            disabled={!selectedEventId}
+          >
+            <option value="">Select a vendor</option>
+            {vendors.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.businessName || v.id}
+              </option>
+            ))}
+          </select>
 
           <h3>Template</h3>
           <select value={template} onChange={(e) => setTemplate(e.target.value)}>
@@ -434,7 +534,7 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
             ))}
           </select>
 
-          <h3>Add items</h3>
+          <h3>Add Items</h3>
           <div className="tool-buttons">
             <button onClick={() => addItem("table_small")}>Add Small Round Table</button>
             <button onClick={() => addItem("table_square")}>Add Square Table</button>
@@ -472,7 +572,7 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
               </select>
             </div>
             {selectedId && (
-              <>
+              <div className="control-buttons">
                 <div className="scale-controls">
                   <button onClick={() => scaleSelected(0.9)} disabled={!selectedId}>
                     Scale Down
@@ -492,16 +592,24 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
                 <button className="danger" onClick={removeSelected} disabled={!selectedId}>
                   Remove
                 </button>
-              </>
+              </div>
             )}
           </div>
 
-          <h3>Save / upload</h3>
+          <h3>Save / Upload</h3>
           <div className="save-controls">
-            <button onClick={exportToPNG}>Download PNG</button>
-            <button onClick={uploadToVenue}>Send to Selected Vendor</button>
-            <button onClick={saveLocal}>Save Draft</button>
-            <button onClick={loadLocal}>Load Draft</button>
+            <button onClick={exportToPNG} disabled={!selectedEventId}>
+              Download PNG
+            </button>
+            <button onClick={uploadToVendor} disabled={!selectedEventId || !selectedVendor}>
+              Send to Selected Vendor
+            </button>
+            <button onClick={saveLocal} disabled={!selectedEventId}>
+              Save Draft
+            </button>
+            <button onClick={loadLocal} disabled={!selectedEventId}>
+              Load Draft
+            </button>
           </div>
 
           <p className="hint">Tip: Click an item to select, drag to move, use scale/rotate buttons, or remove.</p>
@@ -514,7 +622,6 @@ const PlannerFloorPlan = ({ eventId, setActivePage }) => {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            onClick={onCanvasClick}
             style={{ background: TEMPLATES.find((t) => t.id === template)?.color || "#fff" }}
           >
             {items.map((it) => (
