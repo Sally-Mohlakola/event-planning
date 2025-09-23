@@ -9,7 +9,6 @@ const nodemailer = require('nodemailer');
 const { onDocumentCreated } = require('firebase-functions/firestore');
 const { v4: uuidv4 } = require("uuid");
 
-
 admin.initializeApp();
 
 const EXTERNAL_API_KEY = process.env.EXTERNAL_API_KEY || 'external-api-key-here';
@@ -73,8 +72,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(express.json());
 
-//VENDOR
-//=============================================
+//VENDOR=============================================
 app.post('/vendor/apply', authenticate, async (req, res) => {
   try {
     const { businessName, phone, email, description, category, address, profilePic } = req.body;
@@ -1221,7 +1219,7 @@ app.post("/planner/:eventId/schedules/upload-url", authenticate, async (req, res
     const [uploadUrl] = await file.getSignedUrl({
       version: "v4",
       action: "write",
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+      expires: admin.firestore.FieldValue.serverTimestamp() + 15 * 60 * 1000, // 15 minutes
       contentType,
     });
 
@@ -1441,12 +1439,8 @@ app.get('/planner/:eventId/services', authenticate, async(req, res) => {
 //-- End of Planner routes
 //================================================================
 
-/**
- * @route   GET /api/admin/vendor-applications
- * @desc    Get all vendor applications with a 'pending' status.
- * @access  PUBLIC
- */
-// --- CHANGE 1: Removed all middleware from this route ---
+
+//Get all vendor applications with a 'pending' status.
 app.get('/admin/vendor-applications', async (req, res) => {
   try {
     const snapshot = await db.collection('Vendor').where('status', '==', 'pending').get();
@@ -1461,12 +1455,7 @@ app.get('/admin/vendor-applications', async (req, res) => {
   }
 });
 
-/**
- * @route   PUT /api/admin/vendor-applications/:vendorId
- * @desc    Approve or reject a vendor application.
- * @access  PUBLIC
- */
-// --- CHANGE 2: Removed all middleware from this route ---
+//Approve or reject a vendor application.
 app.put('/admin/vendor-applications/:vendorId', async (req, res) => {
   const { vendorId } = req.params;
   const { status } = req.body;
@@ -1655,24 +1644,12 @@ app.get('/public/event/:eventId/guests', async (req, res) => {
   }
 });
 
-exports.api = functions.https.onRequest(app);
+
 
 
 // =================================================================
 // --- ADMIN PROFILE MANAGEMENT ROUTES ---
 // =================================================================
-
-/* Middleware to check if the user is an admin
-async function isAdmin(req, res, next) {
-    const userRef = db.collection('Admin').doc(req.uid);
-    const userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-        return res.status(403).json({ message: 'Forbidden: Requires admin privileges' });
-    }
-    next();
-}
-*/
 
 app.post('/admin/me', authenticate, async (req, res) => {
   try {
@@ -1910,7 +1887,7 @@ app.post('/api/contracts/:contractId/signature-fields', authenticate, async (req
       signatureWorkflow: {
         isElectronic: true,
         workflowStatus: 'draft',
-        expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        expirationDate: new Date(admin.firestore.FieldValue.serverTimestamp() + 30 * 24 * 60 * 60 * 1000), // 30 days
         reminderSettings: {
           enabled: true,
           frequency: 3,
@@ -1939,11 +1916,7 @@ app.post('/api/contracts/:contractId/signature-fields', authenticate, async (req
   }
 });
 
-/**
- * @route   GET /api/admin/vendors
- * @desc    Get a list of all vendors (approved, pending, etc.).
- * @access  Private (Admin Only)
- */
+// Get a list of all vendors (approved, pending, etc.)
 app.get('/admin/vendors', authenticate, async (req, res) => {
   try {
     const snapshot = await db.collection('Vendor').get();
@@ -1961,11 +1934,7 @@ app.get('/admin/vendors', authenticate, async (req, res) => {
   }
 });
 
-/**
- * @route   GET /api/admin/planners
- * @desc    Get a list of all planners.
- * @access  Private (Admin Only)
- */
+// Get a list of all planners.
 app.get('/admin/planners', authenticate, async (req, res) => {
   try {
     const snapshot = await db.collection('Planner').get();
@@ -1979,3 +1948,406 @@ app.get('/admin/planners', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching planners' });
   }
 });
+
+
+// ===============
+// Analytics Helper functions
+// ===============
+async function buildVendorReport(vendorId) {
+  const eventsSnapshot = await db.collection('Event').get();
+
+  let totalBookings = 0;
+  let totalValueNegotiated = 0;
+  let totalEstimated = 0;
+  const eventTypeBreakdown = {};
+  const serviceBreakdown = {};           // frequency of each service name
+  const monthlyRevenue = {};             // yyyy-mm → value
+  let earliestBooking = null;
+  let latestBooking = null;
+
+  for (const eventDoc of eventsSnapshot.docs) {
+    const servicesSnap = await db.collection('Event')
+      .doc(eventDoc.id)
+      .collection('Services')
+      .where('vendorId', '==', vendorId)
+      .get();
+
+    for (const service of servicesSnap.docs) {
+      const data = service.data();
+      totalBookings++;
+      const neg = data.negotiatedCost || 0;
+      const est = data.estimatedCost || 0;
+      totalValueNegotiated += neg;
+      totalEstimated += est;
+
+      // Event categories
+      const category = eventDoc.data().eventCategory || 'Uncategorized';
+      eventTypeBreakdown[category] = (eventTypeBreakdown[category] || 0) + 1;
+
+      // Service types
+      const svcName = data.serviceName || 'Unnamed';
+      serviceBreakdown[svcName] = (serviceBreakdown[svcName] || 0) + 1;
+
+      // Monthly revenue
+      const createdAt = data.createdAt?.toDate?.() || null;
+      if (createdAt) {
+        const key = createdAt.toISOString().slice(0,7); // 2025-09
+        monthlyRevenue[key] = (monthlyRevenue[key] || 0) + neg;
+        earliestBooking = !earliestBooking || createdAt < earliestBooking ? createdAt : earliestBooking;
+        latestBooking   = !latestBooking  || createdAt > latestBooking  ? createdAt : latestBooking;
+      }
+    }
+  }
+
+  const avgDeal = totalBookings ? totalValueNegotiated / totalBookings : 0;
+
+  return {
+    vendorId,
+    totalBookings,
+    totalValueNegotiated,
+    totalEstimated,
+    avgDealSize: avgDeal,
+    bookingSpanDays: earliestBooking && latestBooking
+        ? Math.round((latestBooking - earliestBooking)/86400000)
+        : 0,
+    eventTypeBreakdown,
+    serviceBreakdown,
+    monthlyRevenue,
+    generatedAt: 'admin.firestore.Timestamp.now()'
+  };
+}
+
+
+async function buildPlannerReport(plannerId) {
+  const eventsSnap = await db.collection('Event')
+    .where('plannerId', '==', plannerId)
+    .get();
+
+  let totalEventsManaged = 0;
+  let totalBudgetManaged = 0;
+  let totalGuestsManaged = 0;
+  let totalVendorSpend = 0;
+  const uniqueVendors = new Set();
+  const statusBreakdown = {};
+  const avgGuestsPerEvent = [];
+  const spendPerEvent = [];
+
+  for (const eventDoc of eventsSnap.docs) {
+    const event = eventDoc.data();
+    totalEventsManaged++;
+    totalBudgetManaged += Number(event.budget) || 0;
+    totalGuestsManaged += event.expectedGuestCount || 0;
+    statusBreakdown[event.status || 'unknown'] =
+        (statusBreakdown[event.status || 'unknown'] || 0) + 1;
+
+    avgGuestsPerEvent.push(event.expectedGuestCount || 0);
+
+    const servicesSnap = await db.collection('Event')
+      .doc(eventDoc.id)
+      .collection('Services')
+      .get();
+
+    let eventSpend = 0;
+    servicesSnap.forEach(s => {
+      const d = s.data();
+      eventSpend += d.negotiatedCost || d.estimatedCost || 0;
+      if (d.vendorId) uniqueVendors.add(d.vendorId);
+    });
+    totalVendorSpend += eventSpend;
+    spendPerEvent.push(eventSpend);
+  }
+
+  return {
+    plannerId,
+    totalEventsManaged,
+    totalBudgetManaged,
+    totalGuestsManaged,
+    averageGuestsPerEvent: totalEventsManaged
+        ? totalGuestsManaged / totalEventsManaged : 0,
+    averageVendorSpendPerEvent: totalEventsManaged
+        ? totalVendorSpend / totalEventsManaged : 0,
+    uniqueVendorsHiredCount: uniqueVendors.size,
+    budgetUtilization: totalBudgetManaged > 0
+        ? totalVendorSpend / totalBudgetManaged : 0,
+    statusBreakdown,
+    generatedAt: 'admin.firestore.Timestamp.now()'
+  };
+}
+
+
+async function buildEventReport(eventId) {
+  const eventDoc = await db.collection('Event').doc(eventId).get();
+  if (!eventDoc.exists) return null;
+
+  const event = eventDoc.data();
+  const guestsSnap = await db.collection('Event')
+      .doc(eventId)
+      .collection('Guests').get();
+  const servicesSnap = await db.collection('Event')
+      .doc(eventId)
+      .collection('Services').get();
+
+  let negotiatedSpend = 0;
+  const rsvpBreakdown = { accepted: 0, declined: 0, pending: 0 };
+  const vendorCategorySpend = {};
+
+  guestsSnap.forEach(g => {
+    const status = g.data().rsvpStatus || 'pending';
+    rsvpBreakdown[status] = (rsvpBreakdown[status] || 0) + 1;
+  });
+
+  for (const s of servicesSnap.docs) {
+    const d = s.data();
+    negotiatedSpend += d.negotiatedCost || d.estimatedCost || 0;
+    const cat = d.category || 'Uncategorized';
+    vendorCategorySpend[cat] = (vendorCategorySpend[cat] || 0)
+        + (d.negotiatedCost || d.estimatedCost || 0);
+  }
+
+  const totalGuests = guestsSnap.size;
+  const accepted = rsvpBreakdown.accepted || 0;
+
+  return {
+    eventId,
+    eventName: event.name,
+    totalBudget: Number(event.budget) || 0,
+    negotiatedSpend,
+    budgetUtilization: event.budget > 0 ? negotiatedSpend / event.budget : 0,
+    invitationsSent: totalGuests,
+    rsvpBreakdown,
+    acceptanceRate: totalGuests ? accepted / totalGuests : 0,
+    costPerInvitedGuest: totalGuests ? negotiatedSpend / totalGuests : 0,
+    hiredVendorCount: servicesSnap.size,
+    vendorCategorySpend,
+    generatedAt: 'admin.firestore.Timestamp.now()'
+  };
+}
+
+async function generatePlatformSummary() {
+  // Grab all top-level collections in parallel
+  const [vendorSnap, plannerSnap, eventSnap] = await Promise.all([
+    db.collection('Vendor').get(),
+    db.collection('Planner').get(),
+    db.collection('Event').get()
+  ]);
+
+  /** ----------------------------
+   *  Vendors
+   * ---------------------------- */
+  const vendorStatusDistribution = {};
+  const vendorCategoryCounts = {};
+  let vendorWithServices = 0;
+  let totalVendorCreatedAt = 0;
+
+  for (const v of vendorSnap.docs) {
+    const vd = v.data();
+    const status = vd.status || 'unknown';
+    vendorStatusDistribution[status] = (vendorStatusDistribution[status] || 0) + 1;
+
+    const category = vd.category || 'Uncategorized';
+    vendorCategoryCounts[category] = (vendorCategoryCounts[category] || 0) + 1;
+
+    if (vd.createdAt?.seconds) totalVendorCreatedAt += vd.createdAt.seconds;
+    // quick heuristic to see if they’ve listed at least one service
+    const servicesSnap = await db.collection('Vendor').doc(v.id).collection('Services').limit(1).get();
+    if (!servicesSnap.empty) vendorWithServices++;
+  }
+
+  // Popular categories sorted
+  const popularVendorCategories = Object.entries(vendorCategoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+
+  /** ----------------------------
+   *  Planners
+   * ---------------------------- */
+  const plannerEventCounts = [];
+  let totalPlannerCreatedAt = 0;
+  for (const p of plannerSnap.docs) {
+    const pd = p.data();
+    plannerEventCounts.push((pd.activeEvents?.length || 0) + (pd.eventHistory?.length || 0));
+    if (pd.createdAt?.seconds) totalPlannerCreatedAt += pd.createdAt.seconds;
+  }
+  const avgEventsPerPlanner =
+    plannerEventCounts.length > 0
+      ? plannerEventCounts.reduce((a, b) => a + b, 0) / plannerEventCounts.length
+      : 0;
+
+  /** ----------------------------
+   *  Events
+   * ---------------------------- */
+  const overallRsvpBreakdown = { accepted: 0, declined: 0, pending: 0 };
+  const eventCategoryCounts = {};
+  let totalBudget = 0;
+  let totalNegotiatedSpend = 0;
+  let totalGuests = 0;
+  let totalServices = 0;
+  let earliestEventDate = null;
+  let latestEventDate = null;
+
+  for (const e of eventSnap.docs) {
+    const ed = e.data();
+    const budget = Number(ed.budget) || 0;
+    totalBudget += budget;
+
+    // track category popularity
+    const eCat = ed.eventCategory || 'Uncategorized';
+    eventCategoryCounts[eCat] = (eventCategoryCounts[eCat] || 0) + 1;
+
+    // parse event date range
+    if (ed.date) {
+      const d = new Date(ed.date);
+      if (!earliestEventDate || d < earliestEventDate) earliestEventDate = d;
+      if (!latestEventDate || d > latestEventDate) latestEventDate = d;
+    }
+
+    // Guests + RSVP
+    const guestsSnap = await db.collection('Event').doc(e.id).collection('Guests').get();
+    totalGuests += guestsSnap.size;
+    guestsSnap.forEach(g => {
+      const s = g.data().rsvpStatus || 'pending';
+      overallRsvpBreakdown[s] = (overallRsvpBreakdown[s] || 0) + 1;
+    });
+
+    // Services + spend
+    const servicesSnap = await db.collection('Event').doc(e.id).collection('Services').get();
+    totalServices += servicesSnap.size;
+    servicesSnap.forEach(s => {
+      const d = s.data();
+      totalNegotiatedSpend += d.negotiatedCost || d.estimatedCost || 0;
+    });
+  }
+
+  const mostPopularEventCategories = Object.entries(eventCategoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+
+  /** ----------------------------
+   *  Aggregate metrics
+   * ---------------------------- */
+  const platformLifetimeVendors = vendorSnap.size;
+  const platformLifetimePlanners = plannerSnap.size;
+  const platformLifetimeEvents = eventSnap.size;
+
+  const avgBudgetPerEvent = platformLifetimeEvents > 0
+    ? totalBudget / platformLifetimeEvents
+    : 0;
+
+  const avgSpendPerEvent = platformLifetimeEvents > 0
+    ? totalNegotiatedSpend / platformLifetimeEvents
+    : 0;
+
+  const avgGuestsPerEvent = platformLifetimeEvents > 0
+    ? totalGuests / platformLifetimeEvents
+    : 0;
+
+  const vendorServiceRatio = platformLifetimeVendors > 0
+    ? vendorWithServices / platformLifetimeVendors
+    : 0;
+
+  return {
+    // High-level counts
+    totals: {
+      vendors: platformLifetimeVendors,
+      planners: platformLifetimePlanners,
+      events: platformLifetimeEvents,
+      guests: totalGuests,
+      services: totalServices,
+    },
+
+    vendorInsights: {
+      statusDistribution: vendorStatusDistribution,
+      popularCategories: popularVendorCategories,
+      vendorServiceRatio, // fraction of vendors who listed at least one service
+    },
+
+    plannerInsights: {
+      avgEventsPerPlanner,
+    },
+
+    eventInsights: {
+      budget: {
+        totalBudget,
+        avgBudgetPerEvent,
+        totalNegotiatedSpend,
+        avgSpendPerEvent,
+      },
+      guestStats: {
+        overallRsvpBreakdown,
+        avgGuestsPerEvent,
+      },
+      categoryPopularity: mostPopularEventCategories,
+      dateRange: {
+        earliest: earliestEventDate ? earliestEventDate.toISOString() : null,
+        latest: latestEventDate ? latestEventDate.toISOString() : null,
+      },
+    },
+
+    meta: {
+      generatedAt: 'admin.firestore.FieldValue.serverTimestamp()'
+    }
+  };
+}
+
+app.get('/vendor/my-report', authenticate, async (req, res) => {
+    try {
+        const data = await buildVendorReport(req.uid);
+        res.json(data);
+    } catch (err) {
+        console.error('Vendor report error', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.get('/planner/my-report', authenticate, async (req, res) => {
+    try {
+        const data = await buildPlannerReport(req.uid);
+        res.json(data);
+    } catch (err) {
+        console.error('Planner report error', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.get('/event/:eventId', authenticate, async (req, res) => {
+    try {
+        const eventDoc = await db.collection('Event').doc(req.params.eventId).get();
+        if (!eventDoc.exists) return res.status(404).json({ message: 'Event not found' });
+        if (eventDoc.data().plannerId !== req.uid) return res.status(403).json({ message: 'Forbidden' });
+
+        const data = await buildEventReport(req.params.eventId);
+        if (!data) return res.status(404).json({ message: 'No analytics' });
+        res.json(data);
+    } catch (err) {
+        console.error('Event report error', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.get('/admin/analytics/platform-summary', authenticate, async (req, res) => {
+    try {
+        const data = await generatePlatformSummary();
+        res.json(data);
+    } catch (err) {
+        console.error('Platform summary error', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ------------------------------
+// Public debug route (no auth) for quick testing
+// ------------------------------
+app.get('/public/analytics/platform-summary-debug', async (req, res) => {
+  try {
+    const summary = await generatePlatformSummary();
+    res.json(summary);
+  } catch (err) {
+    console.error('Error generating anayltics:', err);
+    res.status(500).json({ 
+      message: 'Server error generating platform summary', 
+      details: err.message 
+    });
+  }
+});
+
+exports.api = functions.https.onRequest(app);
