@@ -10,9 +10,9 @@ import "./AdminHomeDashboard.css";
 
 function AdminHomeDashboard() {
 	return (
-		<sections className="vendor-applications">
+		<section className="vendor-applications">
 			<AdminReports />
-		</sections>
+		</section>
 	);
 }
 
