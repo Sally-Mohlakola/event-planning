@@ -2931,6 +2931,8 @@ app.get('/public/analytics/platform-summary-debug', async (req, res) => {
   }
 });
 
+exports.api = functions.https.onRequest(app);
+
 
 // GET /analytics/:vendorId
 app.get("/analytics/:vendorId", authenticate, async (req, res) => {
@@ -3031,4 +3033,3 @@ app.post(
 );
 
 exports.api = functions.https.onRequest(app);
-
