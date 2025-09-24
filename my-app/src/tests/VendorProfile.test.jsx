@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, beforeEach, afterEach, vi, expect } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
+// MOCKS
 // --- Mock react-router-dom ---
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -40,11 +41,12 @@ vi.mock("../../firebase", () => {
   return { auth: mockAuth };
 });
 
-// --- Mock global fetch and confirm ---
+// --- Mock the fetching and confirming of apis ---
 global.fetch = vi.fn();
 global.confirm = vi.fn(() => true);
+// END OF MOCK
 
-// --- Import component AFTER mocks ---
+
 import VendorProfile from "../pages/vendor/vendorProfile";
 
 describe("VendorProfile", () => {
@@ -54,7 +56,7 @@ describe("VendorProfile", () => {
     global.confirm.mockClear();
   });
 
-  it("renders loading state initially", () => {
+  it("rendering loading state", () => {
     render(
       <MemoryRouter>
         <VendorProfile />
@@ -63,7 +65,7 @@ describe("VendorProfile", () => {
     expect(screen.getByText(/Loading your profile and services/i)).toBeInTheDocument();
   });
 
-  it("renders no profile found when vendor is null", async () => {
+  it("renders that no profile is found if api returns null vendor after checking api", async () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(null),
@@ -84,7 +86,7 @@ describe("VendorProfile", () => {
     });
   });
 
-  it("renders vendor and services correctly", async () => {
+  it("mocks vendor profile rendering using api", async () => {
     global.fetch
       .mockResolvedValueOnce({
         ok: true,
@@ -93,8 +95,8 @@ describe("VendorProfile", () => {
             businessName: "Test Vendor",
             category: "Catering",
             description: "Quality catering services",
-            address: "123 Main St",
-            phone: "555-1234",
+            address: "123 Street",
+            phone: "0123456789",
             email: "test@vendor.com",
             bookings: 10,
             totalReviews: 5,
@@ -126,7 +128,7 @@ describe("VendorProfile", () => {
     });
   });
 
-  it("navigates to edit profile page", async () => {
+  it("mock fetching your vendor profile using api", async () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ businessName: "Test Vendor" }),
@@ -136,10 +138,7 @@ describe("VendorProfile", () => {
       json: () => Promise.resolve([]),
     });
 
-    render(
-      <MemoryRouter>
-        <VendorProfile />
-      </MemoryRouter>
+    render(<MemoryRouter><VendorProfile /></MemoryRouter>
     );
 
     await waitFor(() => expect(screen.getByText(/Edit Profile/i)).toBeInTheDocument());
@@ -147,7 +146,7 @@ describe("VendorProfile", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/vendor/vendor-edit-profile");
   });
 
-  it("adds a new service", async () => {
+  it("mock adding a new service using api", async () => {
     global.fetch
       .mockResolvedValueOnce({
         ok: true,
@@ -184,7 +183,7 @@ describe("VendorProfile", () => {
     });
   });
 
-  it("edits an existing service", async () => {
+  it("mock editing an existing service api", async () => {
     global.fetch
       .mockResolvedValueOnce({
         ok: true,
@@ -219,7 +218,7 @@ describe("VendorProfile", () => {
     });
   });
 
-  it("deletes a service", async () => {
+  it("mock delete service api", async () => {
     global.fetch
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ businessName: "Test Vendor" }) })
       .mockResolvedValueOnce({
