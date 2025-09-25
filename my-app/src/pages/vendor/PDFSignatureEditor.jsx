@@ -45,8 +45,8 @@ const PDFSignatureEditor = ({ contractUrl, onSave, onSend }) => {
     tempObject.onload = () => {
       const observer = new ResizeObserver((entries) => {
         const contentHeight = entries[0].contentRect.height;
-        // Estimate page height, fallback to common sizes (US Letter: 1056px, A4: ~1123px)
-        const possiblePageHeights = [1056, 1123]; // US Letter, A4 at 96 DPI
+        // Estimate page height with more precision
+        const possiblePageHeights = [1056, 1123, 792, 1224]; // US Letter, A4, US Letter landscape, A4 landscape at 96 DPI
         let estimatedPageHeight = 1056;
         let minDiff = Infinity;
         for (const ph of possiblePageHeights) {
@@ -85,9 +85,10 @@ const PDFSignatureEditor = ({ contractUrl, onSave, onSend }) => {
     if (!isPlacing) return;
 
     const rect = pdfViewerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top - (getCurrentPage() - 1) * pdfDimensions.height;
+    const scrollTop = pdfContainerRef.current.scrollTop;
     const currentPage = getCurrentPage();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top - (currentPage - 1) * pdfDimensions.height + scrollTop;
 
     if (e.target.closest('.signature-field-overlay')) {
       return;
@@ -170,9 +171,10 @@ const PDFSignatureEditor = ({ contractUrl, onSave, onSend }) => {
     if (!draggedField) return;
 
     const rect = pdfViewerRef.current.getBoundingClientRect();
-    const x = Math.max(0, e.clientX - rect.left);
-    const y = Math.max(0, e.clientY - rect.top - (getCurrentPage() - 1) * pdfDimensions.height);
+    const scrollTop = pdfContainerRef.current.scrollTop;
     const currentPage = getCurrentPage();
+    const x = Math.max(0, e.clientX - rect.left);
+    const y = Math.max(0, e.clientY - rect.top - (currentPage - 1) * pdfDimensions.height + scrollTop);
 
     setSignatureFields(fields =>
       fields.map(field =>
@@ -302,7 +304,7 @@ const PDFSignatureEditor = ({ contractUrl, onSave, onSend }) => {
                 <p>PDF cannot be displayed. Please download the contract to view.</p>
               </object>
 
-              {/* Transparent overlay for field placement, only when placing */}
+              {/* Transparent overlay for field placement */}
               {isPlacing && (
                 <div
                   className="pdf-interaction-overlay"
@@ -321,142 +323,148 @@ const PDFSignatureEditor = ({ contractUrl, onSave, onSend }) => {
                 />
               )}
 
-              {/* Single overlay for all signature fields */}
-              <div
-                className="fields-overlay"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: pdfDimensions.width,
-                  height: pdfDimensions.height * estimatedPages,
-                  pointerEvents: 'none'
-                }}
-              >
-                {signatureFields.map((field) => {
-                  const fieldType = fieldTypes.find(t => t.type === field.type);
-                  const Icon = fieldType?.icon || Edit3;
-                  const fieldTop = field.position.y + (field.position.page - 1) * pdfDimensions.height;
+              {/* Per-page field overlays */}
+              {Array.from({ length: estimatedPages }, (_, i) => i + 1).map(page => (
+                <div
+                  key={`page-${page}`}
+                  className="field-page-overlay"
+                  style={{
+                    position: 'absolute',
+                    top: (page - 1) * pdfDimensions.height,
+                    left: 0,
+                    width: pdfDimensions.width,
+                    height: pdfDimensions.height,
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {signatureFields
+                    .filter(field => field.position.page === page)
+                    .map(field => {
+                      const fieldType = fieldTypes.find(t => t.type === field.type);
+                      const Icon = fieldType?.icon || Edit3;
 
-                  return (
-                    <div
-                      key={field.id}
-                      className="signature-field-overlay"
-                      draggable
-                      onDragStart={(e) => handleFieldDragStart(e, field.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        position: 'absolute',
-                        left: field.position.x,
-                        top: fieldTop,
-                        width: field.position.width,
-                        height: field.position.height,
-                        border: `3px dashed ${fieldType?.color || '#2563eb'}`,
-                        backgroundColor: `${fieldType?.color || '#2563eb'}15`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'move',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        borderRadius: '4px',
-                        boxShadow: `0 2px 4px ${fieldType?.color || '#2563eb'}40`,
-                        pointerEvents: 'auto',
-                        zIndex: 10
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = `${fieldType?.color || '#2563eb'}25`;
-                        e.target.style.transform = 'scale(1.02)';
-                        e.target.style.boxShadow = `0 4px 8px ${fieldType?.color || '#2563eb'}60`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = `${fieldType?.color || '#2563eb'}15`;
-                        e.target.style.transform = 'scale(1)';
-                        e.target.style.boxShadow = `0 2px 4px ${fieldType?.color || '#2563eb'}40`;
-                      }}
-                      aria-label={`${field.type} field for ${field.signerRole} on page ${field.position.page}`}
-                    >
-                      <div className="field-indicator" style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        color: fieldType?.color || '#2563eb'
-                      }}>
-                        <Icon size={12} />
-                        <span>{field.type.toUpperCase()}</span>
-                      </div>
+                      return (
+                        <div
+                          key={field.id}
+                          className="signature-field-overlay"
+                          draggable
+                          onDragStart={(e) => handleFieldDragStart(e, field.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            position: 'absolute',
+                            left: field.position.x,
+                            top: field.position.y,
+                            width: field.position.width,
+                            height: field.position.height,
+                            border: `3px dashed ${fieldType?.color || '#2563eb'}`,
+                            backgroundColor: `${fieldType?.color || '#2563eb'}15`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'move',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            borderRadius: '4px',
+                            boxShadow: `0 2px 4px ${fieldType?.color || '#2563eb'}40`,
+                            pointerEvents: 'auto',
+                            zIndex: 10,
+                            contain: 'strict',
+                            willChange: 'transform'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = `${fieldType?.color || '#2563eb'}25`;
+                            e.target.style.transform = 'scale(1.02)';
+                            e.target.style.boxShadow = `0 4px 8px ${fieldType?.color || '#2563eb'}60`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = `${fieldType?.color || '#2563eb'}15`;
+                            e.target.style.transform = 'scale(1)';
+                            e.target.style.boxShadow = `0 2px 4px ${fieldType?.color || '#2563eb'}40`;
+                          }}
+                          aria-label={`${field.type} field for ${field.signerRole} on page ${field.position.page}`}
+                        >
+                          <div className="field-indicator" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            color: fieldType?.color || '#2563eb'
+                          }}>
+                            <Icon size={12} />
+                            <span>{field.type.toUpperCase()}</span>
+                          </div>
 
-                      <div className="field-label-overlay" style={{
-                        position: 'absolute',
-                        top: '-24px',
-                        left: '0',
-                        background: fieldType?.color || '#2563eb',
-                        color: 'white',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        fontSize: '10px',
-                        fontWeight: '500',
-                        whiteSpace: 'nowrap',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                      }}>
-                        {field.label} {field.required && '*'}
-                      </div>
+                          <div className="field-label-overlay" style={{
+                            position: 'absolute',
+                            top: '-24px',
+                            left: '0',
+                            background: fieldType?.color || '#2563eb',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '3px',
+                            fontSize: '10px',
+                            fontWeight: '500',
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                          }}>
+                            {field.label} {field.required && '*'}
+                          </div>
 
-                      <div className="signer-role-indicator" style={{
-                        position: 'absolute',
-                        bottom: '-20px',
-                        left: '0',
-                        background: 'rgba(0,0,0,0.8)',
-                        color: 'white',
-                        padding: '1px 4px',
-                        borderRadius: '2px',
-                        fontSize: '9px',
-                        textTransform: 'capitalize'
-                      }}>
-                        {field.signerRole}
-                      </div>
+                          <div className="signer-role-indicator" style={{
+                            position: 'absolute',
+                            bottom: '-20px',
+                            left: '0',
+                            background: 'rgba(0,0,0,0.8)',
+                            color: 'white',
+                            padding: '1px 4px',
+                            borderRadius: '2px',
+                            fontSize: '9px',
+                            textTransform: 'capitalize'
+                          }}>
+                            {field.signerRole}
+                          </div>
 
-                      <button
-                        className="delete-field-btn-overlay"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteField(field.id);
-                        }}
-                        style={{
-                          position: 'absolute',
-                          top: '-10px',
-                          right: '-10px',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#dc2626',
-                          color: 'white',
-                          border: '2px solid white',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                          transition: 'all 0.2s ease',
-                          zIndex: 20
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = '#b91c1c';
-                          e.target.style.transform = 'scale(1.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = '#dc2626';
-                          e.target.style.transform = 'scale(1)';
-                        }}
-                        aria-label={`Delete ${field.type} field`}
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                          <button
+                            className="delete-field-btn-overlay"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteField(field.id);
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: '-10px',
+                              right: '-10px',
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: '#dc2626',
+                              color: 'white',
+                              border: '2px solid white',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                              transition: 'all 0.2s ease',
+                              zIndex: 20
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = '#b91c1c';
+                              e.target.style.transform = 'scale(1.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = '#dc2626';
+                              e.target.style.transform = 'scale(1)';
+                            }}
+                            aria-label={`Delete ${field.type} field`}
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+              ))}
               {isPlacing && (
                 <div className="placement-guide" style={{
                   position: 'absolute',
