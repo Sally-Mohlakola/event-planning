@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../firebase";
-import { Edit, Plus, X, Trash2 } from "lucide-react";
+import { Edit, Plus, X, Trash2, Phone, Mail, MapPin, Calendar, Award, Users, Star } from "lucide-react";
 import "./vendorProfile.css";
 
 const VendorProfile = () => {
@@ -243,240 +243,355 @@ const VendorProfile = () => {
   }
 
   return (
-    <div className="vendor-profile">
-      {/* Header */}
-      <div className="profile-header">
-        <div>
-          <h1 className="profile-title">Vendor Profile</h1>
-          <p className="profile-subtitle">Manage your business profile and services</p>
+    <div className="vendor-profile-container">
+      {/* Elegant Header Section */}
+      <div className="elegant-header">
+        <div className="header-main">
+          <div className="header-left">
+            <h1 className="main-title">Vendor Profile</h1>
+            <div className="business-display">
+              <div className="business-name-card">
+                {vendor.businessName || "Unnamed Business"}
+              </div>
+              <div className="category-tag">
+                {vendor.category || "Uncategorized"}
+              </div>
+            </div>
+          </div>
+          <button className="elegant-edit-btn" onClick={navProfileEdit}>
+            <Edit size={18} /> Edit Profile
+          </button>
         </div>
-        <button className="edit-profile-btn" onClick={navProfileEdit}>
-          <Edit size={16} /> Edit Profile
-        </button>
-      </div>
-
-      {/* Profile Image Circle */}
-      <div className="profile-image-circle">
-        <img
-          src={
-            vendor.profilePic
-              ? `${vendor.profilePic}?v=${imageVersion}`
-              : "/default-avatar.png"
-          }
-          alt="Vendor Profile"
-        />
-      </div>
-
-      {/* Small Summary Cards */}
-      <div className="profile-summary-cards">
-        <div className="profile-summary-card">
-          <p className="summary-label">Bookings</p>
-          <p className="summary-value">{vendor.bookings || 0}</p>
-        </div>
-        <div className="profile-summary-card">
-          <p className="summary-label">Active Services</p>
-          <p className="summary-value">{services.length || 0}</p>
-        </div>
-        <div className="profile-summary-card">
-          <p className="summary-label">Total Reviews</p>
-          <p className="summary-value">{vendor.totalReviews || 0}</p>
-        </div>
-        <div className="profile-summary-card">
-          <p className="summary-label">Avg. Rating</p>
-          <p className="summary-value">{vendor.avgRating || 0}</p>
+        <div className="header-subtitle">
+          <div className="subtitle-line"></div>
+          <h2>Manage your business profile and services</h2>
+          <div className="subtitle-line"></div>
         </div>
       </div>
 
-      {/* Profile Cards Grid */}
-      <div className="profile-cards-grid">
-        {/* Business Information */}
-        <div className="profile-card">
-          <div className="profile-card-header">
-            <h2>Business Information</h2>
+      {/* Enhanced Stats Cards */}
+      <div className="elegant-stats">
+        <div className="stat-card">
+          <div className="stat-icon-wrapper">
+            <Calendar className="stat-icon" size={28} />
           </div>
-          <div className="business-topline">
-            <h3 className="business-name">{vendor.businessName || "Unnamed Business"}</h3>
-            <span className="business-badge">{vendor.category || "Uncategorized"}</span>
+          <div className="stat-info">
+            <span className="stat-label">Bookings</span>
+            <span className="stat-value">{vendor.bookings || 0}</span>
           </div>
-          <div className="business-description">
-            <p>{vendor.description || "No description provided."}</p>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon-wrapper">
+            <Award className="stat-icon" size={28} />
           </div>
-          <div className="business-contact">
-            <p className="contact-item">📍 {vendor.address || "No address provided"}</p>
-            <p className="contact-item">📞 {vendor.phone || "No phone provided"}</p>
-            <p className="contact-item">✉️ {vendor.email || "No email provided"}</p>
+          <div className="stat-info">
+            <span className="stat-label">Services</span>
+            <span className="stat-value">{services.length || 0}</span>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon-wrapper">
+            <Users className="stat-icon" size={28} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">Reviews</span>
+            <span className="stat-value">{vendor.totalReviews || 0}</span>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon-wrapper">
+            <Star className="stat-icon" size={28} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">Rating</span>
+            <span className="stat-value">{vendor.avgRating || 0}<span className="star">★</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Business Description Section */}
+      <div className="description-showcase">
+        <div className="description-content">
+          <div className="description-header">
+            <div className="description-title-section">
+              <h3>Business Overview</h3>
+              <div className="title-decoration">
+                <div className="decoration-dot"></div>
+                <div className="decoration-line"></div>
+                <div className="decoration-dot"></div>
+              </div>
+            </div>
+            <p className="description-subtitle">Tell your story and showcase what makes your business unique</p>
+          </div>
+          <div className="description-text">
+            <p>{vendor.description || "No description provided. Add a compelling description of your business to attract more customers. Share your mission, values, and what sets you apart from competitors."}</p>
+          </div>
+          <div className="description-features">
+            <div className="feature-item">
+              <div className="feature-icon">✓</div>
+              <span>Professional Service</span>
+            </div>
+            <div className="feature-item">
+              <div className="feature-icon">✓</div>
+              <span>Quality Guaranteed</span>
+            </div>
+            <div className="feature-item">
+              <div className="feature-icon">✓</div>
+              <span>Customer Focused</span>
+            </div>
+          </div>
+        </div>
+        <div className="profile-showcase">
+          <div className="profile-frame">
+            <div className="profile-image-container">
+              <img
+                src={
+                  vendor.profilePic
+                    ? `${vendor.profilePic}?v=${imageVersion}`
+                    : "/default-avatar.png"
+                }
+                alt="Vendor Profile"
+                className="profile-image"
+              />
+              <div className="profile-glow"></div>
+            </div>
+            <div className="profile-badge">
+              <div className="status-dot"></div>
+              Verified Vendor
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact Information and Services Section */}
+      <div className="main-content-section">
+        <div className="contact-card">
+          <div className="section-header">
+            <h3>Contact Information</h3>
+            <div className="accent-line"></div>
+          </div>
+          <div className="contact-list">
+            <div className="contact-item">
+              <div className="contact-icon-wrapper">
+                <MapPin className="contact-icon" size={20} />
+              </div>
+              <div className="contact-details">
+                <span className="contact-label">Address</span>
+                <span className="contact-value">{vendor.address || "No address provided"}</span>
+              </div>
+            </div>
+            <div className="contact-item">
+              <div className="contact-icon-wrapper">
+                <Phone className="contact-icon" size={20} />
+              </div>
+              <div className="contact-details">
+                <span className="contact-label">Phone</span>
+                <span className="contact-value">{vendor.phone || "No phone provided"}</span>
+              </div>
+            </div>
+            <div className="contact-item">
+              <div className="contact-icon-wrapper">
+                <Mail className="contact-icon" size={20} />
+              </div>
+              <div className="contact-details">
+                <span className="contact-label">Email</span>
+                <span className="contact-value">{vendor.email || "No email provided"}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Services & Pricing */}
-        <div className="profile-card">
-          <div className="profile-card-header">
-            <h2>Services & Pricing</h2>
-            <button
-              className="add-service-btn"
-              onClick={() => setShowServiceForm(true)}
-              aria-label="Add New Service"
-            >
-              <Plus size={16} /> Add Service
+        {/* Services Table Section */}
+        <div className="services-section">
+          <div className="services-header">
+            <div className="section-header">
+              <h3>Services & Pricing</h3>
+              <div className="accent-line"></div>
+            </div>
+            <button className="add-service-btn" onClick={() => setShowServiceForm(true)}>
+              <Plus size={18} /> Add New Service
             </button>
           </div>
-          <div className="services-list">
+          
+          <div className="services-table-container">
             {services.length > 0 ? (
-              services.map((s, i) => (
-                <div className="service-item" key={s.id || `service-${i}`}>
-                  <div>
-                    <h4>{s.serviceName || "Unnamed Service"}</h4>
-                    <p>Cost: R{s.cost || "N/A"}</p>
-                    {s.chargeByHour && <p>Per Hour: R{s.chargeByHour}</p>}
-                    {s.chargePerPerson && <p>Per Person: R{s.chargePerPerson}</p>}
-                    {s.chargePerSquareMeter && <p>Per m²: R{s.chargePerSquareMeter}</p>}
-                    {s.extraNotes && <p className="service-notes">{s.extraNotes}</p>}
-                  </div>
-                  <div className="service-actions">
-                    <button
-                      className="edit-service-btn"
-                      onClick={() => handleEditService(s)}
-                      aria-label={`Edit ${s.serviceName || "service"}`}
-                    >
-                      <Edit size={14} /> Edit
-                    </button>
-                    <button
-                      className="delete-service-btn"
-                      onClick={() => handleDeleteService(s.id)}
-                      disabled={deleting === s.id || !s.id}
-                      aria-label={`Delete ${s.serviceName || "service"}`}
-                    >
-                      <Trash2 size={14} /> {deleting === s.id ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
-                </div>
-              ))
+              <table className="services-table">
+                <thead>
+                  <tr>
+                    <th>Service Name</th>
+                    <th>Base Cost</th>
+                    <th>Additional Pricing</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {services.map((service, index) => (
+                    <tr key={service.id || `service-${index}`} className="service-row">
+                      <td>
+                        <div className="service-name-section">
+                          <strong>{service.serviceName || "Unnamed Service"}</strong>
+                          {service.extraNotes && (
+                            <div className="service-notes">{service.extraNotes}</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="price-cell">
+                        <span className="base-price">R{service.cost || "N/A"}</span>
+                      </td>
+                      <td>
+                        <div className="pricing-details">
+                          {service.chargeByHour && (
+                            <span className="pricing-tag">Hourly: R{service.chargeByHour}</span>
+                          )}
+                          {service.chargePerPerson && (
+                            <span className="pricing-tag">Per Person: R{service.chargePerPerson}</span>
+                          )}
+                          {service.chargePerSquareMeter && (
+                            <span className="pricing-tag">Per m²: R{service.chargePerSquareMeter}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="service-actions">
+                          <button
+                            className="edit-service-btn"
+                            onClick={() => handleEditService(service)}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            className="delete-service-btn"
+                            onClick={() => handleDeleteService(service.id)}
+                            disabled={deleting === service.id || !service.id}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             ) : (
-              <p>No services added yet. Add your first service above.</p>
+              <div className="no-services-placeholder">
+                <Award size={48} className="placeholder-icon" />
+                <h4>No Services Added Yet</h4>
+                <p>Start by adding your first service to showcase your offerings</p>
+                <button className="add-first-service-btn" onClick={() => setShowServiceForm(true)}>
+                  <Plus size={18} /> Add Your First Service
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
 
+      {/* Gallery Section */}
+      <div className="gallery-section">
+        <div className="section-header">
+          <h3>Gallery & Portfolio</h3>
+          <div className="accent-line"></div>
+        </div>
+        <div className="gallery-grid">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="gallery-item">
+              <div className="gallery-image-placeholder">
+                <Plus size={32} />
+                <span>Add Image</span>
+              </div>
+              <div className="gallery-info">
+                <span>Project {item}</span>
+                <button className="upload-gallery-btn">Upload</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Add/Edit Service Modal */}
       {showServiceForm && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-labelledby="modal-title"
-          onClick={() => {
-            setShowServiceForm(false);
-            setEditingService(null);
-            setFormData({
-              serviceName: "",
-              cost: "",
-              chargeByHour: "",
-              chargePerPerson: "",
-              chargePerSquareMeter: "",
-              extraNotes: "",
-            });
-            setError("");
-          }}
-        >
+        <div className="modal-overlay">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 id="modal-title">{editingService ? "Edit Service" : "Add New Service"}</h3>
-              <button
-                className="close-btn"
-                onClick={() => {
-                  setShowServiceForm(false);
-                  setEditingService(null);
-                  setFormData({
-                    serviceName: "",
-                    cost: "",
-                    chargeByHour: "",
-                    chargePerPerson: "",
-                    chargePerSquareMeter: "",
-                    extraNotes: "",
-                  });
-                  setError("");
-                }}
-                aria-label="Close modal"
-              >
-                <X size={20} />
+              <h3>{editingService ? "Edit Service" : "Add New Service"}</h3>
+              <button className="close-btn" onClick={() => setShowServiceForm(false)}>
+                <X size={24} />
               </button>
             </div>
             <div className="modal-body">
-              {error && <div className="error modal-error">{error}</div>}
-              <input
-                type="text"
-                name="serviceName"
-                placeholder="Service Name *"
-                value={formData.serviceName}
-                onChange={handleChange}
-                required
-                aria-label="Service Name"
-                aria-required="true"
-              />
-              <input
-                type="number"
-                name="cost"
-                placeholder="Base Cost *"
-                value={formData.cost}
-                onChange={handleChange}
-                required
-                aria-label="Base Cost"
-                aria-required="true"
-              />
-              <input
-                type="number"
-                name="chargeByHour"
-                placeholder="Charge by Hour (optional)"
-                value={formData.chargeByHour}
-                onChange={handleChange}
-                aria-label="Charge by Hour"
-              />
-              <input
-                type="number"
-                name="chargePerPerson"
-                placeholder="Charge per Person (optional)"
-                value={formData.chargePerPerson}
-                onChange={handleChange}
-                aria-label="Charge per Person"
-              />
-              <input
-                type="number"
-                name="chargePerSquareMeter"
-                placeholder="Charge per Square Meter (optional)"
-                value={formData.chargePerSquareMeter}
-                onChange={handleChange}
-                aria-label="Charge per Square Meter"
-              />
-              <textarea
-                name="extraNotes"
-                placeholder="Extra Notes (optional)"
-                value={formData.extraNotes}
-                onChange={handleChange}
-                rows="3"
-                aria-label="Extra Notes"
-              />
+              {error && <div className="error-message">{error}</div>}
+              <div className="form-group">
+                <label>Service Name *</label>
+                <input
+                  type="text"
+                  name="serviceName"
+                  value={formData.serviceName}
+                  onChange={handleChange}
+                  placeholder="Enter service name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Base Cost (R) *</label>
+                <input
+                  type="number"
+                  name="cost"
+                  value={formData.cost}
+                  onChange={handleChange}
+                  placeholder="Enter base cost"
+                />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Hourly Rate (optional)</label>
+                  <input
+                    type="number"
+                    name="chargeByHour"
+                    value={formData.chargeByHour}
+                    onChange={handleChange}
+                    placeholder="R per hour"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Per Person (optional)</label>
+                  <input
+                    type="number"
+                    name="chargePerPerson"
+                    value={formData.chargePerPerson}
+                    onChange={handleChange}
+                    placeholder="R per person"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Per Square Meter (optional)</label>
+                <input
+                  type="number"
+                  name="chargePerSquareMeter"
+                  value={formData.chargePerSquareMeter}
+                  onChange={handleChange}
+                  placeholder="R per m²"
+                />
+              </div>
+              <div className="form-group">
+                <label>Description & Notes</label>
+                <textarea
+                  name="extraNotes"
+                  value={formData.extraNotes}
+                  onChange={handleChange}
+                  placeholder="Additional details about this service..."
+                  rows="3"
+                />
+              </div>
             </div>
             <div className="modal-footer">
-              <button className="upload-btn" onClick={handleSaveService}>
-                {editingService ? "Update" : "Save"}
-              </button>
-              <button
-                className="upload-btn secondary"
-                onClick={() => {
-                  setShowServiceForm(false);
-                  setEditingService(null);
-                  setFormData({
-                    serviceName: "",
-                    cost: "",
-                    chargeByHour: "",
-                    chargePerPerson: "",
-                    chargePerSquareMeter: "",
-                    extraNotes: "",
-                  });
-                  setError("");
-                }}
-              >
+              <button className="cancel-btn" onClick={() => setShowServiceForm(false)}>
                 Cancel
+              </button>
+              <button className="save-btn" onClick={handleSaveService}>
+                {editingService ? "Update Service" : "Create Service"}
               </button>
             </div>
           </div>
