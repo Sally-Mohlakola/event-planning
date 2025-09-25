@@ -8,6 +8,7 @@ const multer = require('multer');
 const nodemailer = require('nodemailer');
 const { onDocumentCreated } = require('firebase-functions/firestore');
 const { v4: uuidv4 } = require("uuid");
+const busboyUploadToStorageMiddleware = require("./busboyUploadToStorageMiddleware");
 
 admin.initializeApp();
 
@@ -70,7 +71,15 @@ app.use(cors({
 const upload = multer({ storage: multer.memoryStorage() });
 
 
-app.use(express.json());
+app.use((req, res, next) => {
+  // If request is JSON → run express.json()
+  if (req.is("application/json")) {
+    return express.json()(req, res, next);
+  }
+  // Otherwise (e.g. multipart/form-data for uploads) → skip
+  next();
+});
+
 
 //VENDOR=============================================
 app.post('/vendor/apply', authenticate, async (req, res) => {
@@ -1262,66 +1271,17 @@ app.put('/planner/:eventId/schedules/:scheduleId/items/:itemId', authenticate, a
   }
 });
 
-// Generate signed URL to upload PDF
-app.post("/planner/:eventId/schedules/upload-url", authenticate, async (req, res) => {
-  try {
-    const eventId = req.params.eventId;
-    const { fileName, contentType } = req.body;
-
-    if (!eventId || !fileName || !contentType) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    const filePath = `Schedules/${eventId}/${fileName}`;
-    const file = bucket.file(filePath);
-
-    const [uploadUrl] = await file.getSignedUrl({
-      version: "v4",
-      action: "write",
-      expires: admin.firestore.FieldValue.serverTimestamp() + 15 * 60 * 1000, // 15 minutes
-      contentType,
-    });
-
-    return res.status(200).json({
-      message: "Upload URL generated successfully",
-      uploadUrl,
-      filePath,
-    });
-  } catch (error) {
-    console.error("Error generating upload URL:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
 
 // Save uploaded PDF metadata to Firestore
-app.post("/planner/:eventId/schedules/save-file", authenticate, async (req, res) => {
+app.post("/planner/schedule-save/:eventId", authenticate, async (req, res) => {
   try {
     const eventId = req.params.eventId;
-    const { filePath, title } = req.body;
+    const { title, permanentUrl } = req.body;
 
-    if (!eventId || !filePath || !title) {
+    if (!eventId || !permanentUrl || !title) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const file = bucket.file(filePath);
-
-    // Get metadata
-    let [metadata] = await file.getMetadata();
-    let downloadToken = metadata.metadata?.firebaseStorageDownloadTokens;
-
-    // If no token, generate one
-    if (!downloadToken) {
-      downloadToken = uuidv4();
-      await file.setMetadata({
-        metadata: { firebaseStorageDownloadTokens: downloadToken },
-      });
-      [metadata] = await file.getMetadata();
-    }
-
-    // Construct permanent Firebase download URL
-    const permanentUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(
-      filePath
-    )}?alt=media&token=${downloadToken}`;
 
     // Save schedule doc for this file
     const scheduleRef = await db
@@ -1330,8 +1290,7 @@ app.post("/planner/:eventId/schedules/save-file", authenticate, async (req, res)
       .collection("Schedules")
       .add({
         scheduleTitle: title,
-        filePath,
-        url: permanentUrl,
+        url: permanentUrl
       });
 
     return res.status(200).json({
@@ -1345,6 +1304,46 @@ app.post("/planner/:eventId/schedules/save-file", authenticate, async (req, res)
   }
 });
 
+// Upload Schedule PDF to firestore
+app.post("/planner/schedule-upload/:eventId", busboyUploadToStorageMiddleware(undefined, (req) => `Schedules/${req.params.eventId}`),
+ async (req, res) => {
+  try {
+      const bucket = admin.storage().bucket();
+      const uploadedFiles = [];
+
+      for (const [field, storageFile] of Object.entries(req.uploads)) {
+        // Generate a permanent download token
+        const token = uuidv4();
+
+        // Set metadata with the token
+        await storageFile.setMetadata({
+          metadata: {
+            firebaseStorageDownloadTokens: token,
+          },
+        });
+
+        // Construct the permanent URL
+        const url = `https://firebasestorage.googleapis.com/v0/b/${storageFile.bucket.name}/o/${encodeURIComponent(
+          storageFile.name
+        )}?alt=media&token=${token}`;
+
+        uploadedFiles.push({
+          field,
+          gsPath: `gs://${storageFile.bucket.name}/${storageFile.name}`,
+          url, // permanent download URL
+        });
+      }
+
+      // Return URLs so frontend or backend can save them to the schedule doc
+      res.status(200).json({
+        message: "File uploaded successfully!",
+        files: uploadedFiles,
+      });
+    } catch (err) {
+      console.error("Error generating permanent URL:", err);
+      res.status(500).send("Failed to upload file");
+    }
+});
 
 //Upload image for an event
 app.post('/event/apply-with-image', authenticate, upload.single("image"), async (req, res) => {
