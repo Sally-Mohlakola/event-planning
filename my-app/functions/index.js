@@ -373,7 +373,7 @@ app.get("/analytics/:vendorId", authenticate, async (req, res) => {
   }
 });
 
-////////////////////////Use to review a vendor////////////////////////////////
+/////////////////////////Use to review a vendor////////////////////////////////
 // POST - Save a review for a vendor
 app.post("/analytics/:vendorId/reviews", authenticate, async (req, res) => {
   try {
