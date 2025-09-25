@@ -41,7 +41,7 @@ vi.mock("../../firebase", () => {
   return { auth: mockAuth };
 });
 
-// --- Mock the fetching and confirming of apis ---
+// --- Mock the fetching and confirming done by apis ---
 global.fetch = vi.fn();
 global.confirm = vi.fn(() => true);
 // END OF MOCK
@@ -65,7 +65,7 @@ describe("VendorProfile", () => {
     expect(screen.getByText(/Loading your profile and services/i)).toBeInTheDocument();
   });
 
-  it("renders that no profile is found if api returns null vendor after checking api", async () => {
+  it("renders that no profile is found if api returns null vendor after mocking api", async () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(null),

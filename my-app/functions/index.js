@@ -373,6 +373,44 @@ app.get("/analytics/:vendorId", authenticate, async (req, res) => {
   }
 });
 
+////////////////////////Use to review a vendor////////////////////////////////
+// POST - Save a review for a vendor
+app.post("/analytics/:vendorId/reviews", authenticate, async (req, res) => {
+  try {
+    const vendorId = req.params.vendorId;
+    const { review, timeOfReview, rating } = req.body;
+
+    if (!review || !timeOfReview || rating == null) {
+      return res.status(400).json({ message: "review, timeOfReview, and rating are required" });
+    }
+
+    // Reference to Reviews subcollection
+    const reviewsRef = db
+      .collection("Analytics")
+      .doc(vendorId)
+      .collection("Reviews");
+
+    // Add a new review doc
+    const newReviewRef = await reviewsRef.add({
+      review,
+      timeOfReview,
+      rating,
+      
+    });
+
+    res.status(201).json({
+      message: "Review added successfully",
+      id: newReviewRef.id,
+      review,
+      timeOfReview,
+      rating,
+    });
+  } catch (err) {
+    console.error("Error saving review:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
 
 
 //================================================================
@@ -3031,6 +3069,8 @@ app.post(
     }
   }
 );
+
+
 
 exports.api = functions.https.onRequest(app);
 
