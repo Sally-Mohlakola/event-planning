@@ -6,15 +6,6 @@ import "./PlannerAllEvents.css"
 import { getAuth } from "firebase/auth";
 
 function EventCard({event, onSelectEvent}){
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            weekday: 'short', 
-            month: 'short', 
-            day: 'numeric',
-            year: 'numeric'
-        });
-    };
 
     const getStatusColor = (status) => {
         switch(status) {
@@ -56,6 +47,27 @@ function EventCard({event, onSelectEvent}){
             </section>
         </section>
     );
+}
+
+function formatDate(date) {
+    if (!date) return "";
+
+    if(typeof date === 'object' && typeof date._seconds === 'number' && typeof date._nanoseconds === 'number') {
+        const jsDate = new Date( date._seconds * 1000 + date._nanoseconds / 1e6);
+        return jsDate.toLocaleString();
+    }
+
+    // Already a JS Date
+    if (date instanceof Date) {
+        return date.toLocaleString();
+    }
+
+    // String
+    if (typeof date === "string") {
+        return new Date(date).toLocaleString();
+    }
+
+    return String(date); // fallback
 }
 
 export default function PlannerAllEvents({setActivePage, onSelectEvent}){
