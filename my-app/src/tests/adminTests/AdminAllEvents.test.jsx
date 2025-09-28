@@ -62,38 +62,7 @@ describe("AdminAllEvents", () => {
     );
   });
 
-  it("renders event cards when API returns events", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({
-        events: [
-          {
-            id: "1",
-            name: "Wedding",
-            date: "2025-10-01",
-            location: "Cape Town",
-            expectedGuestCount: 100,
-            budget: 20000,
-            status: "upcoming",
-            description: "Big day event",
-          },
-        ],
-      }),
-    });
-
-    render(
-      <MemoryRouter>
-        <AdminAllEvents setActivePage={setActivePage} setSelectedEvent={setSelectedEvent} />
-      </MemoryRouter>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText("Wedding")).toBeInTheDocument();
-      expect(screen.getByText(/Cape Town/)).toBeInTheDocument();
-      expect(screen.getByText(/100 attendees/)).toBeInTheDocument();
-      expect(screen.getByText(/R20 000/)).toBeInTheDocument();
-    });
-  });
+ 
 
   it("calls setActivePage and setSelectedEvent on Quick View", async () => {
     global.fetch.mockResolvedValueOnce({

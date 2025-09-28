@@ -1,8 +1,34 @@
-
 import React, { useState, useEffect } from "react";
 import { auth, db } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import "./vendorFloorplan.css";
+
+// Helper to format Firestore timestamps, strings, or JS Date objects
+function formatDate(date) {
+  if (!date) return "";
+
+  // Firestore timestamp
+  if (
+    typeof date === "object" &&
+    typeof date._seconds === "number" &&
+    typeof date._nanoseconds === "number"
+  ) {
+    const jsDate = new Date(date._seconds * 1000 + date._nanoseconds / 1e6);
+    return jsDate.toLocaleString();
+  }
+
+  // Already a JS Date
+  if (date instanceof Date) {
+    return date.toLocaleString();
+  }
+
+  // String
+  if (typeof date === "string") {
+    return new Date(date).toLocaleString();
+  }
+
+  return String(date); // fallback
+}
 
 const useFloorplans = (events, vendorId) => {
   const [floorplans, setFloorplans] = useState({});
@@ -14,13 +40,22 @@ const useFloorplans = (events, vendorId) => {
       await Promise.all(
         events.map(async (event) => {
           try {
-            const floorplanRef = doc(db, "Event", event.eventId, "Floorplans", vendorId);
+            const floorplanRef = doc(
+              db,
+              "Event",
+              event.eventId,
+              "Floorplans",
+              vendorId
+            );
             const docSnap = await getDoc(floorplanRef);
             if (docSnap.exists()) {
               floorplansData[event.eventId] = docSnap.data().floorplanUrl;
             }
           } catch (error) {
-            console.error(`Error fetching floorplan for event ${event.eventId}:`, error);
+            console.error(
+              `Error fetching floorplan for event ${event.eventId}:`,
+              error
+            );
           }
         })
       );
@@ -37,8 +72,6 @@ const VendorFloorplan = () => {
   const [search, setSearch] = useState("");
   const [order, setOrder] = useState("asc");
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [pendingOrder, setPendingOrder] = useState("desc");
-  const [completedOrder, setCompletedOrder] = useState("desc");
   const [vendorId, setVendorId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,29 +83,23 @@ const VendorFloorplan = () => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setVendorId(user.uid);
-        console.log("Vendor ID set:", user.uid);
         try {
           const token = await user.getIdToken();
-          console.log("Fetching vendor bookings");
-          const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/bookings", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
-          }
+          const res = await fetch(
+            "https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/bookings",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
           const data = await res.json();
-          console.log("API Response:", data);
           const bookings = data.bookings.map((booking) => ({
             id: booking.eventId,
             eventId: booking.eventId,
             name: booking.eventName,
             date: booking.date,
-            history: {
-              pending: [], // Populate if contract data is added
-              completed: [], // Populate if contract data is added
-            },
           }));
           setEvents(bookings);
           setLoading(false);
@@ -91,19 +118,18 @@ const VendorFloorplan = () => {
 
   const filteredEvents = events
     .filter((e) => e.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      if (order === "asc") return new Date(a.date) - new Date(b.date);
-      return new Date(b.date) - new Date(a.date);
-    });
+    .sort((a, b) =>
+      order === "asc"
+        ? new Date(a.date) - new Date(b.date)
+        : new Date(b.date) - new Date(a.date)
+    );
 
-  const sortHistory = (historyArray, sortOrder) => {
-    return [...historyArray].sort((a, b) => {
-      if (sortOrder === "asc") return new Date(a.date) - new Date(b.date);
-      return new Date(b.date) - new Date(a.date);
-    });
-  };
-
-  if (loading) return <div className="loading-screen">Loading...</div>;
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="spinner"></div>
+      <h2>Loading Floorplans...</h2>
+    </div>
+  );
   if (error) return <div className="error">{error}</div>;
 
   return (
@@ -140,7 +166,7 @@ const VendorFloorplan = () => {
               onClick={() => setSelectedEvent(event)}
             >
               <h3>{event.name}</h3>
-              <p>Date: {new Date(event.date).toLocaleDateString()}</p>
+              <p>Date: {formatDate(event.date)}</p>
               <div className="floorplan-section">
                 {floorplans[event.eventId] ? (
                   <div className="floorplan-preview">
@@ -178,7 +204,7 @@ const VendorFloorplan = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h2>{selectedEvent.name} - Document History</h2>
+              <h2>{selectedEvent.name} - Floorplan</h2>
               <button
                 className="close-btn"
                 onClick={() => setSelectedEvent(null)}
@@ -186,87 +212,20 @@ const VendorFloorplan = () => {
                 &times;
               </button>
             </div>
-            <div className="modal-body">
-              <section className="history-section">
-                <h3>Floorplan</h3>
-                {floorplans[selectedEvent.eventId] ? (
-                  <div className="floorplan-preview modal-floorplan">
-                    <img
-                      src={floorplans[selectedEvent.eventId]}
-                      alt="Event Floorplan"
-                      className="modal-floorplan-image"
-                      onClick={() => window.open(floorplans[selectedEvent.eventId], "_blank")}
-                    />
-                    <p>
-                      <a
-                        href={floorplans[selectedEvent.eventId]}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View Full Floorplan
-                      </a>
-                    </p>
-                  </div>
-                ) : (
-                  <p>No floorplan available for this event</p>
-                )}
-              </section>
 
-              <section className="history-section">
-                <div className="history-header">
-                  <h3>Pending</h3>
-                  <select
-                    value={pendingOrder}
-                    onChange={(e) => setPendingOrder(e.target.value)}
-                  >
-                    <option value="asc">Oldest first</option>
-                    <option value="desc">Newest first</option>
-                  </select>
-                </div>
-                {selectedEvent.history.pending.length > 0 ? (
-                  <ul>
-                    {sortHistory(selectedEvent.history.pending, pendingOrder).map(
-                      (item) => (
-                        <li key={item.id}>
-                          <span>{item.name} - </span>
-                          <span>Last updated: {new Date(item.date).toLocaleDateString()}</span>{" "}
-                          - <a href={item.link}>View</a>
-                        </li>
-                      )
-                    )}
-                  </ul>
-                ) : (
-                  <p>No pending documents</p>
-                )}
-              </section>
-
-              <section className="history-section">
-                <div className="history-header">
-                  <h3>Completed</h3>
-                  <select
-                    value={completedOrder}
-                    onChange={(e) => setCompletedOrder(e.target.value)}
-                  >
-                    <option value="asc">Oldest first</option>
-                    <option value="desc">Newest first</option>
-                  </select>
-                </div>
-                {selectedEvent.history.completed.length > 0 ? (
-                  <ul>
-                    {sortHistory(selectedEvent.history.completed, completedOrder).map(
-                      (item) => (
-                        <li key={item.id}>
-                          <span>{item.name} - </span>
-                          <span>Last updated: {new Date(item.date).toLocaleDateString()}</span>{" "}
-                          - <a href={item.link}>View</a>
-                        </li>
-                      )
-                    )}
-                  </ul>
-                ) : (
-                  <p>No completed documents</p>
-                )}
-              </section>
+            <div className="floorplan-preview modal-floorplan">
+              {floorplans[selectedEvent.eventId] ? (
+                <img
+                  src={floorplans[selectedEvent.eventId]}
+                  alt="Event Floorplan"
+                  className="modal-floorplan-image"
+                  onClick={() =>
+                    window.open(floorplans[selectedEvent.eventId], "_blank")
+                  }
+                />
+              ) : (
+                <p>No floorplan available for this event</p>
+              )}
             </div>
           </div>
         </div>
