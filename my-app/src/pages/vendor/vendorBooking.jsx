@@ -6,7 +6,7 @@ import {
   CheckCircle,
   XCircle,
   Filter,
-  Coin,
+  DollarSign,
   Users,
   MessageCircle,
   Eye,
@@ -294,7 +294,7 @@ const VendorBooking = ({ setActivePage }) => {
                 <span>{booking.expectedGuestCount || "N/A"} guests</span>
               </div>
               <div className="detail-row">
-                <Coin size={16} />
+                <DollarSign size={16} />
                 <span>Budget: R{booking.budget || "__TBC__"}</span>
               </div>
             </div>
