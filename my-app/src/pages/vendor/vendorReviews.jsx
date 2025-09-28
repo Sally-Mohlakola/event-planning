@@ -5,7 +5,7 @@ import { Star, StarHalf } from "lucide-react";
 import "./vendorReviews.css";
 
 const StarRating = ({ rating, size = 16 }) => (
-  <div className="star-rating" style={{ display: "flex", gap: "2px" }}>
+  <div className="star-rating">
     {[1, 2, 3, 4, 5].map((i) => {
       if (i <= Math.floor(rating)) return <Star key={i} size={size} color="#fbbf24" />;
       else if (i - rating <= 0.5) return <StarHalf key={i} size={size} color="#fbbf24" />;
@@ -93,7 +93,7 @@ const VendorReviews = () => {
   };
 
   // Delete reply (set to "_blank_")
-  const handleDeleteReply = async (reviewId, currentReply) => {
+  const handleDeleteReply = async (reviewId) => {
     if (!auth.currentUser) return;
     if (!window.confirm("Are you sure you want to delete this reply?")) return;
 
@@ -101,7 +101,6 @@ const VendorReviews = () => {
       const token = await auth.currentUser.getIdToken();
       const vendorId = auth.currentUser.uid;
 
-      // Use the create/edit reply API, sending "_blank_"
       const res = await fetch(
         `https://us-central1-planit-sdp.cloudfunctions.net/api/analytics/${vendorId}/reviews/${reviewId}/reply`,
         {
@@ -193,19 +192,22 @@ const VendorReviews = () => {
               {/* Display existing reply */}
               {review.reply && !review.editingReply && !isBlank && (
                 <div className="review-reply">
-                  <strong>Your Reply:</strong> {review.reply}
-                  <button
-                    onClick={() =>
-                      setReviews((prev) =>
-                        prev.map((r) =>
-                          r.id === review.id ? { ...r, editingReply: true, replyInput: r.reply } : r
+                  <strong>Your Reply:</strong>
+                  <p>{review.reply}</p>
+                  <div className="review-reply-actions">
+                    <button
+                      onClick={() =>
+                        setReviews((prev) =>
+                          prev.map((r) =>
+                            r.id === review.id ? { ...r, editingReply: true, replyInput: r.reply } : r
+                          )
                         )
-                      )
-                    }
-                  >
-                    Edit
-                  </button>
-                  <button onClick={() => handleDeleteReply(review.id, review.reply)}>Delete</button>
+                      }
+                    >
+                      Edit
+                    </button>
+                    <button onClick={() => handleDeleteReply(review.id)}>Delete</button>
+                  </div>
                 </div>
               )}
 
@@ -231,13 +233,13 @@ const VendorReviews = () => {
                       )
                     }
                   />
-                  <button
-                    onClick={() => handleReply(review.id, review.replyInput)}
-                    disabled={!review.replyInput?.trim()}
-                  >
-                    Send
-                  </button>
-                  {review.editingReply && (
+                  <div className="review-reply-actions">
+                    <button
+                      onClick={() => handleReply(review.id, review.replyInput)}
+                      disabled={!review.replyInput?.trim()}
+                    >
+                      Send
+                    </button>
                     <button
                       onClick={() =>
                         setReviews((prev) =>
@@ -249,7 +251,7 @@ const VendorReviews = () => {
                     >
                       Cancel
                     </button>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
