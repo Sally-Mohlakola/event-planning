@@ -107,58 +107,57 @@ export default function PlannerSchedules() {
     return res.json();
   }
 
-  const uploadSchedulePDF = async (eventId, file) => {
+  const uploadSchedulePDF = async (eventId, file, scheduleData) => {
 
+    console.log(scheduleData);
     const auth = getAuth();
     const user = auth.currentUser;
     const token = await user.getIdToken(true);
 
     if (!file) showNotification('error', 'No file provided');
 
-    //Ask backend for signed upload URL
-    const res1 = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules/upload-url`, {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    //Upload file to firebase storage
+    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/schedule-upload/${eventId}`, {
+      method: "POST",
+      headers: { 
+        "Authorization": `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!res.ok){
+      showNotification("error", "Failed to upload PDF");
+      return;
+    } 
+    showNotification("success", "Uploaded pdf");
+    const data = await res.json();
+    console.log(data.files);
+
+    scheduleData = {
+      ...scheduleData,
+      permanentUrl: data.files[0].url
+    }
+        console.log(scheduleData);
+
+    //Save file link
+    const res2 = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/schedule-save/${eventId}`, {
       method: "POST",
       headers: { 
         "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json" 
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        fileName: file.name,
-        contentType: file.type,
-      }),
+      body: JSON.stringify(scheduleData)
     });
 
-    if (!res1.ok) showNotification("error", "Failed to get upload URL");
-    const { uploadUrl, filePath } = await res1.json();
+    if(!res2.ok){
+      showNotification("error", "Failed to save schedule link");
+      return;
+    } 
+    showNotification("success", "Saved schedule link");
 
-    console.log("UploadURL: ", uploadUrl);
-    //Upload file directly to signed URL
-    const res2 = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-
-    if (!res2.ok) showNotification("error", "Failed to upload file to storage");
-
-    //Tell backend to save metadata + generate permanent link
-    const res3 = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/schedules/save-file`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filePath,
-        title: file.name,
-      }),
-    });
-
-    if (!res3.ok) showNotification("error", "Failed to save file metadata");
-    const { url, scheduleId } = await res3.json();
-
-    console.log("PDF uploaded successfully");
-    console.log("Permanent URL:", url);
-    console.log("Firestore doc ID:", scheduleId);
-
-    return { url, scheduleId };
 }
  
 
@@ -327,15 +326,13 @@ export default function PlannerSchedules() {
 
   const handleFileUpload = async (event) => {
     const file = selectedPdf;
-    console.log(file);
 
     if (file && file.type === 'application/pdf') {
       if (!newScheduleTitle.trim()) {
         showNotification('error', 'Please enter a schedule title first');
         return;
       }
-      
-      const result = await uploadSchedulePDF(selectedEvent.id, file);
+      const result = await uploadSchedulePDF(selectedEvent.id, file, {title: selectedPdf.name});
       if (result) {
         // Refresh schedules
         const fetchedSchedules = await fetchSchedules(selectedEvent.id);

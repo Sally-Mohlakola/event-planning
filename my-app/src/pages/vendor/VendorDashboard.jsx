@@ -16,6 +16,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { auth } from "../../firebase";
+
+import { onAuthStateChanged } from "firebase/auth";
+
+
 import "./VendorDashboard.css";
 
 const VendorDashboard = ({ setActivePage }) => {
@@ -39,10 +43,11 @@ const VendorDashboard = ({ setActivePage }) => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+ 
 
   // Get vendor ID from auth
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setVendorId(user.uid);
         console.log("Vendor ID set:", user.uid);
