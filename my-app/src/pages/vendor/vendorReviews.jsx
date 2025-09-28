@@ -20,7 +20,6 @@ const VendorReviews = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch reviews
   useEffect(() => {
     const fetchReviews = async () => {
       if (!auth.currentUser) return;
@@ -49,7 +48,6 @@ const VendorReviews = () => {
     fetchReviews();
   }, []);
 
-  // Add or edit reply
   const handleReply = async (reviewId, replyText) => {
     if (!auth.currentUser) return;
     if (!replyText?.trim()) {
@@ -78,7 +76,6 @@ const VendorReviews = () => {
         throw new Error(errData.message || "Failed to update reply");
       }
 
-      // Update local state
       setReviews((prev) =>
         prev.map((r) =>
           r.id === reviewId
@@ -92,7 +89,6 @@ const VendorReviews = () => {
     }
   };
 
-  // Delete reply (set to "_blank_")
   const handleDeleteReply = async (reviewId) => {
     if (!auth.currentUser) return;
     if (!window.confirm("Are you sure you want to delete this reply?")) return;
@@ -118,7 +114,6 @@ const VendorReviews = () => {
         throw new Error(errData.message || "Failed to delete reply");
       }
 
-      // Update local state
       setReviews((prev) =>
         prev.map((r) =>
           r.id === reviewId ? { ...r, reply: "_blank_", editingReply: false, replyInput: "" } : r
@@ -130,7 +125,6 @@ const VendorReviews = () => {
     }
   };
 
-  // Format time
   const formatTime = (timestamp) => {
     const now = new Date();
     const reviewDate = new Date(timestamp);
@@ -141,7 +135,13 @@ const VendorReviews = () => {
     return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
   };
 
-  if (loading) return <p>Loading reviews...</p>;
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="spinner"></div>
+      <p>Loading reviews...</p>
+    </div>
+  );
+
   if (error) return <p className="error">{error}</p>;
   if (!reviews.length) return <p>No reviews found.</p>;
 
@@ -189,7 +189,6 @@ const VendorReviews = () => {
               <StarRating rating={review.rating} size={16} />
               <p className="review-comment">{review.review}</p>
 
-              {/* Display existing reply */}
               {review.reply && !review.editingReply && !isBlank && (
                 <div className="review-reply">
                   <strong>Your Reply:</strong>
@@ -211,7 +210,6 @@ const VendorReviews = () => {
                 </div>
               )}
 
-              {/* Reply input */}
               {(!review.reply || review.editingReply || isBlank) && (
                 <div className="reply-form">
                   <input
