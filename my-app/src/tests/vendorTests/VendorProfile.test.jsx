@@ -47,7 +47,7 @@ global.confirm = vi.fn(() => true);
 // END OF MOCK
 
 
-import VendorProfile from "../pages/vendor/vendorProfile";
+import VendorProfile from "../../pages/vendor/vendorProfile";
 
 describe("VendorProfile", () => {
   beforeEach(() => {

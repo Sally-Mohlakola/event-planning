@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
-import PlannerApp from "../pages/planner/PlannerApp";
+import PlannerApp from "../../pages/planner/PlannerApp";
 
 // Mock Firebase
 vi.mock("firebase/app", () => ({
