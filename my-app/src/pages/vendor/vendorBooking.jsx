@@ -225,9 +225,6 @@ const VendorBooking = ({ setActivePage }) => {
 
   return (
     <section className="booking-page">
-      {showChat && (<ChatComponent eventId={chatEventId} plannerId={chatPlannerId} vendorId={vendorId} 
-      currentUser={{id:vendorId, name: chatVendorName, type: "vendor"}} otherUser={{id:chatPlannerId, name: chatEventName, type: "planner"}}
-      closeChat={onCloseChat}/>)}
       <header>
         <h1>Booking Management</h1>
         <p>View, manage, and update your event bookings in one place.</p>
@@ -252,6 +249,10 @@ const VendorBooking = ({ setActivePage }) => {
           </div>
         </div>
       </header>
+
+    {showChat && (<ChatComponent eventId={chatEventId} plannerId={chatPlannerId} vendorId={vendorId} 
+      currentUser={{id:vendorId, name: chatVendorName, type: "vendor"}} otherUser={{id:chatPlannerId, name: chatEventName, type: "planner"}}
+      closeChat={onCloseChat}/>)}
 
       <div className="filters">
         <Filter size={20} />

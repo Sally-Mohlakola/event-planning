@@ -834,6 +834,45 @@ app.post('/planner/:eventId/vendors/:vendorId', authenticate, async (req, res) =
   }
 });
 
+//Update Status of past event
+
+app.get("/planner/event-status-update", authenticate, async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Fetch all upcoming events
+    const eventsSnapshot = await db.collection("Event")
+      .where("status", "==", "planning")
+      .get();
+
+    if (eventsSnapshot.empty) {
+      console.log("No upcoming events to update");
+      return res.status(200).send("No upcoming events to update");
+    }
+
+    const batch = db.batch();
+
+    eventsSnapshot.forEach(doc => {
+      const event = doc.data();
+      const endTime = event.date.toDate ? event.date.toDate() : new Date(event.date);
+
+      if (now > endTime) {
+        batch.update(doc.ref, { status: "passed" });
+        console.log(`Event ${doc.id} marked as passed`);
+      }
+    });
+
+    await batch.commit();
+    console.log("Event status update completed");
+    return res.status(200).send("Event statuses updated successfully");
+  } catch (error) {
+    console.error("Error updating event statuses:", error);
+    return res.status(500).send("Error updating event statuses");
+  }
+});
+
+
+
 // Send an invitation email when a guest is added
 exports.sendInvitationOnGuestAdded = onDocumentCreated('Event/{eventId}/Guests/{guestId}', async (event) => {
     
