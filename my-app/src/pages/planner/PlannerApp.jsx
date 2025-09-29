@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 //Paging imports
-import PlannerEventsCalendar from "./PlannerEventsCalendar";
 import PlannerDashboard from "./PlannerDashboard";
 import PlannerVendorMarketplace from "./PlannerVendorMarketplace";
 
@@ -35,14 +34,9 @@ const PlannerApp = () => {
 		{ id: "dashboard", label: "Dashboard", icon: BarChart3 },
 		{ id: "events", label: "Events", icon: Calendar },
 		{ id: "vendor", label: "Vendor Marketplace", icon: Users },
-		{
-			id: "schedule management",
-			label: "Schedule Management",
-			icon: Users,
-		},
+		{ id: "schedule management", label: "Schedule Management", icon: Users },
 		{ id: "floorplan", label: "Floorplan", icon: MapPin },
 		{ id: "documents", label: "Documents", icon: FileText },
-		{ id: "test", label: "Testing", icon: FileText },
 	];
 
 	const renderPlaceholderPage = (pageTitle) => (
@@ -77,8 +71,6 @@ const PlannerApp = () => {
 		switch (activePage) {
 			case "dashboard":
 				return <PlannerDashboard setActivePage={setActivePage} />;
-			case "test":
-				return <PlannerEventsCalendar setActivePage={setActivePage} />;
 			case "events":
 				return (
 					<PlannerAllEvents
