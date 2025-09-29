@@ -9,7 +9,18 @@ export default function Home() {
 	const navigate = useNavigate();
 	const auth = getAuth();
 
-	const navPlannerDashboard = () => {
+
+	const navPlannerDashboard = async () => {
+
+		const user = auth.currentUser;
+		const token = await user.getIdToken(true);
+
+		const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/event-status-update`, {
+			headers: {
+				"Authorization": `Bearer ${token}`
+			}
+		});
+
 		navigate("/planner-dashboard");
 	};
 	const navVendorApply = async () => {
