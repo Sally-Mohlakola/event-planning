@@ -44,7 +44,8 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
   const [isDirty, setIsDirty] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState(null);
   const containerRef = useRef(null);
-
+  const user = getAuth().currentUser;
+  
   const dragRef = useRef({
     dragging: false,
     rotating: false,
@@ -640,7 +641,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
       console.error("Upload error:", err.message, err.stack, {
         eventId: selectedEventId,
         vendorId: selectedVendor,
-        user: user ? { uid: user.uid, email: user.email } : "No user",
+        user: user? { uid: user.uid, email: user.email } : "No user",
       });
       alert("Upload failed: " + err.message);
     }
@@ -709,6 +710,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
         <aside className="floorplan-sidebar">
           <h3>Choose Event</h3>
           <select
+          data-testid="event-selector"
             value={selectedEventId}
             onChange={(e) => setSelectedEventId(e.target.value)}
             className="event-select"
@@ -723,6 +725,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 
           <h3>Choose Vendor</h3>
           <select
+          data-testid = "vendor-selector"
             value={selectedVendor}
             onChange={(e) => setSelectedVendor(e.target.value)}
             className="vendor-select"
