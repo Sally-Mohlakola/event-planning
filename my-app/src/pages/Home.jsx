@@ -12,16 +12,26 @@ export default function Home() {
 
 	const navPlannerDashboard = async () => {
 
-		const user = auth.currentUser;
-		const token = await user.getIdToken(true);
-
-		const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/event-status-update`, {
-			headers: {
-				"Authorization": `Bearer ${token}`
+		try{
+			if (!auth.currentUser) {
+					alert("You must be logged in");
+					return;
 			}
-		});
 
-		navigate("/planner-dashboard");
+			const token = await auth.currentUser.getIdToken();
+
+			const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/event-status-update`, {
+				headers: {
+					"Authorization": `Bearer ${token}`
+				}
+			});
+
+			navigate("/planner-dashboard");
+		}
+		catch(err){
+			console.error(err);
+		}
+
 	};
 	const navVendorApply = async () => {
 		try {
