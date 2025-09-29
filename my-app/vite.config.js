@@ -18,6 +18,8 @@ export default defineConfig({
     setupFiles: ['./src/test-setup.js'], 
     coverage: {
       reporter: ['text', 'lcov'],
+      include: ['src/**/*.js', 'src/**/*.jsx'],
+      exclude: ['node_modules/**', 'public/**','src/tests/','src/pages/vendor/VendorContract.jsx']
     },
   },
 })

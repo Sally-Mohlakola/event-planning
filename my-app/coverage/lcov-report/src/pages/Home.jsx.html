@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">88% </span>
+                <span class="strong">82.7% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>110/125</span>
+                <span class='fraction'>110/133</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">88% </span>
+                <span class="strong">82.7% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>110/125</span>
+                <span class='fraction'>110/133</span>
             </div>
         
             
@@ -231,7 +231,17 @@
 <a name='L166'></a><a href='#L166'>166</a>
 <a name='L167'></a><a href='#L167'>167</a>
 <a name='L168'></a><a href='#L168'>168</a>
-<a name='L169'></a><a href='#L169'>169</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -247,6 +257,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -255,6 +270,11 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">4x</span>
@@ -413,16 +433,26 @@ export default function Home() {
 &nbsp;
 	const navPlannerDashboard = <span class="fstat-no" title="function not covered" >async () =&gt; {</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >		const user = auth.currentUser;</span>
-<span class="cstat-no" title="statement not covered" >		const token = await user.getIdToken(true);</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >		const res = await fetch(`http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/event-status-update`, {</span>
-<span class="cstat-no" title="statement not covered" >			headers: {</span>
-<span class="cstat-no" title="statement not covered" >				"Authorization": `Bearer ${token}`</span>
+<span class="cstat-no" title="statement not covered" >		try{</span>
+<span class="cstat-no" title="statement not covered" >			if (!auth.currentUser) {</span>
+<span class="cstat-no" title="statement not covered" >					alert("You must be logged in");</span>
+<span class="cstat-no" title="statement not covered" >					return;</span>
 <span class="cstat-no" title="statement not covered" >			}</span>
-<span class="cstat-no" title="statement not covered" >		});</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >		navigate("/planner-dashboard");</span>
+<span class="cstat-no" title="statement not covered" >			const token = await auth.currentUser.getIdToken();</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >			const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/event-status-update`, {</span>
+<span class="cstat-no" title="statement not covered" >				headers: {</span>
+<span class="cstat-no" title="statement not covered" >					"Authorization": `Bearer ${token}`</span>
+<span class="cstat-no" title="statement not covered" >				}</span>
+<span class="cstat-no" title="statement not covered" >			});</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >			navigate("/planner-dashboard");</span>
+<span class="cstat-no" title="statement not covered" >		}</span>
+<span class="cstat-no" title="statement not covered" >		catch(err){</span>
+<span class="cstat-no" title="statement not covered" >			console.error(err);</span>
+<span class="cstat-no" title="statement not covered" >		}</span>
+&nbsp;
 <span class="cstat-no" title="statement not covered" >	};</span>
 	const navVendorApply = async () =&gt; {
 		try {
@@ -574,7 +604,7 @@ export default function Home() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-29T20:53:27.786Z
+                at 2025-09-29T22:08:42.018Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

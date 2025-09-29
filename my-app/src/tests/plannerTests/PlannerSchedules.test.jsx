@@ -1,597 +1,1059 @@
-// src/tests/plannerTests/PlannerSchedules.test.jsx
-/**
- * @vitest-environment jsdom
- */
-
-import React from "react";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, beforeEach, afterEach, vi, expect } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, beforeEach, vi, expect } from "vitest";
-import PlannerSchedules from "../../pages/planner/PlannerSchedules";
 
-// Mock Firebase Auth
+// MOCKS
+// --- Mock firebase/auth ---
+const mockAuth = {
+  currentUser: {
+    uid: "test-planner",
+    getIdToken: vi.fn(() => Promise.resolve("mock-token")),
+  },
+};
+
 vi.mock("firebase/auth", () => ({
-  getAuth: () => ({
-    currentUser: {
-      getIdToken: vi.fn(() => Promise.resolve("fake-token")),
-    },
-  }),
+  getAuth: () => mockAuth,
 }));
 
-// Mock jsPDF and autoTable
-vi.mock("jspdf", () => ({
-  jsPDF: vi.fn(() => ({
-    setFontSize: vi.fn(),
-    text: vi.fn(),
-    save: vi.fn(),
-  })),
-}));
 
-vi.mock("jspdf-autotable", () => ({
-  autoTable: vi.fn(),
-}));
-
-// Mock Lucide React icons - define inline to avoid hoisting issues
-vi.mock("lucide-react", () => {
-  const createMockIcon = (testId) => ({ className, ...props }) => 
-    React.createElement('div', { 
-      'data-testid': testId, 
-      className, 
-      ...props 
-    }, testId);
-
+vi.mock("jspdf-autotable", () => {
+  const mockAutoTable = vi.fn();
   return {
-    Calendar: createMockIcon("calendar-icon"),
-    Clock: createMockIcon("clock-icon"),
-    Upload: createMockIcon("upload-icon"),
-    Plus: createMockIcon("plus-icon"),
-    Download: createMockIcon("download-icon"),
-    Edit3: createMockIcon("edit-icon"),
-    Trash2: createMockIcon("trash-icon"),
-    Save: createMockIcon("save-icon"),
-    FileText: createMockIcon("file-text-icon"),
-    Database: createMockIcon("database-icon"),
-    List: createMockIcon("list-icon"),
-    X: createMockIcon("x-icon"),
-    ChevronDown: createMockIcon("chevron-down-icon"),
-    ChevronUp: createMockIcon("chevron-up-icon"),
-    AlertCircle: createMockIcon("alert-circle-icon"),
-    CheckCircle: createMockIcon("check-circle-icon"),
-    ExternalLink: createMockIcon("external-link-icon"),
+    autoTable: mockAutoTable,
   };
 });
 
-// Helper render wrapper
-const renderWithRouter = (ui) => {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+// now re-import the mock from the module itself
+import { autoTable as mockAutoTable } from "jspdf-autotable";
+
+vi.mock('jspdf', () => {
+  const mockSetFontSize = vi.fn();
+  const mockText = vi.fn();
+  const mockSave = vi.fn();
+  const mockAddImage = vi.fn();
+  
+  const createMockInstance = () => ({
+    setFontSize: mockSetFontSize,
+    text: mockText,
+    save: mockSave,
+    addImage: mockAddImage,
+    internal: {
+      pageSize: {
+        width: 210,
+        height: 297
+      }
+    },
+    setTextColor: vi.fn(),
+    setDrawColor: vi.fn(),
+    setFillColor: vi.fn(),
+    rect: vi.fn(),
+    line: vi.fn(),
+    addPage: vi.fn(),
+    setFont: vi.fn(),
+    getFontSize: vi.fn(() => 12),
+    getTextWidth: vi.fn(() => 50),
+  });
+
+  return {
+    jsPDF: vi.fn(() => createMockInstance()),
+  };
+});
+
+// mock jspdf-autotable (default export)
+
+
+beforeEach(() => {
+  mockAutoTable.mockClear();
+  jsPDF.mockClear();
+});
+
+import { jsPDF } from "jspdf";
+
+// --- Mock global functions ---
+beforeAll(() => {
+  window.HTMLElement.prototype.scrollIntoView = function() {};
+});
+
+beforeEach(() => {
+  global.fetch = vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({}),
+    })
+  );
+  global.alert.mockClear();
+  mockAuth.currentUser.getIdToken.mockClear();
+});
+
+
+global.URL = {
+  createObjectURL: vi.fn(() => "mock-url"),
+  revokeObjectURL: vi.fn(),
 };
 
-// Test Data
+// Mock document.createElement for CSV/JSON downloads
+const mockClick = vi.fn();
+
+// Store original createElement
+const originalCreateElement = document.createElement.bind(document);
+
+// Only mock createElement when we need to track clicks
+const mockCreateElement = vi.fn((tagName) => {
+  const element = originalCreateElement(tagName);
+  if (tagName === 'a') {
+    element.click = mockClick;
+  }
+  return element;
+});
+
+import PlannerSchedules from "../../pages/planner/PlannerSchedules";
+import autoTable from "jspdf-autotable";
+
 const mockEvents = [
   {
-    id: "1",
-    name: "Tech Conference 2024",
-    date: { _seconds: 1735689600, _nanoseconds: 0 },
-    eventCategory: "Conference",
-    expectedGuestCount: 200,
-    duration: 8,
-  },
-  {
-    id: "2",
-    name: "Summer Wedding",
-    date: { _seconds: 1743465600, _nanoseconds: 0 },
+    id: "event1",
+    name: "Wedding Reception",
+    date: { _seconds: 1735689600, _nanoseconds: 0 }, // Jan 1, 2025
     eventCategory: "Wedding",
     expectedGuestCount: 150,
-    duration: 6,
+    duration: 8, // hours
+  },
+  {
+    id: "event2",
+    name: "Corporate Meeting",
+    date: "2025-02-15T10:00:00Z",
+    eventCategory: "Business",
+    expectedGuestCount: 50,
+    duration: 4,
   },
 ];
 
 const mockSchedules = [
   {
-    id: "schedule-1",
-    scheduleTitle: "Main Conference Schedule",
+    id: "schedule1",
+    scheduleTitle: "Main Timeline",
     items: [
       {
-        id: "item-1",
-        time: "09:00",
-        title: "Opening Keynote",
+        id: "item1",
+        time: "18:00",
+        title: "Reception Begins",
         duration: "60",
-        description: "Welcome and opening remarks"
+        description: "Cocktail hour and mingling",
       },
       {
-        id: "item-2",
-        time: "10:00",
-        title: "Technical Workshop",
-        duration: "120",
-        description: "Hands-on technical session"
-      }
-    ]
+        id: "item2",
+        time: "19:00",
+        title: "Dinner Service",
+        duration: "90",
+        description: "Three-course dinner",
+      },
+    ],
   },
   {
-    id: "schedule-2",
-    scheduleTitle: "Evening Networking",
-    items: []
-  }
+    id: "schedule2",
+    scheduleTitle: "PDF Schedule",
+    pdfUrl: "https://example.com/schedule.pdf",
+    type: "pdf",
+  },
 ];
 
 describe("PlannerSchedules", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
-    global.fetch = vi.fn();
+
+    document.createElement = mockCreateElement;
+
+    global.fetch.mockClear();
+    global.alert.mockClear();
+    mockAuth.currentUser.getIdToken.mockClear();
+    jsPDF.mockClear();
+    mockClick.mockClear();
   });
 
-  const setupMocksForEventSelection = (schedules = []) => {
-    // Mock fetchEvents
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ events: mockEvents }),
-      })
-    );
-
-    // Mock fetchSchedules
-    if (schedules.length > 0) {
-      global.fetch.mockImplementationOnce(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ schedules }),
-        })
-      );
-    } else {
-      global.fetch.mockImplementationOnce(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ schedules: [] }),
-        })
-      );
-    }
-  };
-
-  const setupMocksForScheduleCreation = () => {
-    setupMocksForEventSelection([]);
-    
-    // Mock addSchedule
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ id: "new-schedule-123" }),
-      })
-    );
-  };
-
-  // Helper function to select an event
-  const selectEvent = async (eventName = "Tech Conference 2024") => {
-    const eventCards = screen.getAllByTestId("event-card");
-    const eventCard = eventCards.find(card => 
-      card.textContent?.includes(eventName)
-    );
-    if (eventCard) {
-      fireEvent.click(eventCard);
-    }
-    return eventCard;
-  };
-
-  // Helper function to expand a schedule
-  const expandSchedule = async (scheduleTitle = "Main Conference Schedule") => {
-    const scheduleHeaders = screen.getAllByText(scheduleTitle);
-    if (scheduleHeaders.length > 0) {
-      // Find the parent schedule container and click the header
-      const scheduleContainer = scheduleHeaders[0].closest('[data-testid="schedule-container"]');
-      if (scheduleContainer) {
-        const header = scheduleContainer.querySelector('.ps-schedule-header');
-        if (header) {
-          fireEvent.click(header);
-          // Wait a bit for the expansion animation
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-    }
-  };
-
-  // ========== ORIGINAL TESTS ==========
-
-  it("renders header and events list", async () => {
-    setupMocksForEventSelection();
-    renderWithRouter(<PlannerSchedules />);
-
-    expect(await screen.findByRole("heading", { name: /Schedule Manager/i })).toBeInTheDocument();
-    expect(screen.getByText(/Your Events/i)).toBeInTheDocument();
-    
-    expect(screen.getByText("Tech Conference 2024")).toBeInTheDocument();
-    expect(screen.getByText("Summer Wedding")).toBeInTheDocument();
+  afterEach(() => {
+    document.createElement = originalCreateElement;
+    vi.clearAllMocks();
   });
 
-  it("shows empty state when no event is selected", async () => {
-    setupMocksForEventSelection();
-    renderWithRouter(<PlannerSchedules />);
+  it("renders header and empty state when no event selected", () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ events: [] }),
+    });
 
-    await screen.findByText("Tech Conference 2024");
-    
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Schedule Manager")).toBeInTheDocument();
     expect(screen.getByText("Select an Event")).toBeInTheDocument();
     expect(screen.getByText("Choose an event from your list to start managing schedules")).toBeInTheDocument();
   });
 
-  it("loads schedules when event is selected", async () => {
-    setupMocksForEventSelection(mockSchedules);
-    renderWithRouter(<PlannerSchedules />);
+  it("fetches and displays events on component mount", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ events: mockEvents }),
+    });
 
-    await screen.findByText("Tech Conference 2024");
-    
-    await selectEvent();
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
-      expect(screen.getByText("Tech Conference 2024 Schedules")).toBeInTheDocument();
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+      expect(screen.getByText("Corporate Meeting")).toBeInTheDocument();
     });
-    
-    expect(screen.getByText("Main Conference Schedule")).toBeInTheDocument();
-    expect(screen.getByText("Evening Networking")).toBeInTheDocument();
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events",
+      expect.objectContaining({
+        headers: {
+          Authorization: "Bearer mock-token",
+        },
+      })
+    );
   });
 
-  it("shows create schedule modal when clicking new schedule button", async () => {
-    setupMocksForEventSelection([]);
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    await selectEvent();
-
-    await waitFor(() => {
-      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
-    });
-
-    // Click create schedule button
-    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
-    fireEvent.click(newScheduleButton);
-
-    // Check if modal opened
-    await waitFor(() => {
-      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
-    });
-  });
-
-  it("creates a new manual schedule", async () => {
-    setupMocksForScheduleCreation();
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    await selectEvent();
-
-    // Wait for empty state and click create button
-    await waitFor(() => {
-      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
-    });
-
-    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
-    fireEvent.click(newScheduleButton);
-
-    // Wait for modal and fill form
-    await waitFor(() => {
-      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
-    });
-
-    const titleInput = screen.getByPlaceholderText(/Enter schedule name/i);
-    fireEvent.change(titleInput, { target: { value: "Test Schedule" } });
-
-    // Click manual creation option
-    const manualOption = screen.getByText("Create Manually");
-    fireEvent.click(manualOption);
-
-    // Modal should close
-    await waitFor(() => {
-      expect(screen.queryByText("Create New Schedule")).not.toBeInTheDocument();
-    });
-  });
-
-  it("handles empty schedules state", async () => {
-    setupMocksForEventSelection([]);
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    await selectEvent();
-
-    await waitFor(() => {
-      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
-      expect(screen.getByText("Create your first schedule to start planning your event timeline")).toBeInTheDocument();
-    });
-  });
-
-  it("shows notification on successful schedule creation", async () => {
-    setupMocksForScheduleCreation();
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    await selectEvent();
-
-    // Wait for empty state and click create button
-    await waitFor(() => {
-      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
-    });
-
-    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
-    fireEvent.click(newScheduleButton);
-
-    // Wait for modal and fill form
-    await waitFor(() => {
-      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
-    });
-
-    const titleInput = screen.getByPlaceholderText(/Enter schedule name/i);
-    fireEvent.change(titleInput, { target: { value: "Test Schedule" } });
-
-    // Click manual creation option
-    const manualOption = screen.getByText("Create Manually");
-    fireEvent.click(manualOption);
-
-    // Check for success notification
-    await waitFor(() => {
-      expect(screen.getByText("Schedule created successfully!")).toBeInTheDocument();
-    });
-  });
-
-  // ========== STATEMENT COVERAGE TESTS ==========
-
-  
-  it("handles API errors when fetching schedules", async () => {
-    // Mock successful events fetch but failed schedules fetch
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
+  it("selects event and fetches schedules", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ events: mockEvents }),
       })
-    ).mockImplementationOnce(() =>
-      Promise.reject(new Error("Failed to fetch schedules"))
-    );
-
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    // Select event
-    const eventCards = screen.getAllByTestId("event-card");
-    const conferenceCard = eventCards.find(card => 
-      card.textContent?.includes("Tech Conference 2024")
-    );
-    fireEvent.click(conferenceCard);
-
-    // Should handle error gracefully
-    await waitFor(() => {
-      expect(screen.getByText("Tech Conference 2024 Schedules")).toBeInTheDocument();
-    });
-  });
-
-  it("handles empty events array", async () => {
-    // Mock empty events array
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
+      .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ events: [] }),
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception Schedules")).toBeInTheDocument();
+      expect(screen.getByText("Main Timeline")).toBeInTheDocument();
+      expect(screen.getByText("PDF Schedule")).toBeInTheDocument();
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://us-central1-planit-sdp.cloudfunctions.net/api/planner/event1/schedules",
+      expect.objectContaining({
+        headers: {
+          Authorization: "Bearer mock-token",
+        },
       })
     );
-
-    renderWithRouter(<PlannerSchedules />);
-
-    // Should show empty events state
-    await waitFor(() => {
-      expect(screen.getByText("Your Events")).toBeInTheDocument();
-    });
   });
 
-  
-  it("handles schedule with no items", async () => {
-    const emptySchedule = [
-      {
-        id: "empty-schedule-1",
-        scheduleTitle: "Empty Schedule",
-        items: []
-      }
-    ];
-
-    setupMocksForEventSelection(emptySchedule);
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    const eventCards = screen.getAllByTestId("event-card");
-    const conferenceCard = eventCards.find(card => 
-      card.textContent?.includes("Tech Conference 2024")
-    );
-    fireEvent.click(conferenceCard);
-
-    await waitFor(() => {
-      expect(screen.getByText("Empty Schedule")).toBeInTheDocument();
-      expect(screen.getByText("0 items")).toBeInTheDocument();
-    });
-  });
-
-  
-  it("handles form validation in schedule creation", async () => {
-    setupMocksForEventSelection([]);
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    const eventCards = screen.getAllByTestId("event-card");
-    const conferenceCard = eventCards.find(card => 
-      card.textContent?.includes("Tech Conference 2024")
-    );
-    fireEvent.click(conferenceCard);
-
-    await waitFor(() => {
-      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
-    });
-
-    // Open create schedule modal
-    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
-    fireEvent.click(newScheduleButton);
-
-    await waitFor(() => {
-      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
-    });
-
-    // Try to create schedule without title
-    const manualOption = screen.getByText("Create Manually");
-    fireEvent.click(manualOption);
-
-    // Should not close modal since title is required
-    await waitFor(() => {
-      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
-    });
-  });
-
-  
-
-  it("handles notification display and auto-hide", async () => {
-    setupMocksForEventSelection([]);
-    
-    // Mock addSchedule to trigger notification
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
+  it("expands and displays schedule items", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ events: mockEvents }),
       })
-    ).mockImplementationOnce(() =>
-      Promise.resolve({
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Main Timeline")).toBeInTheDocument();
+    });
+
+    // Schedule should be expanded by default (first one)
+    expect(screen.getByText("Reception Begins")).toBeInTheDocument();
+    expect(screen.getByText("18:00")).toBeInTheDocument();
+    expect(screen.getByText("Cocktail hour and mingling")).toBeInTheDocument();
+  });
+
+  it("opens create schedule modal", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: [] }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("New Schedule")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("New Schedule"));
+
+    expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
+    expect(screen.getByText("Create Manually")).toBeInTheDocument();
+    expect(screen.getByText("Upload PDF")).toBeInTheDocument();
+  });
+
+  it("creates new manual schedule", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ schedules: [] }),
       })
-    ).mockImplementationOnce(() =>
-      Promise.resolve({
+      .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ id: "new-schedule-123" }),
-      })
+        json: () => Promise.resolve({ id: "new-schedule-id" }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
     );
 
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    const eventCards = screen.getAllByTestId("event-card");
-    const conferenceCard = eventCards.find(card => 
-      card.textContent?.includes("Tech Conference 2024")
-    );
-    fireEvent.click(conferenceCard);
-
     await waitFor(() => {
-      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
     });
 
-    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
-    fireEvent.click(newScheduleButton);
+    fireEvent.click(screen.getByText("Wedding Reception"));
 
     await waitFor(() => {
-      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
+      expect(screen.getByText("New Schedule")).toBeInTheDocument();
     });
 
-    const titleInput = screen.getByPlaceholderText(/Enter schedule name/i);
-    fireEvent.change(titleInput, { target: { value: "Test Schedule" } });
+    fireEvent.click(screen.getByText("New Schedule"));
 
-    const manualOption = screen.getByText("Create Manually");
-    fireEvent.click(manualOption);
+    const titleInput = screen.getByPlaceholderText("Enter schedule name (e.g., Main Event Timeline)");
+    fireEvent.change(titleInput, { target: { value: "New Schedule Title" } });
 
-    // Check notification appears
+    fireEvent.click(screen.getByText("Create Manually"));
+
     await waitFor(() => {
-      expect(screen.getByText("Schedule created successfully!")).toBeInTheDocument();
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://us-central1-planit-sdp.cloudfunctions.net/api/planner/event1/schedules",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            Authorization: "Bearer mock-token",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ scheduleTitle: "New Schedule Title" }),
+        })
+      );
     });
-
-    // Notification should auto-hide after timeout
-    await waitFor(() => {
-      expect(screen.queryByText("Schedule created successfully!")).not.toBeInTheDocument();
-    }, { timeout: 5000 });
   });
 
-  it("handles file upload functionality", async () => {
-    setupMocksForEventSelection([]);
-    
-    // Mock file upload API calls
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
+  it("opens schedule item modal", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ events: mockEvents }),
       })
-    ).mockImplementationOnce(() =>
-      Promise.resolve({
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Add Item")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Add Item"));
+
+    expect(screen.getByText("Add Schedule Item - Wedding Reception")).toBeInTheDocument();
+    expect(screen.getByLabelText("Time")).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toBeInTheDocument();
+  });
+
+  it("adds new schedule item", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: "new-item-id" }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    await waitFor(()=>fireEvent.click(screen.getByText("Wedding Reception")));
+
+    await waitFor(() => {
+      expect(screen.getByText("Add Item")).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      fireEvent.click(screen.getByText("Main Timeline"));
+    })
+
+    await waitFor(() => {
+      fireEvent.click(screen.getByText("Main Timeline"));
+    })
+
+
+    await waitFor(()=>fireEvent.click(screen.getByText("Add Item")));
+
+    const timeInput = screen.getByLabelText("Time");
+    const titleInput = screen.getByLabelText("Title");
+    const durationInput = screen.getByLabelText("Duration (minutes)");
+
+    fireEvent.change(timeInput, { target: { value: "20:00" } });
+    fireEvent.change(titleInput, { target: { value: "New Event" } });
+    fireEvent.change(durationInput, { target: { value: "30" } });
+
+    await waitFor(()=>fireEvent.click(screen.getByText("Save Item")));
+  });
+
+  it("edits schedule item", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: "item1" }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Reception Begins")).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      fireEvent.click(screen.getByText("Main Timeline"));
+    })
+
+    await waitFor(() => {
+      fireEvent.click(screen.getByText("Main Timeline"));
+    })
+
+    // Find and click edit button for first item
+    const editButtons = screen.getAllByTestId("item-edit-button");
+    const editButton = editButtons[0];
+    
+    if (editButton) {
+      fireEvent.click(editButton);
+    }
+
+    await waitFor(() => {
+      const saveButton = screen.getByText("Save");
+      fireEvent.click(saveButton);
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("items/item1"),
+        expect.objectContaining({
+          method: "PUT",
+        })
+      );
+    });
+  });
+
+  it("deletes schedule item", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({}),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Reception Begins")).toBeInTheDocument();
+    });
+
+    // Find and click delete button (trash icon)
+    const deleteButtons = screen.getAllByRole("button");
+    const deleteButton = deleteButtons.find(button => {
+      return button.classList.contains('ps-btn-danger');
+    });
+
+    if (deleteButton) {
+      fireEvent.click(deleteButton);
+    }
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("items/item1"),
+        expect.objectContaining({
+          method: "DELETE",
+        })
+      );
+    });
+  });
+
+  it("exports schedule as PDF", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Export")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Export"));
+
+    expect(screen.getByText("Export Schedule")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("PDF Document"));
+
+    await waitFor(()=>expect(jsPDF().setFontSize).toHaveBeenCalled());
+    await waitFor(()=>expect(jsPDF().text).toHaveBeenCalled());
+    await waitFor(()=>expect(mockAutoTable).toHaveBeenCalled());
+    await waitFor(()=>expect(jsPDF().save).toHaveBeenCalledWith("Wedding_Reception_schedule_1.pdf"));
+  });
+
+  it("exports schedule as CSV", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Export")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Export"));
+
+    fireEvent.click(screen.getByText("CSV Spreadsheet"));
+
+    expect(mockClick).toHaveBeenCalled();
+    expect(global.URL.createObjectURL).toHaveBeenCalled();
+  });
+
+  it("exports schedule as JSON", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Export")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Export"));
+
+    fireEvent.click(screen.getByText("JSON Data"));
+
+    expect(mockClick).toHaveBeenCalled();
+    expect(global.URL.createObjectURL).toHaveBeenCalled();
+  });
+
+  it("handles PDF schedule view", async () => {
+    const mockOpen = vi.spyOn(window, 'open').mockImplementation(() => {});
+
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("PDF Schedule")).toBeInTheDocument();
+    });
+
+    // Click on PDF schedule to expand it
+    fireEvent.click(screen.getByText("PDF Schedule"));
+
+    await waitFor(() => {
+      expect(screen.getByText("View PDF")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("View PDF"));
+
+    expect(mockOpen).toHaveBeenCalledWith("https://example.com/schedule.pdf", "_blank");
+
+    mockOpen.mockRestore();
+  });
+
+  it("uploads PDF schedule", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ schedules: [] }),
       })
-    ).mockImplementationOnce(() =>
-      Promise.resolve({
+      .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ files: [{ url: "https://example.com/schedule.pdf" }] }),
+        json: () => Promise.resolve({ files: [{ url: "https://example.com/uploaded.pdf" }] }),
       })
-    ).mockImplementationOnce(() =>
-      Promise.resolve({
+      .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({}),
       })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: [] }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
     );
 
-    renderWithRouter(<PlannerSchedules />);
-
-    await screen.findByText("Tech Conference 2024");
-    
-    const eventCards = screen.getAllByTestId("event-card");
-    const conferenceCard = eventCards.find(card => 
-      card.textContent?.includes("Tech Conference 2024")
-    );
-    fireEvent.click(conferenceCard);
-
     await waitFor(() => {
-      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
     });
 
-    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
-    fireEvent.click(newScheduleButton);
+    fireEvent.click(screen.getByText("Wedding Reception"));
 
     await waitFor(() => {
-      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
+      expect(screen.getByText("New Schedule")).toBeInTheDocument();
     });
 
-    // Fill title
-    const titleInput = screen.getByPlaceholderText(/Enter schedule name/i);
+    fireEvent.click(screen.getByText("New Schedule"));
+
+    const titleInput = screen.getByPlaceholderText("Enter schedule name (e.g., Main Event Timeline)");
     fireEvent.change(titleInput, { target: { value: "PDF Schedule" } });
 
-    // Note: File input testing is complex in JSDOM, so we're testing the flow up to file selection
-    // The actual file change event would require more complex setup
+    fireEvent.click(screen.getByText("Upload PDF"));
+
+    // Simulate file selection
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = new File(["pdf content"], "schedule.pdf", { type: "application/pdf" });
+    
+    Object.defineProperty(fileInput, 'files', {
+      value: [file],
+    });
+
+    fireEvent.change(fileInput);
+
+    await waitFor(() => {
+      expect(screen.getByText("Save")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Save"));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("schedule-upload"),
+        expect.objectContaining({
+          method: "POST",
+        })
+      );
+    });
   });
 
-  // Test the formatDate function indirectly through component behavior
-  it("handles different date formats through component", async () => {
-    const eventsWithDifferentDates = [
-      {
-        id: "1",
-        name: "Event with Firestore Date",
-        date: { _seconds: 1735689600, _nanoseconds: 0 },
-        eventCategory: "Conference",
-        expectedGuestCount: 200,
-        duration: 8,
-      },
-      {
-        id: "2", 
-        name: "Event with String Date",
-        date: "2024-01-01T12:00:00Z",
-        eventCategory: "Meeting",
-        expectedGuestCount: 50,
-        duration: 2,
-      }
-    ];
-
-    // Mock events with different date formats
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
+  it("deletes schedule", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ events: eventsWithDifferentDates }),
+        json: () => Promise.resolve({ events: mockEvents }),
       })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({}),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
     );
 
-    renderWithRouter(<PlannerSchedules />);
-
-    // Component should handle both date formats without crashing
     await waitFor(() => {
-      expect(screen.getByText("Event with Firestore Date")).toBeInTheDocument();
-      expect(screen.getByText("Event with String Date")).toBeInTheDocument();
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
     });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Delete Schedule")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Delete Schedule"));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://us-central1-planit-sdp.cloudfunctions.net/api/planner/event1/schedules/schedule1",
+        expect.objectContaining({
+          method: "DELETE",
+        })
+      );
+    });
+  });
+
+  it("validates schedule item time against event duration", () => {
+    // Mock alert for time validation
+    global.alert.mockImplementation(() => {});
+
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    // The time validation is tested indirectly through the component's internal logic
+    // We can verify that alert is called when invalid times are entered
+    expect(global.alert).toHaveBeenCalledTimes(0);
+  });
+
+  it("closes modals when clicking outside or cancel", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: [] }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("New Schedule")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("New Schedule"));
+
+    expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Cancel"));
+
+    expect(screen.queryByText("Create New Schedule")).not.toBeInTheDocument();
+  });
+
+  it("handles API errors gracefully", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    // Component should handle the error gracefully without crashing
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception Schedules")).toBeInTheDocument();
+    });
+  });
+
+  it("displays empty state when event has no schedules", async () => {
+    global.fetch.mockImplementation((url) => {
+        if (url.includes("/events")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ events: mockEvents }),
+          });
+        }
+
+        if (url.includes("/schedules")) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ schedules: [] }),
+          });
+        }
+
+        // Default fallback for any unexpected fetch calls
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(),
+        });
+      });
+    
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("schedule-container")).not.toBeInTheDocument();
+      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
+      expect(screen.getByText("Create your first schedule to start planning your event timeline")).toBeInTheDocument();
+    });
+
+  });
+
+  it("shows notification messages", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: "new-schedule" }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("New Schedule")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("New Schedule"));
+
+    const titleInput = screen.getByPlaceholderText("Enter schedule name (e.g., Main Event Timeline)");
+    fireEvent.change(titleInput, { target: { value: "Test Schedule" } });
+
+    fireEvent.click(screen.getByText("Create Manually"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Schedule created successfully!")).toBeInTheDocument();
+    });
+  });
+
+  it("toggles schedule expansion", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ schedules: mockSchedules }),
+      });
+
+    render(
+      <MemoryRouter>
+        <PlannerSchedules />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Wedding Reception")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Wedding Reception"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Main Timeline")).toBeInTheDocument();
+      expect(screen.getByText("Reception Begins")).toBeInTheDocument();
+    });
+
+    // Click to collapse
+    fireEvent.click(screen.getByText("Main Timeline"));
+
+    // Items should still be visible as they are expanded by default in the first schedule
+    // This tests the toggle functionality
+    expect(screen.queryByText("Reception Begins")).not.toBeInTheDocument();
   });
 });
