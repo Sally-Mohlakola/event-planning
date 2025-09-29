@@ -188,6 +188,8 @@ describe("PlannerSchedules", () => {
     }
   };
 
+  // ========== ORIGINAL TESTS ==========
+
   it("renders header and events list", async () => {
     setupMocksForEventSelection();
     renderWithRouter(<PlannerSchedules />);
@@ -281,9 +283,6 @@ describe("PlannerSchedules", () => {
     });
   });
 
-  
-  
- 
   it("handles empty schedules state", async () => {
     setupMocksForEventSelection([]);
     renderWithRouter(<PlannerSchedules />);
@@ -332,5 +331,267 @@ describe("PlannerSchedules", () => {
     });
   });
 
+  // ========== STATEMENT COVERAGE TESTS ==========
 
+  
+  it("handles API errors when fetching schedules", async () => {
+    // Mock successful events fetch but failed schedules fetch
+    global.fetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+    ).mockImplementationOnce(() =>
+      Promise.reject(new Error("Failed to fetch schedules"))
+    );
+
+    renderWithRouter(<PlannerSchedules />);
+
+    await screen.findByText("Tech Conference 2024");
+    
+    // Select event
+    const eventCards = screen.getAllByTestId("event-card");
+    const conferenceCard = eventCards.find(card => 
+      card.textContent?.includes("Tech Conference 2024")
+    );
+    fireEvent.click(conferenceCard);
+
+    // Should handle error gracefully
+    await waitFor(() => {
+      expect(screen.getByText("Tech Conference 2024 Schedules")).toBeInTheDocument();
+    });
+  });
+
+  it("handles empty events array", async () => {
+    // Mock empty events array
+    global.fetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ events: [] }),
+      })
+    );
+
+    renderWithRouter(<PlannerSchedules />);
+
+    // Should show empty events state
+    await waitFor(() => {
+      expect(screen.getByText("Your Events")).toBeInTheDocument();
+    });
+  });
+
+  
+  it("handles schedule with no items", async () => {
+    const emptySchedule = [
+      {
+        id: "empty-schedule-1",
+        scheduleTitle: "Empty Schedule",
+        items: []
+      }
+    ];
+
+    setupMocksForEventSelection(emptySchedule);
+    renderWithRouter(<PlannerSchedules />);
+
+    await screen.findByText("Tech Conference 2024");
+    
+    const eventCards = screen.getAllByTestId("event-card");
+    const conferenceCard = eventCards.find(card => 
+      card.textContent?.includes("Tech Conference 2024")
+    );
+    fireEvent.click(conferenceCard);
+
+    await waitFor(() => {
+      expect(screen.getByText("Empty Schedule")).toBeInTheDocument();
+      expect(screen.getByText("0 items")).toBeInTheDocument();
+    });
+  });
+
+  
+  it("handles form validation in schedule creation", async () => {
+    setupMocksForEventSelection([]);
+    renderWithRouter(<PlannerSchedules />);
+
+    await screen.findByText("Tech Conference 2024");
+    
+    const eventCards = screen.getAllByTestId("event-card");
+    const conferenceCard = eventCards.find(card => 
+      card.textContent?.includes("Tech Conference 2024")
+    );
+    fireEvent.click(conferenceCard);
+
+    await waitFor(() => {
+      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
+    });
+
+    // Open create schedule modal
+    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
+    fireEvent.click(newScheduleButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
+    });
+
+    // Try to create schedule without title
+    const manualOption = screen.getByText("Create Manually");
+    fireEvent.click(manualOption);
+
+    // Should not close modal since title is required
+    await waitFor(() => {
+      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
+    });
+  });
+
+  
+
+  it("handles notification display and auto-hide", async () => {
+    setupMocksForEventSelection([]);
+    
+    // Mock addSchedule to trigger notification
+    global.fetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+    ).mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ schedules: [] }),
+      })
+    ).mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ id: "new-schedule-123" }),
+      })
+    );
+
+    renderWithRouter(<PlannerSchedules />);
+
+    await screen.findByText("Tech Conference 2024");
+    
+    const eventCards = screen.getAllByTestId("event-card");
+    const conferenceCard = eventCards.find(card => 
+      card.textContent?.includes("Tech Conference 2024")
+    );
+    fireEvent.click(conferenceCard);
+
+    await waitFor(() => {
+      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
+    });
+
+    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
+    fireEvent.click(newScheduleButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getByPlaceholderText(/Enter schedule name/i);
+    fireEvent.change(titleInput, { target: { value: "Test Schedule" } });
+
+    const manualOption = screen.getByText("Create Manually");
+    fireEvent.click(manualOption);
+
+    // Check notification appears
+    await waitFor(() => {
+      expect(screen.getByText("Schedule created successfully!")).toBeInTheDocument();
+    });
+
+    // Notification should auto-hide after timeout
+    await waitFor(() => {
+      expect(screen.queryByText("Schedule created successfully!")).not.toBeInTheDocument();
+    }, { timeout: 5000 });
+  });
+
+  it("handles file upload functionality", async () => {
+    setupMocksForEventSelection([]);
+    
+    // Mock file upload API calls
+    global.fetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ events: mockEvents }),
+      })
+    ).mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ schedules: [] }),
+      })
+    ).mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ files: [{ url: "https://example.com/schedule.pdf" }] }),
+      })
+    ).mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+      })
+    );
+
+    renderWithRouter(<PlannerSchedules />);
+
+    await screen.findByText("Tech Conference 2024");
+    
+    const eventCards = screen.getAllByTestId("event-card");
+    const conferenceCard = eventCards.find(card => 
+      card.textContent?.includes("Tech Conference 2024")
+    );
+    fireEvent.click(conferenceCard);
+
+    await waitFor(() => {
+      expect(screen.getByText("No Schedules Created")).toBeInTheDocument();
+    });
+
+    const newScheduleButton = screen.getByRole("button", { name: /New Schedule/i });
+    fireEvent.click(newScheduleButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Create New Schedule")).toBeInTheDocument();
+    });
+
+    // Fill title
+    const titleInput = screen.getByPlaceholderText(/Enter schedule name/i);
+    fireEvent.change(titleInput, { target: { value: "PDF Schedule" } });
+
+    // Note: File input testing is complex in JSDOM, so we're testing the flow up to file selection
+    // The actual file change event would require more complex setup
+  });
+
+  // Test the formatDate function indirectly through component behavior
+  it("handles different date formats through component", async () => {
+    const eventsWithDifferentDates = [
+      {
+        id: "1",
+        name: "Event with Firestore Date",
+        date: { _seconds: 1735689600, _nanoseconds: 0 },
+        eventCategory: "Conference",
+        expectedGuestCount: 200,
+        duration: 8,
+      },
+      {
+        id: "2", 
+        name: "Event with String Date",
+        date: "2024-01-01T12:00:00Z",
+        eventCategory: "Meeting",
+        expectedGuestCount: 50,
+        duration: 2,
+      }
+    ];
+
+    // Mock events with different date formats
+    global.fetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ events: eventsWithDifferentDates }),
+      })
+    );
+
+    renderWithRouter(<PlannerSchedules />);
+
+    // Component should handle both date formats without crashing
+    await waitFor(() => {
+      expect(screen.getByText("Event with Firestore Date")).toBeInTheDocument();
+      expect(screen.getByText("Event with String Date")).toBeInTheDocument();
+    });
+  });
 });
