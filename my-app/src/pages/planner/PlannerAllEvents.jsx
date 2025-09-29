@@ -38,6 +38,7 @@ function EventCard({event, onSelectEvent}){
             </section>
             <section className="event-buttons">
                 <button 
+                    data-testid="select-event-button"
                     className="select-btn"
                     onClick={() => onSelectEvent(event)}
                 >
@@ -127,7 +128,7 @@ export default function PlannerAllEvents({setActivePage, onSelectEvent}){
         });
 
     return(
-        <section className="events-list">
+        <section data-testid="planner-all-events" className="events-list">
 
             <section className="events-header">
                 <h2>My Events</h2>

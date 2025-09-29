@@ -162,7 +162,7 @@ function PlannerDashboard({ onSelectEvent }) {
   const percentageNewGuests = totalPastGuests === 0 ? 0 : Math.round((guestDiff / totalPastGuests) * 100);
 
   return (
-    <section className='page-container'>
+    <section data-testid="planner-dashboard "className='page-container'>
 
       {/* Header Section */}
       <section className="dashboard-intro">

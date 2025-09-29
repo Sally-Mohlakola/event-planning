@@ -549,7 +549,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId}) {
     const categories = ["All", "Catering", "Entertainment", "Decor", "Photography", "Venue", "Florist", "Music"];
 
     return (
-        <main className="vendor-marketplace">
+        <main data-testid="planner-vendor-marketplace" className="vendor-marketplace">
             {showChat && chatInfo && (
                 <ChatComponent
                     plannerId={chatInfo.plannerId}
