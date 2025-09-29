@@ -37,7 +37,7 @@ describe("VendorReviews Component", () => {
         <VendorReviews />
       </MemoryRouter>
     );
-    expect(screen.getByText(/Loading reviews/i)).toBeInTheDocument();
+    expect(screen.getByText(/Loading your reviews/i)).toBeInTheDocument();
   });
 
   it("renders error state when fetch fails", async () => {
