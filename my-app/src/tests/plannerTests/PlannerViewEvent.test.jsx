@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, beforeEach, beforeAll, afterEach, vi, expect } from "vitest";
 import { MemoryRouter } from "react-router-dom";
