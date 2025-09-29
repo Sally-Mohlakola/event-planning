@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAuth } from 'firebase/auth';
 import { Edit, Plus, X, Trash2, Phone, Mail, MapPin, Calendar, Award, Users, Star, CheckCircle } from "lucide-react";
-import "./VendorProfile.css";
+import "./vendorProfile.css";
 
 const VendorProfile = () => {
   const navigate = useNavigate();
