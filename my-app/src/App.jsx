@@ -2,17 +2,18 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./App.css";
 
 //main pages imports
+import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 import Home from "./pages/Home.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import OutsideLogin from "./pages/OutsideLogin.jsx";
 
 //planner pages imports
-import PlannerApp from "./pages/planner2/PlannerApp.jsx";
-import PlannerDashboard from "./pages/planner2/PlannerDashboard.jsx";
-import PlannerContract from "./pages/planner2/PlannerContract.jsx";
-import NewEvent from "./pages/planner2/NewEvent.jsx";
-import PlannerRSVP from "./pages/planner2/PlannerRSVP.jsx";
+import PlannerApp from "./pages/planner/PlannerApp.jsx";
+import PlannerDashboard from "./pages/planner/PlannerDashboard.jsx";
+import PlannerContract from "./pages/planner/PlannerContract.jsx";
+import NewEvent from "./pages/planner/NewEvent.jsx";
+import PlannerRSVP from "./pages/planner/PlannerRSVP.jsx";
 
 //vendor pages imports
 import VendorProfile from "./pages/vendor/vendorProfile.jsx";
@@ -38,6 +39,7 @@ function App() {
 		<Router>
 			<Routes>
 				<Route path="/" element={<LandingPage />} />
+				<Route path="/signup" element={<Signup />} />
 				<Route path="/login" element={<Login />} />
 				<Route path="/outsidelogin" element={<OutsideLogin />} />
 				<Route path="/home" element={<Home />} />
