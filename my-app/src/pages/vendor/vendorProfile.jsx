@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../../firebase";
-import { Edit, Plus, X, Trash2, Phone, Mail, MapPin, Calendar, Award, Users, Star } from "lucide-react";
-import "./vendorProfile.css";
+import { getAuth } from 'firebase/auth';
+import { Edit, Plus, X, Trash2, Phone, Mail, MapPin, Calendar, Award, Users, Star, CheckCircle } from "lucide-react";
+import "./VendorProfile.css";
 
 const VendorProfile = () => {
   const navigate = useNavigate();
@@ -22,10 +22,58 @@ const VendorProfile = () => {
     chargePerSquareMeter: "",
     extraNotes: "",
   });
+  const [formErrors, setFormErrors] = useState({});
 
   const navProfileEdit = useCallback(() => navigate("/vendor/vendor-edit-profile"), [navigate]);
 
+  // Validation function
+  const validateForm = () => {
+    const errors = {};
+
+    // Service Name Validation - Must contain at least one letter
+    if (!formData.serviceName.trim()) {
+      errors.serviceName = "Service name is required";
+    } else if (formData.serviceName.length > 100) {
+      errors.serviceName = "Service name must be less than 100 characters";
+    } else if (!/[a-zA-Z]/.test(formData.serviceName)) {
+      errors.serviceName = "Service name must contain at least one letter";
+    } else if (/^\d+$/.test(formData.serviceName.trim())) {
+      errors.serviceName = "Service name cannot be only numbers";
+    }
+
+    if (!formData.cost) {
+      errors.cost = "Base cost is required";
+    } else if (isNaN(formData.cost) || parseFloat(formData.cost) < 0) {
+      errors.cost = "Base cost must be a valid positive number";
+    } else if (parseFloat(formData.cost) > 1000000) {
+      errors.cost = "Base cost is too high";
+    }
+
+    // Validate optional numeric fields
+    const numericFields = [
+      { field: "chargeByHour", name: "Charge by hour" },
+      { field: "chargePerPerson", name: "Charge per person" },
+      { field: "chargePerSquareMeter", name: "Charge per square meter" }
+    ];
+
+    numericFields.forEach(({ field, name }) => {
+      if (formData[field] && (isNaN(formData[field]) || parseFloat(formData[field]) < 0)) {
+        errors[field] = `${name} must be a valid positive number`;
+      } else if (formData[field] && parseFloat(formData[field]) > 1000000) {
+        errors[field] = `${name} is too high`;
+      }
+    });
+
+    if (formData.extraNotes.length > 500) {
+      errors.extraNotes = "Extra notes must be less than 500 characters";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const fetchVendor = useCallback(async () => {
+    const auth = getAuth();
     if (!auth.currentUser) {
       setError("User not authenticated");
       setLoading(false);
@@ -47,6 +95,7 @@ const VendorProfile = () => {
   }, []);
 
   const fetchServices = useCallback(async () => {
+    const auth = getAuth();
     if (!auth.currentUser) {
       setError("User not authenticated");
       return;
@@ -70,18 +119,16 @@ const VendorProfile = () => {
   }, []);
 
   const handleSaveService = useCallback(async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    const auth = getAuth();
     if (!auth.currentUser) {
       setError("User not authenticated");
       return;
     }
-    if (!formData.serviceName) {
-      setError("Service name is required");
-      return;
-    }
-    if (!formData.cost) {
-      setError("Base cost is required");
-      return;
-    }
+
     try {
       const token = await auth.currentUser.getIdToken();
       const vendorId = auth.currentUser.uid;
@@ -119,6 +166,7 @@ const VendorProfile = () => {
           chargePerSquareMeter: "",
           extraNotes: "",
         });
+        setFormErrors({});
         setError("");
       } else {
         const errorData = await response.json();
@@ -140,11 +188,13 @@ const VendorProfile = () => {
       chargePerSquareMeter: service.chargePerSquareMeter || "",
       extraNotes: service.extraNotes || "",
     });
+    setFormErrors({});
     setShowServiceForm(true);
     setError("");
   }, []);
 
   const handleDeleteService = useCallback(async (serviceId) => {
+    const auth = getAuth();
     if (!auth.currentUser) {
       setError("User not authenticated");
       console.error("Delete failed: User not authenticated");
@@ -198,10 +248,18 @@ const VendorProfile = () => {
   }, [fetchServices]);
 
   const handleChange = useCallback((e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  }, []);
+    const { name, value } = e.target;
+    
+    // Clear error for this field when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }, [formErrors]);
 
   useEffect(() => {
+    const auth = getAuth();
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
         setError("User not authenticated");
@@ -216,6 +274,7 @@ const VendorProfile = () => {
   }, [fetchVendor, fetchServices]);
 
   useEffect(() => {
+    const auth = getAuth();
     const handleFocus = () => {
       if (auth.currentUser) {
         Promise.all([fetchVendor(), fetchServices()]);
@@ -234,7 +293,7 @@ const VendorProfile = () => {
     );
   }
 
-  if (error) {
+  if (error && !showServiceForm) {
     return <div className="error">{error}</div>;
   }
 
@@ -243,159 +302,145 @@ const VendorProfile = () => {
   }
 
   return (
-    <div className="vendor-profile-container">
-      {/* Elegant Header Section */}
-      <div className="elegant-header">
-        <div className="header-main">
-          <div className="header-left">
-            <h1 className="main-title">Vendor Profile</h1>
-            <div className="business-display">
-              <div className="business-name-card">
-                {vendor.businessName || "Unnamed Business"}
-              </div>
-              <div className="category-tag">
-                {vendor.category || "Uncategorized"}
-              </div>
-            </div>
-          </div>
-          <button className="elegant-edit-btn" onClick={navProfileEdit}>
-            <Edit size={18} /> Edit Profile
+    <div className="vendor-profile">
+      {/* Header */}
+      <div className="profile-header">
+        <div>
+          <h1 className="profile-title">Vendor Profile</h1>
+          <p className="profile-subtitle">Manage your business profile and services</p>
+        </div>
+        <div className="profile-actions">
+          <button className="btn-primary" onClick={navProfileEdit}>
+            <Edit size={16} />
+            Edit Profile
           </button>
         </div>
-        <div className="header-subtitle">
-          <div className="subtitle-line"></div>
-          <h2>Manage your business profile and services</h2>
-          <div className="subtitle-line"></div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="summary-grid">
+        <div className="summary-card blue">
+          <div className="summary-card-header">
+            <div className="summary-icon blue">
+              <Calendar size={24} />
+            </div>
+            <span className="summary-change">Active</span>
+          </div>
+          <div>
+            <h3 className="summary-label">Bookings</h3>
+            <p className="summary-value">{vendor.bookings || 0}</p>
+            <p className="summary-subtext">Total bookings</p>
+          </div>
+        </div>
+
+        <div className="summary-card green">
+          <div className="summary-card-header">
+            <div className="summary-icon green">
+              <Award size={24} />
+            </div>
+            <span className="summary-change">{services.length} active</span>
+          </div>
+          <div>
+            <h3 className="summary-label">Services</h3>
+            <p className="summary-value">{services.length || 0}</p>
+            <p className="summary-subtext">Total services offered</p>
+          </div>
+        </div>
+
+        <div className="summary-card yellow">
+          <div className="summary-card-header">
+            <div className="summary-icon yellow">
+              <Users size={24} />
+            </div>
+            <span className="summary-change">Reviews</span>
+          </div>
+          <div>
+            <h3 className="summary-label">Reviews</h3>
+            <p className="summary-value">{vendor.totalReviews || 0}</p>
+            <p className="summary-subtext">Customer reviews</p>
+          </div>
+        </div>
+
+        <div className="summary-card purple">
+          <div className="summary-card-header">
+            <div className="summary-icon purple">
+              <Star size={24} />
+            </div>
+            <span className="summary-change">Rating</span>
+          </div>
+          <div>
+            <h3 className="summary-label">Avg Rating</h3>
+            <p className="summary-value">{vendor.avgRating || 0}★</p>
+            <p className="summary-subtext">Overall rating</p>
+          </div>
         </div>
       </div>
 
-      {/* Enhanced Stats Cards */}
-      <div className="elegant-stats">
-        <div className="stat-card">
-          <div className="stat-icon-wrapper">
-            <Calendar className="stat-icon" size={28} />
+      {/* Main Grid */}
+      <div className="profile-grid">
+        {/* Business Information */}
+        <div className="dashboard-card">
+          <div className="card-header">
+            <h3>Business Information</h3>
           </div>
-          <div className="stat-info">
-            <span className="stat-label">Bookings</span>
-            <span className="stat-value">{vendor.bookings || 0}</span>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon-wrapper">
-            <Award className="stat-icon" size={28} />
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">Services</span>
-            <span className="stat-value">{services.length || 0}</span>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon-wrapper">
-            <Users className="stat-icon" size={28} />
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">Reviews</span>
-            <span className="stat-value">{vendor.totalReviews || 0}</span>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon-wrapper">
-            <Star className="stat-icon" size={28} />
-          </div>
-          <div className="stat-info">
-            <span className="stat-label">Rating</span>
-            <span className="stat-value">{vendor.avgRating || 0}<span className="star">★</span></span>
-          </div>
-        </div>
-      </div>
-
-      {/* Enhanced Business Description Section */}
-      <div className="description-showcase">
-        <div className="description-content">
-          <div className="description-header">
-            <div className="description-title-section">
-              <h3>Business Overview</h3>
-              <div className="title-decoration">
-                <div className="decoration-dot"></div>
-                <div className="decoration-line"></div>
-                <div className="decoration-dot"></div>
+          <div className="card-content">
+            <div className="business-info">
+              <div className="business-name-section">
+                <h2>{vendor.businessName || "Unnamed Business"}</h2>
+                <span className="category-badge">{vendor.category || "Uncategorized"}</span>
+              </div>
+              
+              <div className="profile-image-container">
+                <div className="profile-image-wrapper">
+                  <img
+                    src={
+                      vendor.profilePic
+                        ? `${vendor.profilePic}?v=${imageVersion}`
+                        : "/default-avatar.png"
+                    }
+                    alt="Vendor Profile"
+                    className="profile-image-large"
+                  />
+                  <div className="profile-image-hover"></div>
+                </div>
+                <div className="verified-badge">
+                  <CheckCircle size={16} />
+                  <span>Verified Vendor</span>
+                </div>
               </div>
             </div>
-            <p className="description-subtitle">Tell your story and showcase what makes your business unique</p>
-          </div>
-          <div className="description-text">
-            <p>{vendor.description || "No description provided. Add a compelling description of your business to attract more customers. Share your mission, values, and what sets you apart from competitors."}</p>
-          </div>
-          <div className="description-features">
-            <div className="feature-item">
-              <div className="feature-icon">✓</div>
-              <span>Professional Service</span>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon">✓</div>
-              <span>Quality Guaranteed</span>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon">✓</div>
-              <span>Customer Focused</span>
-            </div>
-          </div>
-        </div>
-        <div className="profile-showcase">
-          <div className="profile-frame">
-            <div className="profile-image-container">
-              <img
-                src={
-                  vendor.profilePic
-                    ? `${vendor.profilePic}?v=${imageVersion}`
-                    : "/default-avatar.png"
-                }
-                alt="Vendor Profile"
-                className="profile-image"
-              />
-              <div className="profile-glow"></div>
-            </div>
-            <div className="profile-badge">
-              <div className="status-dot"></div>
-              Verified Vendor
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Contact Information and Services Section */}
-      <div className="main-content-section">
-        <div className="contact-card">
-          <div className="section-header">
+            <div className="description-section">
+              <h4>Description</h4>
+              <p>{vendor.description || "No description provided."}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Information */}
+        <div className="dashboard-card">
+          <div className="card-header">
             <h3>Contact Information</h3>
-            <div className="accent-line"></div>
           </div>
-          <div className="contact-list">
+          <div className="card-content">
             <div className="contact-item">
-              <div className="contact-icon-wrapper">
-                <MapPin className="contact-icon" size={20} />
-              </div>
+              <MapPin className="contact-icon" size={20} />
               <div className="contact-details">
                 <span className="contact-label">Address</span>
                 <span className="contact-value">{vendor.address || "No address provided"}</span>
               </div>
             </div>
+            
             <div className="contact-item">
-              <div className="contact-icon-wrapper">
-                <Phone className="contact-icon" size={20} />
-              </div>
+              <Phone className="contact-icon" size={20} />
               <div className="contact-details">
                 <span className="contact-label">Phone</span>
                 <span className="contact-value">{vendor.phone || "No phone provided"}</span>
               </div>
             </div>
+            
             <div className="contact-item">
-              <div className="contact-icon-wrapper">
-                <Mail className="contact-icon" size={20} />
-              </div>
+              <Mail className="contact-icon" size={20} />
               <div className="contact-details">
                 <span className="contact-label">Email</span>
                 <span className="contact-value">{vendor.email || "No email provided"}</span>
@@ -403,108 +448,48 @@ const VendorProfile = () => {
             </div>
           </div>
         </div>
-
-        {/* Services Table Section */}
-        <div className="services-section">
-          <div className="services-header">
-            <div className="section-header">
-              <h3>Services & Pricing</h3>
-              <div className="accent-line"></div>
-            </div>
-            <button className="add-service-btn" onClick={() => setShowServiceForm(true)}>
-              <Plus size={18} /> Add New Service
-            </button>
-          </div>
-          
-          <div className="services-table-container">
-            {services.length > 0 ? (
-              <table className="services-table">
-                <thead>
-                  <tr>
-                    <th>Service Name</th>
-                    <th>Base Cost</th>
-                    <th>Additional Pricing</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {services.map((service, index) => (
-                    <tr key={service.id || `service-${index}`} className="service-row">
-                      <td>
-                        <div className="service-name-section">
-                          <strong>{service.serviceName || "Unnamed Service"}</strong>
-                          {service.extraNotes && (
-                            <div className="service-notes">{service.extraNotes}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="price-cell">
-                        <span className="base-price">R{service.cost || "N/A"}</span>
-                      </td>
-                      <td>
-                        <div className="pricing-details">
-                          {service.chargeByHour && (
-                            <span className="pricing-tag">Hourly: R{service.chargeByHour}</span>
-                          )}
-                          {service.chargePerPerson && (
-                            <span className="pricing-tag">Per Person: R{service.chargePerPerson}</span>
-                          )}
-                          {service.chargePerSquareMeter && (
-                            <span className="pricing-tag">Per m²: R{service.chargePerSquareMeter}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="service-actions">
-                          <button
-                            className="edit-service-btn"
-                            onClick={() => handleEditService(service)}
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            className="delete-service-btn"
-                            onClick={() => handleDeleteService(service.id)}
-                            disabled={deleting === service.id || !service.id}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="no-services-placeholder">
-                <Award size={48} className="placeholder-icon" />
-                <h4>No Services Added Yet</h4>
-                <p>Start by adding your first service to showcase your offerings</p>
-                <button className="add-first-service-btn" onClick={() => setShowServiceForm(true)}>
-                  <Plus size={18} /> Add Your First Service
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
-      {/* Gallery Section */}
-      <div className="gallery-section">
-        <div className="section-header">
-          <h3>Gallery & Portfolio</h3>
-          <div className="accent-line"></div>
+      {/* Services Section */}
+      <div className="dashboard-card">
+        <div className="card-header">
+          <h3>Services</h3>
+          <button onClick={() => setShowServiceForm(true)} className="btn-primary">
+            <Plus size={16} /> Add Service
+          </button>
         </div>
-        <div className="gallery-grid">
-          {[1, 2, 3, 4].map((item) => (
-            <div key={item} className="gallery-item">
-              <div className="gallery-image-placeholder">
-                <Plus size={32} />
-                <span>Add Image</span>
+        <div className="card-content">
+          {services.length === 0 && <p>No services added yet.</p>}
+          {services.map((service, index) => (
+            <div key={service.id || `temp-${index}`} className="service-item">
+              <div>
+                <h4>{service.serviceName || "Unnamed Service"}</h4>
+                <p>Cost: R{service.cost || "N/A"}</p>
+                {service.chargeByHour && <p>Per Hour: R{service.chargeByHour}</p>}
+                {service.chargePerPerson && <p>Per Person: R{service.chargePerPerson}</p>}
+                {service.chargePerSquareMeter && <p>Per m²: R{service.chargePerSquareMeter}</p>}
+                {service.extraNotes && <p className="service-notes">Notes: {service.extraNotes}</p>}
+                {!service.id && (
+                  <p className="error-text">Warning: This service is missing an ID and cannot be edited or deleted.</p>
+                )}
               </div>
-              <div className="gallery-info">
-                <span>Project {item}</span>
-                <button className="upload-gallery-btn">Upload</button>
+              <div className="service-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => handleEditService(service)}
+                  disabled={!service.id}
+                  title={service.id ? "Edit service" : "Cannot edit: Missing service ID"}
+                >
+                  <Edit size={16} /> Edit
+                </button>
+                <button
+                  className="btn-delete"
+                  onClick={() => handleDeleteService(service.id)}
+                  disabled={deleting === service.id || !service.id}
+                  title={service.id ? "Delete service" : "Cannot delete: Missing service ID"}
+                >
+                  <Trash2 size={16} /> {deleting === service.id ? "Deleting..." : "Delete"}
+                </button>
               </div>
             </div>
           ))}
@@ -513,85 +498,126 @@ const VendorProfile = () => {
 
       {/* Add/Edit Service Modal */}
       {showServiceForm && (
-        <div className="modal-overlay">
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal" onClick={() => setShowServiceForm(false)}>
+          <div className="modal-content service-form" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{editingService ? "Edit Service" : "Add New Service"}</h3>
-              <button className="close-btn" onClick={() => setShowServiceForm(false)}>
-                <X size={24} />
+              <button onClick={() => setShowServiceForm(false)} className="close-btn">
+                <X size={20} />
               </button>
             </div>
             <div className="modal-body">
               {error && <div className="error-message">{error}</div>}
-              <div className="form-group">
-                <label>Service Name *</label>
-                <input
-                  type="text"
-                  name="serviceName"
-                  value={formData.serviceName}
-                  onChange={handleChange}
-                  placeholder="Enter service name"
-                />
-              </div>
-              <div className="form-group">
-                <label>Base Cost (R) *</label>
-                <input
-                  type="number"
-                  name="cost"
-                  value={formData.cost}
-                  onChange={handleChange}
-                  placeholder="Enter base cost"
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Hourly Rate (optional)</label>
-                  <input
-                    type="number"
-                    name="chargeByHour"
-                    value={formData.chargeByHour}
-                    onChange={handleChange}
-                    placeholder="R per hour"
-                  />
+              
+              <div className="form-columns">
+                {/* Left Column */}
+                <div className="form-column">
+                  <div className="form-field">
+                    <label className="form-label">Service Name *</label>
+                    <input
+                      type="text"
+                      name="serviceName"
+                      placeholder="e.g., Catering, Photography"
+                      value={formData.serviceName}
+                      onChange={handleChange}
+                      className={formErrors.serviceName ? 'error' : ''}
+                      maxLength={100}
+                    />
+                    {formErrors.serviceName && <span className="field-error">{formErrors.serviceName}</span>}
+                  </div>
+                  
+                  <div className="form-field">
+                    <label className="form-label">Base Cost (R) *</label>
+                    <input
+                      type="number"
+                      name="cost"
+                      placeholder="e.g., 10000"
+                      value={formData.cost}
+                      onChange={handleChange}
+                      className={formErrors.cost ? 'error' : ''}
+                      min="0"
+                      max="1000000"
+                      step="0.01"
+                    />
+                    {formErrors.cost && <span className="field-error">{formErrors.cost}</span>}
+                  </div>
+                  
+                  <div className="form-field">
+                    <label className="form-label">Per Hour (R)</label>
+                    <input
+                      type="number"
+                      name="chargeByHour"
+                      placeholder="e.g., 1000"
+                      value={formData.chargeByHour}
+                      onChange={handleChange}
+                      className={formErrors.chargeByHour ? 'error' : ''}
+                      min="0"
+                      max="1000000"
+                      step="0.01"
+                    />
+                    {formErrors.chargeByHour && <span className="field-error">{formErrors.chargeByHour}</span>}
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Per Person (optional)</label>
-                  <input
-                    type="number"
-                    name="chargePerPerson"
-                    value={formData.chargePerPerson}
-                    onChange={handleChange}
-                    placeholder="R per person"
-                  />
+                
+                {/* Right Column */}
+                <div className="form-column">
+                  <div className="form-field">
+                    <label className="form-label">Per Person (R)</label>
+                    <input
+                      type="number"
+                      name="chargePerPerson"
+                      placeholder="e.g., 100"
+                      value={formData.chargePerPerson}
+                      onChange={handleChange}
+                      className={formErrors.chargePerPerson ? 'error' : ''}
+                      min="0"
+                      max="1000000"
+                      step="0.01"
+                    />
+                    {formErrors.chargePerPerson && <span className="field-error">{formErrors.chargePerPerson}</span>}
+                  </div>
+                  
+                  <div className="form-field">
+                    <label className="form-label">Per Square Meter (R)</label>
+                    <input
+                      type="number"
+                      name="chargePerSquareMeter"
+                      placeholder="e.g., 250"
+                      value={formData.chargePerSquareMeter}
+                      onChange={handleChange}
+                      className={formErrors.chargePerSquareMeter ? 'error' : ''}
+                      min="0"
+                      max="1000000"
+                      step="0.01"
+                    />
+                    {formErrors.chargePerSquareMeter && <span className="field-error">{formErrors.chargePerSquareMeter}</span>}
+                  </div>
+                  
+                  <div className="form-field">
+                    <label className="form-label">Notes</label>
+                    <textarea
+                      name="extraNotes"
+                      placeholder="e.g., We provide decor services"
+                      value={formData.extraNotes}
+                      onChange={handleChange}
+                      className={formErrors.extraNotes ? 'error' : ''}
+                      rows="3"
+                      maxLength={500}
+                    />
+                    {formErrors.extraNotes && <span className="field-error">{formErrors.extraNotes}</span>}
+                    <div className="character-count">
+                      {formData.extraNotes.length}/500
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="form-group">
-                <label>Per Square Meter (optional)</label>
-                <input
-                  type="number"
-                  name="chargePerSquareMeter"
-                  value={formData.chargePerSquareMeter}
-                  onChange={handleChange}
-                  placeholder="R per m²"
-                />
-              </div>
-              <div className="form-group">
-                <label>Description & Notes</label>
-                <textarea
-                  name="extraNotes"
-                  value={formData.extraNotes}
-                  onChange={handleChange}
-                  placeholder="Additional details about this service..."
-                  rows="3"
-                />
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowServiceForm(false)}>
-                Cancel
+            <div className="modal-actions">
+              <button className="btn-primary" onClick={handleSaveService}>
+                {editingService ? "Update Service" : "Add Service"}
               </button>
-              <button className="save-btn" onClick={handleSaveService}>
-                {editingService ? "Update Service" : "Create Service"}
+              <button className="btn-secondary" onClick={() => setShowServiceForm(false)}>
+                Cancel
               </button>
             </div>
           </div>
