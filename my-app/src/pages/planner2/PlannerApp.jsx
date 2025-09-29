@@ -1,4 +1,3 @@
-// src/vendor/VendorApp.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,14 +11,13 @@ import {
 } from "lucide-react";
 
 //Paging imports
-import PlannerEventsCalendar from "./PlannerEventsCalendar";
 import PlannerDashboard from "./PlannerDashboard";
 import PlannerVendorMarketplace from "./PlannerVendorMarketplace";
+import PlannerEventsCalendar from "./PlannerEventsCalendar";
 
 //css import
 import "./PlannerApp.css";
 import PlannerViewEvent from "./PlannerViewEvent";
-import PlannerAllEvents from "./PlannerAllEvents";
 import PlannerContract from "./PlannerContract";
 import PlannerFloorPlan from "./PlannerFloorPlan";
 import PlannerSchedules from "./PlannerSchedules";
@@ -42,46 +40,15 @@ const PlannerApp = () => {
 		},
 		{ id: "floorplan", label: "Floorplan", icon: MapPin },
 		{ id: "documents", label: "Documents", icon: FileText },
-		{ id: "test", label: "Testing", icon: FileText },
 	];
-
-	const renderPlaceholderPage = (pageTitle) => (
-		<section className="placeholder-page">
-			<section className="placeholder-content">
-				<section className="placeholder-icon">
-					{navigationItems.find((item) => item.id === activePage)
-						?.icon &&
-						React.createElement(
-							navigationItems.find(
-								(item) => item.id === activePage
-							).icon,
-							{ size: 32 }
-						)}
-				</section>
-				<h1 className="placeholder-title">{pageTitle}</h1>
-				<p className="placeholder-text">
-					This page is coming soon. All the functionality will be
-					built here.
-				</p>
-				<button
-					onClick={() => setActivePage("dashboard")}
-					className="back-to-dashboard-btn"
-				>
-					Back to Dashboard
-				</button>
-			</section>
-		</section>
-	);
 
 	const renderCurrentPage = () => {
 		switch (activePage) {
 			case "dashboard":
 				return <PlannerDashboard setActivePage={setActivePage} />;
-			case "test":
-				return <PlannerEventsCalendar setActivePage={setActivePage} />;
 			case "events":
 				return (
-					<PlannerAllEvents
+					<PlannerEventsCalendar
 						setActivePage={setActivePage}
 						onSelectEvent={onSelectEvent}
 					/>
@@ -103,7 +70,6 @@ const PlannerApp = () => {
 				return (
 					<PlannerViewEvent
 						event={selectedEvent}
-						onOpenMarketplace={onOpenMarketplace}
 						setActivePage={setActivePage}
 					/>
 				);
@@ -117,34 +83,28 @@ const PlannerApp = () => {
 		setActivePage("selected-event");
 	};
 
-	const onOpenMarketplace = () => {
-		setActivePage("vendor-marketplace");
-	};
-
 	return (
-		<section className="vendor-app">
+		<div className="vendor-app">
 			{/* Navigation Bar */}
 			<nav className="vendor-navbar">
-				<section className="navbar-container">
-					<section className="navbar-content">
-						<section className="navbar-left">
+				<div className="navbar-container">
+					<div className="navbar-content">
+						<div className="navbar-left">
 							<button
 								className="home-btn"
 								onClick={() => navigate("/home")}
 							>
 								<ArrowLeft size={20} />
-								<section>Home</section>
+								<span>Home</span>
 							</button>
 
-							<section className="vendor-logo">
+							<div className="vendor-logo">
 								<Building2 size={24} />
-								<section className="logo-text">
-									PlannerHub
-								</section>
-							</section>
-						</section>
+								<span className="logo-text">PlannerHub</span>
+							</div>
+						</div>
 
-						<section className="navbar-right">
+						<div className="navbar-right">
 							{navigationItems.map((item) => {
 								const Icon = item.icon;
 								return (
@@ -162,14 +122,14 @@ const PlannerApp = () => {
 									</button>
 								);
 							})}
-						</section>
-					</section>
-				</section>
+						</div>
+					</div>
+				</div>
 			</nav>
 
 			{/* Main Content */}
 			<main className="vendor-main">{renderCurrentPage()}</main>
-		</section>
+		</div>
 	);
 };
 
