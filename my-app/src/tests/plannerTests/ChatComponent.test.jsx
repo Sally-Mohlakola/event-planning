@@ -24,6 +24,7 @@ vi.mock("firebase/auth", () => ({
   })),
 }));
 
+
 // Mock CSS import
 vi.mock("./ChatComponent.css", () => ({}));
 
