@@ -5,7 +5,7 @@ import { Star, StarHalf } from "lucide-react";
 import "./vendorReviews.css";
 
 const StarRating = ({ rating, size = 16 }) => (
-  <div className="star-rating" style={{ display: "flex", gap: "2px" }}>
+  <div className="star-rating">
     {[1, 2, 3, 4, 5].map((i) => {
       if (i <= Math.floor(rating)) return <Star key={i} size={size} color="#fbbf24" />;
       else if (i - rating <= 0.5) return <StarHalf key={i} size={size} color="#fbbf24" />;
@@ -20,7 +20,6 @@ const VendorReviews = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch reviews
   useEffect(() => {
     const fetchReviews = async () => {
       if (!auth.currentUser) return;
@@ -49,7 +48,6 @@ const VendorReviews = () => {
     fetchReviews();
   }, []);
 
-  // Add or edit reply
   const handleReply = async (reviewId, replyText) => {
     if (!auth.currentUser) return;
     if (!replyText?.trim()) {
@@ -78,7 +76,6 @@ const VendorReviews = () => {
         throw new Error(errData.message || "Failed to update reply");
       }
 
-      // Update local state
       setReviews((prev) =>
         prev.map((r) =>
           r.id === reviewId
@@ -92,8 +89,7 @@ const VendorReviews = () => {
     }
   };
 
-  // Delete reply (set to "_blank_")
-  const handleDeleteReply = async (reviewId, currentReply) => {
+  const handleDeleteReply = async (reviewId) => {
     if (!auth.currentUser) return;
     if (!window.confirm("Are you sure you want to delete this reply?")) return;
 
@@ -101,7 +97,6 @@ const VendorReviews = () => {
       const token = await auth.currentUser.getIdToken();
       const vendorId = auth.currentUser.uid;
 
-      // Use the create/edit reply API, sending "_blank_"
       const res = await fetch(
         `https://us-central1-planit-sdp.cloudfunctions.net/api/analytics/${vendorId}/reviews/${reviewId}/reply`,
         {
@@ -119,7 +114,6 @@ const VendorReviews = () => {
         throw new Error(errData.message || "Failed to delete reply");
       }
 
-      // Update local state
       setReviews((prev) =>
         prev.map((r) =>
           r.id === reviewId ? { ...r, reply: "_blank_", editingReply: false, replyInput: "" } : r
@@ -131,7 +125,6 @@ const VendorReviews = () => {
     }
   };
 
-  // Format time
   const formatTime = (timestamp) => {
     const now = new Date();
     const reviewDate = new Date(timestamp);
@@ -142,7 +135,13 @@ const VendorReviews = () => {
     return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
   };
 
-  if (loading) return <p>Loading reviews...</p>;
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="spinner"></div>
+      <p>Loading reviews...</p>
+    </div>
+  );
+
   if (error) return <p className="error">{error}</p>;
   if (!reviews.length) return <p>No reviews found.</p>;
 
@@ -190,26 +189,27 @@ const VendorReviews = () => {
               <StarRating rating={review.rating} size={16} />
               <p className="review-comment">{review.review}</p>
 
-              {/* Display existing reply */}
               {review.reply && !review.editingReply && !isBlank && (
                 <div className="review-reply">
-                  <strong>Your Reply:</strong> {review.reply}
-                  <button
-                    onClick={() =>
-                      setReviews((prev) =>
-                        prev.map((r) =>
-                          r.id === review.id ? { ...r, editingReply: true, replyInput: r.reply } : r
+                  <strong>Your Reply:</strong>
+                  <p>{review.reply}</p>
+                  <div className="review-reply-actions">
+                    <button
+                      onClick={() =>
+                        setReviews((prev) =>
+                          prev.map((r) =>
+                            r.id === review.id ? { ...r, editingReply: true, replyInput: r.reply } : r
+                          )
                         )
-                      )
-                    }
-                  >
-                    Edit
-                  </button>
-                  <button onClick={() => handleDeleteReply(review.id, review.reply)}>Delete</button>
+                      }
+                    >
+                      Edit
+                    </button>
+                    <button onClick={() => handleDeleteReply(review.id)}>Delete</button>
+                  </div>
                 </div>
               )}
 
-              {/* Reply input */}
               {(!review.reply || review.editingReply || isBlank) && (
                 <div className="reply-form">
                   <input
@@ -231,13 +231,13 @@ const VendorReviews = () => {
                       )
                     }
                   />
-                  <button
-                    onClick={() => handleReply(review.id, review.replyInput)}
-                    disabled={!review.replyInput?.trim()}
-                  >
-                    Send
-                  </button>
-                  {review.editingReply && (
+                  <div className="review-reply-actions">
+                    <button
+                      onClick={() => handleReply(review.id, review.replyInput)}
+                      disabled={!review.replyInput?.trim()}
+                    >
+                      Send
+                    </button>
                     <button
                       onClick={() =>
                         setReviews((prev) =>
@@ -249,7 +249,7 @@ const VendorReviews = () => {
                     >
                       Cancel
                     </button>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
