@@ -252,6 +252,10 @@ const VendorBooking = ({ setActivePage }) => {
         <p>View, manage, and update your event bookings in one place.</p>
       </header>
 
+    {showChat && (<ChatComponent eventId={chatEventId} plannerId={chatPlannerId} vendorId={vendorId} 
+      currentUser={{id:vendorId, name: chatVendorName, type: "vendor"}} otherUser={{id:chatPlannerId, name: chatEventName, type: "planner"}}
+      closeChat={onCloseChat}/>)}
+
       <div className="filters">
         <Filter size={20} />
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>

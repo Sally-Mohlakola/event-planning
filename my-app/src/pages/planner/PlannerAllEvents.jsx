@@ -177,7 +177,7 @@ export default function PlannerAllEvents({setActivePage, onSelectEvent}){
                     </button>
                     <button 
                         className={`status-filter-btn ${statusFilter === "in-progress" ? "active" : ""}`}
-                        onClick={() => setStatusFilter("in-progress")}
+                        onClick={() => setStatusFilter("planning")}
                     >
                         In Progress
                     </button>
