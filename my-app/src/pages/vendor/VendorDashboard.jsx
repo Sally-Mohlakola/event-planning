@@ -3,7 +3,6 @@ import {
   Calendar,
   Star,
   StarHalf,
-  FileText,
   DollarSign,
   Eye,
   Plus,
@@ -14,7 +13,6 @@ import {
   X,
   Trash2,
   Users,
-  TrendingUp,
 } from "lucide-react";
 import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -474,11 +472,18 @@ const VendorDashboard = ({ setActivePage }) => {
     }
   }, [vendorId, fetchServices]);
 
-  // Calculate derived analytics values
-  const contractStats = {
-    total: analytics?.totalBookings || 0,
-    uploaded: Math.floor((analytics?.totalBookings || 0) * 0.67),
-    pending: Math.ceil((analytics?.totalBookings || 0) * 0.33),
+  // Calculate booking statistics from actual vendor bookings
+  const bookingStats = {
+    total: vendorBookings.length,
+    confirmed: vendorBookings.filter(booking => 
+      booking.status === 'confirmed' || booking.status === 'accepted'
+    ).length,
+    pending: vendorBookings.filter(booking => 
+      booking.status === 'pending'
+    ).length,
+    rejected: vendorBookings.filter(booking => 
+      booking.status === 'rejected' || booking.status === 'declined'
+    ).length,
   };
 
   // Use actual recent bookings from vendor bookings API or fallback to mock data
@@ -509,20 +514,6 @@ const VendorDashboard = ({ setActivePage }) => {
         { id: 1, name: "Sarah M.", rating: 5, comment: "Exceptional service and delicious food!", date: "2 days ago" },
         { id: 2, name: "John D.", rating: 4, comment: "Great presentation and timely delivery.", date: "1 week ago" },
       ];
-
-  // Calculate booking statistics from actual vendor bookings
-  const bookingStats = {
-    total: vendorBookings.length,
-    confirmed: vendorBookings.filter(booking => 
-      booking.status === 'confirmed' || booking.status === 'accepted'
-    ).length,
-    pending: vendorBookings.filter(booking => 
-      booking.status === 'pending'
-    ).length,
-    rejected: vendorBookings.filter(booking => 
-      booking.status === 'rejected' || booking.status === 'declined'
-    ).length,
-  };
 
   if (loading) return <div className="loading-screen">Loading...</div>;
   if (error) return <div className="error">{error}</div>;
@@ -605,40 +596,6 @@ const VendorDashboard = ({ setActivePage }) => {
             <p className="summary-subtext">
               {analytics?.totalReviews || 0} reviews
             </p>
-          </div>
-        </div>
-
-        <div className="summary-card purple">
-          <div className="summary-card-header">
-            <div className="summary-icon purple">
-              <FileText size={24} />
-            </div>
-            <span className="summary-change">
-              {contractStats.pending > 0 ? `${contractStats.pending} pending` : "All up to date"}
-            </span>
-          </div>
-          <div>
-            <h3 className="summary-label">Contract Status</h3>
-            <p className="summary-value">
-              {contractStats.uploaded}/{contractStats.total}
-            </p>
-            <p className="summary-subtext">Contracts uploaded</p>
-          </div>
-        </div>
-
-        <div className="summary-card orange">
-          <div className="summary-card-header">
-            <div className="summary-icon orange">
-              <TrendingUp size={24} />
-            </div>
-            <span className="summary-change">
-              {analytics?.performanceMetrics?.responseRate || 0}% response
-            </span>
-          </div>
-          <div>
-            <h3 className="summary-label">Response Rate</h3>
-            <p className="summary-value">{analytics?.performanceMetrics?.responseRate || 0}%</p>
-            <p className="summary-subtext">Customer inquiries</p>
           </div>
         </div>
       </div>
@@ -750,7 +707,7 @@ const VendorDashboard = ({ setActivePage }) => {
             <div className="card-content">
               <div className="performance-metrics">
                 <div className="metric-item">
-                  <span className="metric-label">Completion Rate</span>
+                  <span className="metric-label">Completion Rate: </span>
                   <div className="metric-bar">
                     <div 
                       className="metric-fill" 
@@ -760,7 +717,7 @@ const VendorDashboard = ({ setActivePage }) => {
                   <span className="metric-value">{analytics?.performanceMetrics?.completionRate || 0}%</span>
                 </div>
                 <div className="metric-item">
-                  <span className="metric-label">Repeat Customers</span>
+                  <span className="metric-label">Repeat Customers: </span>
                   <div className="metric-value-large">{analytics?.performanceMetrics?.repeatCustomers || 0}</div>
                 </div>
               </div>
