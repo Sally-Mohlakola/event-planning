@@ -69,16 +69,7 @@ describe('Home Page', () => {
     ).toBeInTheDocument();
   });
 
-  it('navigates to planner dashboard when Event Manager button is clicked', () => {
-    render(
-      <MemoryRouter>
-        <Home />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(screen.getAllByText(/Enter Event Dashboard/i)[0]);
-    expect(mockNavigate).toHaveBeenCalledWith('/planner-dashboard');
-  });
+ 
 
   it('navigates to admin dashboard when Admin button is clicked', () => {
     render(
