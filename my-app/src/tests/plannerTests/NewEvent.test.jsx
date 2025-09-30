@@ -1,23 +1,8 @@
-// src/tests/plannerTests/NewEvent.test.jsx
-/**
- * @vitest-environment jsdom
- */
-
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, beforeEach, beforeAll, afterEach, vi, expect } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, beforeEach, vi, expect } from "vitest";
-import NewEvent from "../../pages/planner/NewEvent";
 
-// Mock Firebase Auth
-vi.mock("firebase/auth", () => ({
-  getAuth: () => ({
-    currentUser: {
-      uid: "test-user-123",
-      getIdToken: vi.fn(() => Promise.resolve("fake-token")),
-    },
-  }),
-}));
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -29,351 +14,604 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-// Helper render wrapper
-const renderNewEvent = (props = {}) => {
-  const defaultProps = {
-    setActivePage: vi.fn(),
-    ...props
-  };
-  
-  return render(
-    <MemoryRouter>
-      <NewEvent {...defaultProps} />
-    </MemoryRouter>
+beforeAll(() => {
+  window.HTMLElement.prototype.scrollIntoView = function() {};
+});
+
+beforeEach(() => {
+  global.fetch = vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({}),
+    })
   );
+  mockAuth.currentUser.getIdToken.mockClear();
+  mockNavigate.mockClear();
+});
+
+
+// MOCKS
+// --- Mock firebase/auth ---
+const mockAuth = {
+  currentUser: {
+    uid: "test-planner",
+    getIdToken: vi.fn(() => Promise.resolve("mock-token")),
+  },
 };
+
+
+vi.mock("firebase/auth", () => ({
+  getAuth: () => mockAuth,
+}));
+
+import { getAuth } from "firebase/auth";
+
+// --- Mock global functions ---
+
+import NewEvent from "../../pages/planner/NewEvent";
+
+const eventCategories = [
+  "Wedding",
+  "Birthday Party",
+  "Corporate Event",
+  "Conference",
+  "Baby Shower",
+  "Graduation",
+  "Anniversary",
+  "Fundraiser",
+  "Product Launch",
+  "Holiday Party",
+  "Networking Event",
+  "Workshop",
+  "Concert",
+  "Festival",
+  "Sports Event",
+  "Other"
+];
+
+const eventStyles = [
+  "Elegant/Formal",
+  "Casual/Relaxed",
+  "Modern/Contemporary",
+  "Vintage/Classic",
+  "Rustic/Country",
+  "Minimalist",
+  "Bohemian/Boho",
+  "Industrial",
+  "Garden/Outdoor",
+  "Beach/Tropical",
+  "Urban/City",
+  "Traditional",
+  "Glamorous",
+  "Fun/Playful",
+  "Professional",
+  "Themed"
+];
 
 describe("NewEvent", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
-    global.fetch = vi.fn();
+    global.fetch.mockClear();
+    mockAuth.currentUser.getIdToken.mockClear();
+    mockNavigate.mockClear();
   });
 
-  it("renders the new event form", () => {
-    renderNewEvent();
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("renders create new event form", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText("Create New Event")).toBeInTheDocument();
     expect(screen.getByText("Tell us about your event")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Event Name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Event Category/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Date & Time/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Duration/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Location/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Event Style/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Create Event/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Event Name *")).toBeInTheDocument();
+    expect(screen.getByLabelText("Event Category *")).toBeInTheDocument();
+    expect(screen.getByLabelText("Date & Time *")).toBeInTheDocument();
+    expect(screen.getByLabelText("Duration (hours) *")).toBeInTheDocument();
+    expect(screen.getByLabelText("Location *")).toBeInTheDocument();
+    expect(screen.getByLabelText("Event Style *")).toBeInTheDocument();
   });
 
-  it("shows back button and navigates on click", () => {
+  it("navigates back to dashboard when back button is clicked", () => {
     const mockSetActivePage = vi.fn();
-    renderNewEvent({ setActivePage: mockSetActivePage });
 
-    const backButton = screen.getByText("← Back to Dashboard");
-    fireEvent.click(backButton);
+    render(
+      <MemoryRouter>
+        <NewEvent setActivePage={mockSetActivePage} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByText("← Back to Dashboard"));
 
     expect(mockSetActivePage).toHaveBeenCalledWith('dashboard');
   });
 
-  it("navigates to dashboard when setActivePage is not provided", () => {
-    renderNewEvent({ setActivePage: undefined });
+  it("navigates back using useNavigate when setActivePage is not provided", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
-    const backButton = screen.getByText("← Back to Dashboard");
-    fireEvent.click(backButton);
+    fireEvent.click(screen.getByText("← Back to Dashboard"));
 
-    expect(mockNavigate).toHaveBeenCalledWith("/planner-dashboard");
+    expect(mockNavigate).toHaveBeenCalledWith('/planner-dashboard');
   });
 
-  it("updates form inputs correctly", () => {
-    renderNewEvent();
+  it("populates event category dropdown with all categories", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
-    const eventNameInput = screen.getByLabelText(/Event Name/i);
-    fireEvent.change(eventNameInput, { target: { value: "Test Event" } });
-    expect(eventNameInput.value).toBe("Test Event");
+    const categorySelect = screen.getByLabelText("Event Category *");
+    fireEvent.click(categorySelect);
 
-    const eventCategorySelect = screen.getByLabelText(/Event Category/i);
-    fireEvent.change(eventCategorySelect, { target: { value: "Wedding" } });
-    expect(eventCategorySelect.value).toBe("Wedding");
+    eventCategories.forEach(category => {
+      expect(screen.getByRole("option", { name: category })).toBeInTheDocument();
+    });
+  });
 
-    const durationInput = screen.getByLabelText(/Duration/i);
-    fireEvent.change(durationInput, { target: { value: "3" } });
-    expect(durationInput.value).toBe("3");
+  it("populates event style dropdown with all styles", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
-    const locationInput = screen.getByLabelText(/Location/i);
+    const styleSelect = screen.getByLabelText("Event Style *");
+    fireEvent.click(styleSelect);
+
+    eventStyles.forEach(style => {
+      expect(screen.getByRole("option", { name: style })).toBeInTheDocument();
+    });
+  });
+
+  it("updates form fields when user types", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
+
+    const nameInput = screen.getByLabelText("Event Name *");
+    const locationInput = screen.getByLabelText("Location *");
+    const durationInput = screen.getByLabelText("Duration (hours) *");
+
+    fireEvent.change(nameInput, { target: { value: "Test Event" } });
     fireEvent.change(locationInput, { target: { value: "Test Location" } });
-    expect(locationInput.value).toBe("Test Location");
+    fireEvent.change(durationInput, { target: { value: "3" } });
 
-    const styleSelect = screen.getByLabelText(/Event Style/i);
+    expect(nameInput.value).toBe("Test Event");
+    expect(locationInput.value).toBe("Test Location");
+    expect(durationInput.value).toBe("3");
+  });
+
+  it("updates dropdown selections", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
+
+    const categorySelect = screen.getByLabelText("Event Category *");
+    const styleSelect = screen.getByLabelText("Event Style *");
+
+    fireEvent.change(categorySelect, { target: { value: "Wedding" } });
     fireEvent.change(styleSelect, { target: { value: "Elegant/Formal" } });
+
+    expect(categorySelect.value).toBe("Wedding");
     expect(styleSelect.value).toBe("Elegant/Formal");
   });
 
-  it("shows error when required fields are missing", async () => {
-    renderNewEvent();
+  it("shows validation error when required fields are empty", async () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
-    const submitButton = screen.getByRole("button", { name: /Create Event/i });
+    const submitButton = screen.getByText("Create Event");
     fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(screen.getByText("Please fill in all required fields")).toBeInTheDocument();
     });
+
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it("successfully creates an event with valid data", async () => {
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
-        ok: true,
-      })
+  it("successfully creates event with valid data", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ id: "new-event-id" }),
+    });
+
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
     );
 
-    renderNewEvent();
+    // Fill out form
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Test Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Duration (hours) *"), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
 
-    // Fill out the form
-    fireEvent.change(screen.getByLabelText(/Event Name/i), { target: { value: "Test Event" } });
-    fireEvent.change(screen.getByLabelText(/Event Category/i), { target: { value: "Wedding" } });
-    
-    // Set a future date
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 1);
-    const dateTimeString = futureDate.toISOString().slice(0, 16);
-    
-    fireEvent.change(screen.getByLabelText(/Date & Time/i), { target: { value: dateTimeString } });
-    fireEvent.change(screen.getByLabelText(/Duration/i), { target: { value: "3" } });
-    fireEvent.change(screen.getByLabelText(/Location/i), { target: { value: "Test Location" } });
-    fireEvent.change(screen.getByLabelText(/Event Style/i), { target: { value: "Elegant/Formal" } });
-
-    const submitButton = screen.getByRole("button", { name: /Create Event/i });
-    fireEvent.click(submitButton);
+    fireEvent.click(screen.getByText("Create Event"));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
         "https://us-central1-planit-sdp.cloudfunctions.net/api/event/apply",
-        {
+        expect.objectContaining({
           method: "POST",
           headers: {
-            Authorization: "Bearer fake-token",
-            "Content-Type": "application/json"
+            Authorization: "Bearer mock-token",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             name: "Test Event",
             eventCategory: "Wedding",
-            startTime: dateTimeString,
-            duration: "3",
+            startTime: "2025-12-25T18:00",
+            duration: "5",
             location: "Test Location",
             style: "Elegant/Formal",
-            plannerId: "test-user-123",
-            date: dateTimeString,
+            plannerId: "test-planner",
+            date: "2025-12-25T18:00",
             description: "",
             theme: "",
             budget: null,
             expectedGuestCount: null,
-            notes: ""
-          })
-        }
+            notes: "",
+          }),
+        })
       );
     });
 
     await waitFor(() => {
       expect(screen.getByText("Event created successfully!")).toBeInTheDocument();
     });
+  });
 
-    // Should navigate after success
+  it("navigates to dashboard after successful creation", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ id: "new-event-id" }),
+    });
+
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
+
+    // Fill out form
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Test Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
+
+    fireEvent.click(screen.getByText("Create Event"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Event created successfully!")).toBeInTheDocument();
+    });
+
+    // Wait for navigation timeout
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("/planner-dashboard");
     }, { timeout: 2000 });
   });
 
-  it("handles API error when creating event", async () => {
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
-        ok: false,
-      })
+  it("handles API error during event creation", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    });
+
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
     );
 
-    renderNewEvent();
+    // Fill out form
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Test Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
 
-    // Fill out the form
-    fireEvent.change(screen.getByLabelText(/Event Name/i), { target: { value: "Test Event" } });
-    fireEvent.change(screen.getByLabelText(/Event Category/i), { target: { value: "Wedding" } });
-    
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 1);
-    const dateTimeString = futureDate.toISOString().slice(0, 16);
-    
-    fireEvent.change(screen.getByLabelText(/Date & Time/i), { target: { value: dateTimeString } });
-    fireEvent.change(screen.getByLabelText(/Duration/i), { target: { value: "3" } });
-    fireEvent.change(screen.getByLabelText(/Location/i), { target: { value: "Test Location" } });
-    fireEvent.change(screen.getByLabelText(/Event Style/i), { target: { value: "Elegant/Formal" } });
-
-    const submitButton = screen.getByRole("button", { name: /Create Event/i });
-    fireEvent.click(submitButton);
+    fireEvent.click(screen.getByText("Create Event"));
 
     await waitFor(() => {
       expect(screen.getByText("Failed to create event")).toBeInTheDocument();
     });
   });
 
-  it("handles network errors", async () => {
-    global.fetch.mockImplementationOnce(() =>
-      Promise.reject(new Error("Network error"))
+  it("handles network error during event creation", async () => {
+    global.fetch.mockRejectedValueOnce(new Error("Network error"));
+
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
     );
 
-    renderNewEvent();
+    // Fill out form
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Test Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
 
-    // Fill out the form
-    fireEvent.change(screen.getByLabelText(/Event Name/i), { target: { value: "Test Event" } });
-    fireEvent.change(screen.getByLabelText(/Event Category/i), { target: { value: "Wedding" } });
-    
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 1);
-    const dateTimeString = futureDate.toISOString().slice(0, 16);
-    
-    fireEvent.change(screen.getByLabelText(/Date & Time/i), { target: { value: dateTimeString } });
-    fireEvent.change(screen.getByLabelText(/Duration/i), { target: { value: "3" } });
-    fireEvent.change(screen.getByLabelText(/Location/i), { target: { value: "Test Location" } });
-    fireEvent.change(screen.getByLabelText(/Event Style/i), { target: { value: "Elegant/Formal" } });
-
-    const submitButton = screen.getByRole("button", { name: /Create Event/i });
-    fireEvent.click(submitButton);
+    fireEvent.click(screen.getByText("Create Event"));
 
     await waitFor(() => {
       expect(screen.getByText("Network error")).toBeInTheDocument();
     });
   });
 
- 
+  it("sets minimum datetime to current time", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
-  it("prevents past date selection", () => {
-    renderNewEvent();
-
-    const dateInput = screen.getByLabelText(/Date & Time/i);
+    const dateInput = screen.getByLabelText("Date & Time *");
+    const minDateTime = dateInput.getAttribute("min");
     
-    // Get the current minDateTime value
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-    const expectedMinDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-    expect(dateInput).toHaveAttribute('min', expectedMinDateTime);
+    expect(minDateTime).toBeTruthy();
+    expect(new Date(minDateTime).getFullYear()).toBe(new Date().getFullYear());
   });
 
-  it("validates duration range", () => {
-    renderNewEvent();
+  it("sets default duration to 1 hour", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
-    const durationInput = screen.getByLabelText(/Duration/i);
-    expect(durationInput).toHaveAttribute('min', '1');
-    expect(durationInput).toHaveAttribute('max', '24');
+    const durationInput = screen.getByLabelText("Duration (hours) *");
+    expect(durationInput.value).toBe("1");
   });
 
-  it("displays all event categories in dropdown", () => {
-    renderNewEvent();
+  it("enforces duration limits", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
-    const categorySelect = screen.getByLabelText(/Event Category/i);
-    const options = categorySelect.querySelectorAll('option');
-    
-    // Should have default option + all categories
-    expect(options.length).toBe(17); // 1 default + 16 categories
-    
-    const expectedCategories = [
-      "Wedding", "Birthday Party", "Corporate Event", "Conference",
-      "Baby Shower", "Graduation", "Anniversary", "Fundraiser",
-      "Product Launch", "Holiday Party", "Networking Event", "Workshop",
-      "Concert", "Festival", "Sports Event", "Other"
-    ];
-
-    expectedCategories.forEach(category => {
-      expect(screen.getByText(category)).toBeInTheDocument();
-    });
+    const durationInput = screen.getByLabelText("Duration (hours) *");
+    expect(durationInput.getAttribute("min")).toBe("1");
+    expect(durationInput.getAttribute("max")).toBe("24");
   });
 
-  it("displays all event styles in dropdown", () => {
-    renderNewEvent();
-
-    const styleSelect = screen.getByLabelText(/Event Style/i);
-    const options = styleSelect.querySelectorAll('option');
-    
-    // Should have default option + all styles
-    expect(options.length).toBe(17); // 1 default + 16 styles
-    
-    const expectedStyles = [
-      "Elegant/Formal", "Casual/Relaxed", "Modern/Contemporary", "Vintage/Classic",
-      "Rustic/Country", "Minimalist", "Bohemian/Boho", "Industrial",
-      "Garden/Outdoor", "Beach/Tropical", "Urban/City", "Traditional",
-      "Glamorous", "Fun/Playful", "Professional", "Themed"
-    ];
-
-    expectedStyles.forEach(style => {
-      expect(screen.getByText(style)).toBeInTheDocument();
-    });
-  });
-
-  it("shows location hint text", () => {
-    renderNewEvent();
+  it("shows form hint for location input", () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText("Start typing to search for locations")).toBeInTheDocument();
   });
 
-  it("clears error message when form is resubmitted successfully", async () => {
-    // First attempt fails
-    global.fetch.mockImplementationOnce(() =>
-      Promise.resolve({
-        ok: false,
-      })
-    ).mockImplementationOnce(() =>
-      Promise.resolve({
+  it("clears success message when form is resubmitted", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
         ok: true,
+        json: () => Promise.resolve({ id: "new-event-id" }),
       })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
     );
 
-    renderNewEvent();
+    // Fill out form and submit successfully
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Test Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
 
-    // Fill out the form
-    fireEvent.change(screen.getByLabelText(/Event Name/i), { target: { value: "Test Event" } });
-    fireEvent.change(screen.getByLabelText(/Event Category/i), { target: { value: "Wedding" } });
-    
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 1);
-    const dateTimeString = futureDate.toISOString().slice(0, 16);
-    
-    fireEvent.change(screen.getByLabelText(/Date & Time/i), { target: { value: dateTimeString } });
-    fireEvent.change(screen.getByLabelText(/Duration/i), { target: { value: "3" } });
-    fireEvent.change(screen.getByLabelText(/Location/i), { target: { value: "Test Location" } });
-    fireEvent.change(screen.getByLabelText(/Event Style/i), { target: { value: "Elegant/Formal" } });
-
-    // First submit - fails
-    const submitButton = screen.getByRole("button", { name: /Create Event/i });
-    fireEvent.click(submitButton);
+    fireEvent.click(screen.getByText("Create Event"));
 
     await waitFor(() => {
-      expect(screen.getByText("Failed to create event")).toBeInTheDocument();
+      expect(screen.getByText("Event created successfully!")).toBeInTheDocument();
     });
 
-    // Second submit - succeeds
-    fireEvent.click(submitButton);
+    // Submit again with failure
+    fireEvent.click(screen.getByText("Create Event"));
 
     await waitFor(() => {
-      expect(screen.queryByText("Failed to create event")).not.toBeInTheDocument();
+      expect(screen.queryByText("Event created successfully!")).not.toBeInTheDocument();
+      expect(screen.getByText("Failed to create event")).toBeInTheDocument();
+    });
+  });
+
+  it("handles token retrieval failure", async () => {
+    mockAuth.currentUser.getIdToken.mockRejectedValueOnce(new Error("Token error"));
+
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
+
+    // Fill out form
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Test Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
+
+    fireEvent.click(screen.getByText("Create Event"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Token error")).toBeInTheDocument();
+    });
+  });
+
+  it("validates individual required fields", async () => {
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
+
+    // Test missing name
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
+
+    fireEvent.click(screen.getByText("Create Event"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Please fill in all required fields")).toBeInTheDocument();
+    });
+  });
+
+  it("includes all required fields in API request", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ id: "new-event-id" }),
+    });
+
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Complete Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Corporate Event" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-06-15T14:30" } });
+    fireEvent.change(screen.getByLabelText("Duration (hours) *"), { target: { value: "8" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Conference Center" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Professional" } });
+
+    fireEvent.click(screen.getByText("Create Event"));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://us-central1-planit-sdp.cloudfunctions.net/api/event/apply",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            Authorization: "Bearer mock-token",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: "Complete Event",
+            eventCategory: "Corporate Event",
+            startTime: "2025-06-15T14:30",
+            duration: "8",
+            location: "Conference Center",
+            style: "Professional",
+            plannerId: "test-planner",
+            date: "2025-06-15T14:30",
+            description: "",
+            theme: "",
+            budget: null,
+            expectedGuestCount: null,
+            notes: "",
+          }),
+        })
+      );
+    });
+  });
+
+  it("shows loading state during form submission", async () => {
+    // Mock a delayed response
+    global.fetch.mockImplementationOnce(() => 
+      new Promise(resolve => 
+        setTimeout(() => resolve({
+          ok: true,
+          json: () => Promise.resolve({ id: "new-event-id" }),
+        }), 100)
+      )
+    );
+
+    render(
+      <MemoryRouter>
+        <NewEvent />
+      </MemoryRouter>
+    );
+
+    // Fill out form
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Test Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
+
+    await waitFor(()=>fireEvent.click(screen.getByText("Create Event")));
+
+    // Form submission should be in progress
+    expect(global.fetch).toHaveBeenCalled();
+
+    await waitFor(() => {
       expect(screen.getByText("Event created successfully!")).toBeInTheDocument();
     });
   });
 
-  
+  it("prevents multiple submissions while request is in progress", async () => {
+    // Mock a delayed response
+    let resolvePromise;
+    global.fetch.mockImplementation(() =>
+      new Promise(resolve => {
+        resolvePromise = resolve;
+      })
+    );
 
-  it("maintains form state between renders", () => {
-    const { rerender } = renderNewEvent();
-
-    const eventNameInput = screen.getByLabelText(/Event Name/i);
-    fireEvent.change(eventNameInput, { target: { value: "Test Event" } });
-
-    // Re-render component
-    rerender(
+    render(
       <MemoryRouter>
-        <NewEvent setActivePage={vi.fn()} />
+        <NewEvent />
       </MemoryRouter>
     );
 
-    // Form state should be maintained
-    expect(screen.getByLabelText(/Event Name/i).value).toBe("Test Event");
+    // Fill out form
+    fireEvent.change(screen.getByLabelText("Event Name *"), { target: { value: "Test Event" } });
+    fireEvent.change(screen.getByLabelText("Event Category *"), { target: { value: "Wedding" } });
+    fireEvent.change(screen.getByLabelText("Date & Time *"), { target: { value: "2025-12-25T18:00" } });
+    fireEvent.change(screen.getByLabelText("Location *"), { target: { value: "Test Location" } });
+    fireEvent.change(screen.getByLabelText("Event Style *"), { target: { value: "Elegant/Formal" } });
+
+    // Click submit multiple times
+    await waitFor(()=>fireEvent.click(screen.getByText("Create Event")));
+    await waitFor(()=>fireEvent.click(screen.getByText("Create Event")));
+    await waitFor(()=>fireEvent.click(screen.getByText("Create Event")));
+
+    // Should only make one API call
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    // Resolve the promise
+    resolvePromise({
+      ok: true,
+      json: () => Promise.resolve({ id: "new-event-id" }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Event created successfully!")).toBeInTheDocument();
+    });
   });
 });

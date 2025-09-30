@@ -20,32 +20,44 @@ const ChatComponent = ({ plannerId, vendorId, eventId, currentUser, otherUser, c
   }
 
   const fetchMessages = async (eventId, plannerId, vendorId) => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    const token = await user.getIdToken(true);
+    try{
+      const auth = getAuth();
+      const user = auth.currentUser;
+      const token = await user.getIdToken(true);
 
-    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/chats/${eventId}/${plannerId}/${vendorId}/messages`, {
-      method: "GET",
-      headers: { "Authorization": `Bearer ${token}` }
-    });
+      const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/chats/${eventId}/${plannerId}/${vendorId}/messages`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
 
-    if (!res) console.error("Could not fetch messages");
-    const data = await res.json();
-    return data.messages;
+      if (!res) throw new Error("Failed to fetch messages");
+      const data = await res.json();
+      return data.messages;
+    }catch(err){
+      console.error("Could not fetch messages");
+      alert("Failed to fetch messages");
+      return [];
+    }
   };
 
   const sendMessage = async (eventId, plannerId, vendorId, content) => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    const token = await user.getIdToken(true);
 
-    const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/chats/${eventId}/${plannerId}/${vendorId}/messages`, {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(content)
-    });
+    try{
+      const auth = getAuth();
+      const user = auth.currentUser;
+      const token = await user.getIdToken(true);
 
-    if (!res) console.log(await res.json());
+      const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/chats/${eventId}/${plannerId}/${vendorId}/messages`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(content)
+      });
+
+      if (!res) throw new Error("Failed to send message") ;
+    }catch(err){
+      console.error(err);
+    }
+
   };
 
   const scrollToBottom = () => {
@@ -66,7 +78,6 @@ const ChatComponent = ({ plannerId, vendorId, eventId, currentUser, otherUser, c
     if (!newMessage.trim()) return;
 
     const message = {
-      id: Date.now().toString(),
       senderId: currentUser.id,
       senderName: currentUser.name,
       senderType: currentUser.type,
@@ -102,13 +113,13 @@ const ChatComponent = ({ plannerId, vendorId, eventId, currentUser, otherUser, c
           <section className="chat-participants">
             <section className="chat-participant">
               {currentUser.type === 'vendor' ? <Building2 size={20} /> : <User size={20} />}
-              <span>{currentUser.name}</span>
+              <span data-testid ="curr-name">{currentUser.name}</span>
               <span className="chat-participant-type">({currentUser.type})</span>
             </section>
             <span className="chat-divider">↔</span>
             <section className="chat-participant">
               {otherUser.type === 'vendor' ? <Building2 size={20} /> : <User size={20} />}
-              <span>{otherUser.name}</span>
+              <span data-testid="other-name">{otherUser.name}</span>
               <span className="chat-participant-type">({otherUser.type})</span>
             </section>
           </section>

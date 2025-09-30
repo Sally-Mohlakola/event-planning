@@ -876,7 +876,7 @@ function getCurrentTimeString() {
                                               {item.description && <p>{item.description}</p>}
                                             </section>
                                             <section className="ps-item-actions">
-                                              <button
+                                              <button data-testid="item-edit-button"
                                                 onClick={() => setEditingItem(item.id)}
                                                 className="ps-btn-icon"
                                               >
@@ -1010,8 +1010,9 @@ function getCurrentTimeString() {
             <section className="ps-modal-content">
               <section className="ps-form-row">
                 <section className="ps-form-group">
-                  <label>Time</label>
+                  <label htmlFor="time">Time</label>
                   <input
+                    id="time"
                     type="time"
                     value={newScheduleItem.time}
                     onChange={(e) => setNewScheduleItem(prev => ({ ...prev, time: e.target.value }))}
@@ -1019,8 +1020,9 @@ function getCurrentTimeString() {
                   />
                 </section>
                 <section className="ps-form-group">
-                  <label>Duration (minutes)</label>
+                  <label htmlFor="duration">Duration (minutes)</label>
                   <input
+                    id="duration"
                     type="number"
                     value={newScheduleItem.duration}
                     onChange={(e) => setNewScheduleItem(prev => ({ ...prev, duration: e.target.value }))}
@@ -1030,8 +1032,9 @@ function getCurrentTimeString() {
                 </section>
               </section>
               <section className="ps-form-group">
-                <label>Title</label>
+                <label htmlFor="title">Title</label>
                 <input
+                  id="title"
                   type="text"
                   value={newScheduleItem.title}
                   onChange={(e) => setNewScheduleItem(prev => ({ ...prev, title: e.target.value }))}

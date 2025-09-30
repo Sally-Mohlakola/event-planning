@@ -27,6 +27,7 @@ export default function NewEvent({ setActivePage }) {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const auth = getAuth();
 
@@ -77,6 +78,9 @@ export default function NewEvent({ setActivePage }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if(loading) return;
+    setLoading(true);
     setError("");
     setSuccess("");
 
@@ -119,6 +123,9 @@ export default function NewEvent({ setActivePage }) {
     } catch (err) {
       console.error(err);
       setError(err.message);
+    }
+    finally{
+      setLoading(false);
     }
   };
 
@@ -227,7 +234,7 @@ export default function NewEvent({ setActivePage }) {
           </select>
         </section>
 
-        <button type="submit" className="create-event-btn" onClick={handleSubmit}>
+        <button type="submit" className="create-event-btn" onClick={handleSubmit} disabled={loading}>
           Create Event
         </button>
       </form>
