@@ -452,6 +452,7 @@ function GuestImportWithValidation({ eventId, onImportComplete, onClose }) {
 
 export default function PlannerViewEvent({event, setActivePage}) {
     
+    
     if(!event) {
         return <section>Loading Event...</section>;
     }
