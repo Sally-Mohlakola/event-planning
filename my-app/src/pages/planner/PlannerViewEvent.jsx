@@ -3,6 +3,7 @@ import "./PlannerViewEvent.css";
 import { getAuth } from 'firebase/auth';
 import Papa from 'papaparse';
 import ChatComponent from './ChatComponent.jsx'
+import PlannerTasks from './PlannerTasks.jsx';
 import { format } from 'date-fns';
 
 //Code for the pop up when manually adding a guest **********
@@ -992,7 +993,9 @@ export default function PlannerViewEvent({event, setActivePage}) {
 
                      {activeTab === "tasks" && (
                         <PlannerTasks setActivePage={setActivePage}
-                        tasks= {eventData.tasks}
+                        eventId= {eventId}
+                        eventData={eventData}
+                        setEventData={setEventData}
                         />
                     )}
 
