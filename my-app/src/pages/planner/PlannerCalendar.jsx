@@ -72,6 +72,11 @@ export default function PlannerCalender({ setActivePage }) {
 		setIsPopupOpen(true); // Open the popup
 	};
 
+	const handleDateClick = (date) => {
+		setSelectedDate(date);
+		setIsCreatePopupOpen(true);
+	};
+
 	// **NEW**: Handlers for the "Create Event" popup
 	const handleOpenCreatePopup = () => {
 		setIsCreatePopupOpen(true);
@@ -105,7 +110,11 @@ export default function PlannerCalender({ setActivePage }) {
 				</button>
 			</header>
 
-			<Calendar events={events} onEventClick={handleEventClick} />
+			<Calendar
+				events={events}
+				onEventClick={handleEventClick}
+				onDateClick={handleDateClick}
+			/>
 
 			{/* When an event is selected, render your general Popup component */}
 			{selectedEvent && (

@@ -9,7 +9,8 @@ import {
 import EventBlock from "./EventBlock";
 import "./WeekView.css";
 
-export default function WeekView({ selectedDate }) {
+export default function WeekView({ events, selectedDate, onEventClick }) {
+	// Pass onEventClick
 	const days = getWeekDaysFromDate(selectedDate);
 	const todayKey = getTodayKey();
 	const pxPerMinute = 2;
@@ -58,7 +59,6 @@ export default function WeekView({ selectedDate }) {
 					<ul className="week__hours" aria-hidden="true">
 						{Array.from({ length: 24 }).map((_, h) => (
 							<li
-								onClick={() => onEventClick(event)}
 								key={h}
 								className="week__hour"
 								style={{ height: pxPerMinute * 60 }}
@@ -74,7 +74,8 @@ export default function WeekView({ selectedDate }) {
 						d.getMonth() + 1
 					)}-${pad(d.getDate())}`;
 					const isToday = key === todayKey;
-					const events = getEventsForDay(
+					const dayEvents = getEventsForDay(
+						events,
 						d.getFullYear(),
 						d.getMonth(),
 						d.getDate()
@@ -109,11 +110,12 @@ export default function WeekView({ selectedDate }) {
 								aria-live="polite"
 								aria-label={`Scheduled events for ${d.toDateString()}`}
 							>
-								{events.map((ev) => (
+								{dayEvents.map((ev) => (
 									<EventBlock
 										key={ev.id}
 										event={ev}
 										pxPerMinute={pxPerMinute}
+										onEventClick={onEventClick} // Pass it down
 									/>
 								))}
 							</section>

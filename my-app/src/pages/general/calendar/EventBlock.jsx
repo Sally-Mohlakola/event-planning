@@ -30,12 +30,24 @@ export default function EventBlock({ event, onEventClick, pxPerMinute = 2 }) {
 				<h5 className="event-block__title">{event.title}</h5>
 			</header>
 			<p className="event-block__time">
-				<time dateTime={`${event.date}T${event.start}`}>
-					{event.start}
-				</time>{" "}
-				—{" "}
-				<time dateTime={`${event.date}T${event.end}`}>{event.end}</time>{" "}
-				({minutesToDurationString(event.durationMin)})
+				<time dateTime={event.start.toISOString()}>
+					{event.start.toLocaleTimeString([], {
+						hour: "2-digit",
+						minute: "2-digit",
+						hour12: false,
+					})}
+				</time>
+				&nbsp;—&nbsp;
+				{event.end && (
+					<time dateTime={event.end.toISOString()}>
+						{event.end.toLocaleTimeString([], {
+							hour: "2-digit",
+							minute: "2-digit",
+							hour12: false,
+						})}
+					</time>
+				)}
+				&nbsp;({minutesToDurationString(event.durationMin)})
 			</p>
 		</article>
 	);

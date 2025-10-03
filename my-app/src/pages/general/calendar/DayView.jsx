@@ -4,11 +4,11 @@ import { getEventsForDay, formatDateKey, getTodayKey, pad } from "./dateUtils";
 import EventBlock from "./EventBlock";
 import "./DayView.css";
 
-export default function DayView({ selectedDate }) {
+export default function DayView({ events, selectedDate }) {
 	const y = selectedDate.getFullYear();
 	const m = selectedDate.getMonth();
 	const d = selectedDate.getDate();
-	const events = getEventsForDay(y, m, d);
+	const dayEvents = getEventsForDay(events, y, m, d);
 	const todayKey = getTodayKey();
 	const selectedKey = formatDateKey(selectedDate);
 	const isToday = selectedKey === todayKey;
@@ -69,7 +69,7 @@ export default function DayView({ selectedDate }) {
 						aria-live="polite"
 						aria-label="Events for today"
 					>
-						{events.map((ev) => (
+						{dayEvents.map((ev) => (
 							<EventBlock
 								key={ev.id}
 								event={ev}

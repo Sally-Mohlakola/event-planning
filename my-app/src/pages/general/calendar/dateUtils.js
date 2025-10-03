@@ -83,3 +83,13 @@ export function getMonthName(m) {
     ];
     return names[m];
 }
+
+export function getWeekDays(date) {
+    const start = new Date(date);
+    start.setDate(start.getDate() - start.getDay()); // Go to the Sunday of the week
+    return Array.from({ length: 7 }).map((_, i) => {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        return d;
+    });
+}
