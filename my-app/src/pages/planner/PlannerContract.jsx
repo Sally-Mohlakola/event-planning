@@ -688,14 +688,6 @@ const stopDrawing = useCallback((fieldId) => {
     document.body.removeChild(link);
   };
 
-  const handleModalOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      setShowSignModal(false);
-      setSelectedContract(null);
-      setSignatureData({});
-      setSaveStatus("");
-    }
-  };
 
   const EventCard = React.memo(({ event }) => {
     const eventContracts = groupedContracts[event.id] || [];
@@ -857,8 +849,8 @@ const stopDrawing = useCallback((fieldId) => {
       )}
 
       {showSignModal && selectedContract && (
-        <div className="modal-overlay" onMouseDown={handleModalOverlayClick}>
-          <div className="modal-content" onMouseDown={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-content">
             <div className="modal-header">
               <h3>
                 {selectedContract.signatureWorkflow?.workflowStatus === "completed" ? "View Signed Contract: " : "Sign Contract: "}

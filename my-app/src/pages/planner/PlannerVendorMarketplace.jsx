@@ -52,11 +52,11 @@ function VendorCard({ vendor, onViewMore}) {
 
 function EventSelectionModal({events, onSelect, onClose, purpose}) {
     return (
-        <section className="modal-overlay" onClick={onClose}>
-            <section className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <section className="modal-overlay">
+            <section className="modal-content">
                 <header className="modal-header">
                     <h2>{purpose === 'chat' ? 'Select Event for Chat' : 'Select Event'}</h2>
-                    <button className="modal-close" onClick={onClose}>×</button>
+                    <button className="modal-close" onClick={onClose}><X/></button>
                 </header>
                <main className="modal-body">
                 {events.length === 0 ? (
