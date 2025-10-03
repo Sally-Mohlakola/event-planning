@@ -5,6 +5,7 @@ import Papa from 'papaparse';
 import ChatComponent from './ChatComponent.jsx'
 import PlannerTasks from './PlannerTasks.jsx';
 import { format } from 'date-fns';
+import BronzeFury from './BronzeFury.jsx';
 
 //Code for the pop up when manually adding a guest **********
 function AddGuestPopup({ isOpen, onClose, onSave }) {
@@ -444,6 +445,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
     const [eventData, setEventData] = useState(event);
     const [showAddGuestPopup, setShowAddGuestPopup] = useState(false);
     const [showImportGuestPopup, setShowImportGuestPopup] = useState(false);
+    const [showBronzeFuryPopup, setShowBronzeFuryPopup] = useState(false);
     const [services, setServices] = useState([]);
     const [showChat, setShowChat] = useState(false);
     const [chatVendorId, setChatVendorId] = useState(null);
@@ -923,6 +925,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                             <section className="guests-section">
                                 <section className="guests-header">
                                     <h3>Guest List</h3>
+                                    <button className="add-guest-btn" onClick={() => setShowBronzeFuryPopup(true)}>+ Add Guests from BronzeFury</button>
                                     <button className="add-guest-btn" onClick={() => setShowImportGuestPopup(true)}>+ Add Guests from CSV</button>
                                     <button className="add-guest-btn" onClick={() => setShowAddGuestPopup(true)}>+ Add Guest</button>
                                 </section>
@@ -936,6 +939,10 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                         }}
                                     />
                                 )}
+
+                                {showBronzeFuryPopup && (
+                                    <BronzeFury
+                                    onClose ={onClose}/>)}
 
                                 {showAddGuestPopup && (
                                         <section>
