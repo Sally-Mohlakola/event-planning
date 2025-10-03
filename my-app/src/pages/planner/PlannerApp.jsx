@@ -22,19 +22,18 @@ import PlannerAllEvents from "./PlannerAllEvents";
 import PlannerContract from "./PlannerContract";
 import PlannerFloorPlan from "./PlannerFloorPlan";
 import PlannerSchedules from "./PlannerSchedules";
+import PlannerCalendar from "./PlannerCalendar";
 
 const PlannerApp = () => {
-	
 	const [selectedEvent, setSelectedEvent] = useState(null);
 	const [activePage, setActivePage] = useState(
-  localStorage.getItem("activePage") || "dashboard"
-);
+		localStorage.getItem("activePage") || "dashboard"
+	);
 
 	const handleSetActivePage = (page) => {
-  setActivePage(page);
-  localStorage.setItem("activePage", page);
-};
-
+		setActivePage(page);
+		localStorage.setItem("activePage", page);
+	};
 
 	const navigate = useNavigate();
 
@@ -42,7 +41,11 @@ const PlannerApp = () => {
 		{ id: "dashboard", label: "Dashboard", icon: BarChart3 },
 		{ id: "events", label: "Events", icon: Calendar },
 		{ id: "vendor", label: "Vendor Marketplace", icon: Users },
-		{ id: "schedule management", label: "Schedule Management", icon: Users },
+		{
+			id: "schedule management",
+			label: "Schedule Management",
+			icon: Users,
+		},
 		{ id: "floorplan", label: "Floorplan", icon: MapPin },
 		{ id: "documents", label: "Documents", icon: FileText },
 	];
@@ -78,10 +81,15 @@ const PlannerApp = () => {
 	const renderCurrentPage = () => {
 		switch (activePage) {
 			case "dashboard":
-				return <PlannerDashboard data-testid="planner-dashboard" setActivePage={setActivePage} />;
+				return (
+					<PlannerDashboard
+						data-testid="planner-dashboard"
+						setActivePage={setActivePage}
+					/>
+				);
 			case "events":
 				return (
-					<PlannerAllEvents
+					<PlannerCalendar
 						setActivePage={setActivePage}
 						onSelectEvent={onSelectEvent}
 					/>
@@ -116,7 +124,6 @@ const PlannerApp = () => {
 		setSelectedEvent(event);
 		handleSetActivePage("selected-event");
 		localStorage.setItem("selectedEvent", JSON.stringify(event));
-		
 	};
 
 	const onOpenMarketplace = () => {
@@ -157,7 +164,9 @@ const PlannerApp = () => {
 												? "active"
 												: ""
 										}`}
-										onClick={() => handleSetActivePage(item.id)}
+										onClick={() =>
+											handleSetActivePage(item.id)
+										}
 									>
 										<Icon size={18} />
 										{item.label}
