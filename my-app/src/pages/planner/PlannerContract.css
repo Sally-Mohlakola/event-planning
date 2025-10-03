@@ -288,6 +288,9 @@
           padding: 1rem;
         }
 
+        .sign-modal{
+          min-width: 90%;
+        }
         .modal-content {
           background: white;
           border-radius: 12px;

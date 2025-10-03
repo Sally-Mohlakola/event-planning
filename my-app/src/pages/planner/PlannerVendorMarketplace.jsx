@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import InformationToolTip from "./InformationToolTip";
 import ChatComponent from "./ChatComponent";
-import ConfirmPopup from "./ConfirmPopup";
 import Popup from "../general/popup/Popup.jsx";
 
 function formatDate(date) {

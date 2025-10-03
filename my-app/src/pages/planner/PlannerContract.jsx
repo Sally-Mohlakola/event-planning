@@ -197,7 +197,7 @@ const PlannerContract = ({ setActivePage }) => {
 	const startDrawing = (fieldId, e) => {
 		const canvas = canvasRefs.current[fieldId];
 		if (!canvas) return;
-		const rect = canvas.getBoundingRect();
+		const rect = canvas.getBoundingClientRect();
 		const ctx = canvas.getContext("2d");
 		ctx.beginPath();
 		canvasRefs.current[`${fieldId}_isDrawing`] = true;
@@ -210,7 +210,7 @@ const PlannerContract = ({ setActivePage }) => {
 	const handleSign = (fieldId, e) => {
 		if (!canvasRefs.current[`${fieldId}_isDrawing`]) return;
 		const canvas = canvasRefs.current[fieldId];
-		const rect = canvas.getBoundingRect();
+		const rect = canvas.getBoundingClientRect();
 		const ctx = canvas.getContext("2d");
 		const currentPosition = {
 			x: e.clientX - rect.left,
@@ -840,8 +840,8 @@ const PlannerContract = ({ setActivePage }) => {
 		const eventContracts = groupedContracts[event.id] || [];
 
 		return (
-			<div className="event-card">
-				<div className="event-info">
+			<section className="event-card">
+				<section className="event-info">
 					<p>
 						<Calendar size={16} /> {event.name}
 					</p>
@@ -853,15 +853,15 @@ const PlannerContract = ({ setActivePage }) => {
 						<FileText size={16} /> Date: {event.date}
 					</p>
 					<p>Status: {event.status}</p>
-				</div>
-				<div className="contract-section">
+				</section>
+				<section className="contract-section">
 					{eventContracts.length === 0 ? (
 						<p>No contracts received for this event.</p>
 					) : (
-						<div className="contracts-list">
+						<section className="contracts-list">
 							{eventContracts.map((contract) => (
-								<div key={contract.id} className="contract-row">
-									<div className="contract-info">
+								<section key={contract.id} className="contract-row">
+									<section className="contract-info">
 										<p className="file-name">
 											<button
 												className="file-name-btn"
@@ -905,8 +905,8 @@ const PlannerContract = ({ setActivePage }) => {
 												)}
 											</span>
 										)}
-									</div>
-									<div className="contract-actions">
+									</section>
+									<section className="contract-actions">
 										<button
 											className="sign-btn"
 											onClick={() => {
@@ -954,22 +954,22 @@ const PlannerContract = ({ setActivePage }) => {
 											<Trash2 size={12} />
 											Delete
 										</button>
-									</div>
-								</div>
+									</section>
+								</section>
 							))}
-						</div>
+						</section>
 					)}
-				</div>
-			</div>
+				</section>
+			</section>
 		);
 	});
 
 	if (loading) {
 		return (
-			<div className="loading-screen">
-				<div className="spinner"></div>
+			<section className="loading-screen">
+				<section className="spinner"></section>
 				<p>Loading your events...</p>
-			</div>
+			</section>
 		);
 	}
 
@@ -986,19 +986,19 @@ const PlannerContract = ({ setActivePage }) => {
 			<header>
 				<h1>Contract Management</h1>
 				<p>Manage vendor contracts for your events.</p>
-				<div className="stats-summary">
-					<div className="stat-item">
+				<section className="stats-summary">
+					<section className="stat-item">
 						<FileText size={20} />
 						<span>Total Contracts: {totalContracts}</span>
-					</div>
-					<div className="stat-item pending-stat">
+					</section>
+					<section className="stat-item pending-stat">
 						<span>Pending Contracts: {pendingContracts}</span>
-					</div>
-					<div className="stat-item signed-stat">
+					</section>
+					<section className="stat-item signed-stat">
 						<span>Signed Contracts: {signedContracts}</span>
-					</div>
-				</div>
-				<div className="search-container">
+					</section>
+				</section>
+				<section className="search-container">
 					<Search size={20} />
 					<input
 						type="text"
@@ -1015,23 +1015,23 @@ const PlannerContract = ({ setActivePage }) => {
 							<X size={16} />
 						</button>
 					)}
-				</div>
+				</section>
 			</header>
-			<div className="events-section">
+			<section className="events-section">
 				<h2 className="section-title">
 					<Calendar size={20} />
 					Your Events ({filteredEvents.length})
 				</h2>
-				<div className="events-list">
+				<section className="events-list">
 					{filteredEvents.map((event) => (
 						<EventCard key={event.id} event={event} />
 					))}
-				</div>
-			</div>
+				</section>
+			</section>
 			{debouncedSearchTerm && filteredEvents.length === 0 && (
-				<div className="no-results">
+				<section className="no-results">
 					<p>No events found matching "{debouncedSearchTerm}"</p>
-				</div>
+				</section>
 			)}
 			<Popup
 				isOpen={showSignModal}
@@ -1043,8 +1043,8 @@ const PlannerContract = ({ setActivePage }) => {
 				}}
 			>
 				{selectedContract && (
-					<div className="sign-modal">
-						<div className="modal-header">
+					<section className="sign-modal">
+						<section className="modal-header">
 							<h3 id="modal-title">
 								{selectedContract.signatureWorkflow
 									?.workflowStatus === "completed"
@@ -1052,13 +1052,13 @@ const PlannerContract = ({ setActivePage }) => {
 									: "Sign Contract: "}
 								{selectedContract.fileName}
 							</h3>
-							<div className="document-version-info">
+							<section className="document-version-info">
 								<span className="original-doc-indicator">
 									<FileText size={16} />
 									Contract document
 								</span>
-							</div>
-							<div className="modal-status">
+							</section>
+							<section className="modal-status">
 								{saveStatus && (
 									<span
 										className={`save-status ${
@@ -1079,9 +1079,9 @@ const PlannerContract = ({ setActivePage }) => {
 										Processing...
 									</span>
 								)}
-							</div>
-						</div>
-						<div className="contract-viewer">
+							</section>
+						</section>
+						<section className="contract-viewer">
 							<iframe
 								src={`${selectedContract.contractUrl}#toolbar=1&navpanes=0&scrollbar=1`}
 								style={{
@@ -1096,7 +1096,7 @@ const PlannerContract = ({ setActivePage }) => {
 									(field) => field.signerRole === "client"
 								)
 								.map((field) => (
-									<div
+									<section
 										key={field.id}
 										className="signature-field-overlay"
 										style={{
@@ -1115,7 +1115,7 @@ const PlannerContract = ({ setActivePage }) => {
 										}}
 									>
 										{field.signed ? (
-											<div className="signed-indicator">
+											<section className="signed-indicator">
 												<img
 													src={field.signatureData}
 													alt="Signed"
@@ -1125,7 +1125,7 @@ const PlannerContract = ({ setActivePage }) => {
 														objectFit: "contain",
 													}}
 												/>
-											</div>
+											</section>
 										) : (
 											<canvas
 												ref={(el) =>
@@ -1153,7 +1153,7 @@ const PlannerContract = ({ setActivePage }) => {
 												}}
 											/>
 										)}
-										<div
+										<section
 											className="signature-field-label"
 											style={{
 												position: "absolute",
@@ -1169,7 +1169,7 @@ const PlannerContract = ({ setActivePage }) => {
 											{field.label}{" "}
 											{field.required && "*"}{" "}
 											{field.signed && "✓"}
-										</div>
+										</section>
 										{!field.signed && (
 											<button
 												className="clear-signature-btn"
@@ -1192,10 +1192,10 @@ const PlannerContract = ({ setActivePage }) => {
 												<X size={10} />
 											</button>
 										)}
-									</div>
+									</section>
 								))}
-						</div>
-						<div className="signature-actions">
+						</section>
+						<section className="signature-actions">
 							{selectedContract.signatureWorkflow
 								?.workflowStatus !== "completed" && (
 								<>
@@ -1237,7 +1237,7 @@ const PlannerContract = ({ setActivePage }) => {
 							)}
 							{selectedContract.signatureWorkflow
 								?.workflowStatus === "completed" && (
-								<div className="signed-contract-info">
+								<section className="signed-contract-info">
 									<span className="completion-status">
 										<FileCheck size={16} />
 										Contract completed and signed on{" "}
@@ -1257,7 +1257,7 @@ const PlannerContract = ({ setActivePage }) => {
 										<Download size={16} />
 										Download Contract
 									</button>
-								</div>
+								</section>
 							)}
 							<button
 								className="delete-btn"
@@ -1276,8 +1276,8 @@ const PlannerContract = ({ setActivePage }) => {
 								<Trash2 size={16} />
 								Delete Contract
 							</button>
-						</div>
-					</div>
+						</section>
+					</section>
 				)}
 			</Popup>
 		</section>
