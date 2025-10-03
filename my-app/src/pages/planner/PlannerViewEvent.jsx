@@ -816,16 +816,6 @@ export default function PlannerViewEvent({event, setActivePage}) {
         }
     }, [showDeleteTaskPopup]);
 
-    const handleTaskToggle = (taskName) => {
-        setEventData((prev) => ({
-            ...prev,
-            tasks: {
-            ...prev.tasks,
-            [taskName]: !prev.tasks[taskName],
-            },
-        }));
-    };
-
     function formatDate(date) {
         if (!date) return "";
 
@@ -904,7 +894,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                         key={`${taskName}-${i}`}
                         taskName={taskName}
                         taskStatus={completed}
-                        onToggle={handleTaskToggle}
+                        onToggle={onTaskToggle}
                         />
                         ))
                         ) : (
@@ -952,7 +942,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                         key={`${taskName}-${i}`}
                         taskName={taskName}
                         taskStatus={completed}
-                        onToggle={handleTaskToggle}
+                        onToggle={onTaskToggle}
                         />
                         ))
                         ) : (
@@ -962,6 +952,41 @@ export default function PlannerViewEvent({event, setActivePage}) {
                         )}
             </section>} else {console.error("Task update failed");}
     };
+
+   const onTaskToggle = async (taskName) => {
+        const updatedTasks = { ...eventData.tasks };
+
+        // Flip the current completed status
+        const completedStatus = !(updatedTasks[taskName]?.completed ?? false);
+
+        updatedTasks[taskName] = { completed: completedStatus };
+
+        const updatedEventData = { ...eventData, tasks: updatedTasks };
+        setEventData(updatedEventData);
+
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
+
+        const res = await fetch(
+            `https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/${eventId}`,
+            {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updatedEventData),
+            }
+        );
+
+        if (res.ok) {
+            
+        } else {
+            console.error("Task update failed");
+        }
+    };
+
 
 
     const onTaskDelete = async (taskName) => {
@@ -997,7 +1022,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                             key={`${taskName}-${i}`}
                             taskName={taskName}
                             taskStatus={completed}
-                            onToggle={handleTaskToggle}
+                            onToggle={onTaskToggle}
                             />
                             ))
                             ) : (
@@ -1370,7 +1395,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                                 key={`${taskName}-${i}`}
                                                 taskName={taskName}
                                                 taskStatus={task.completed}
-                                                onToggle={handleTaskToggle}
+                                                onToggle={onTaskToggle}
                                                 onEdit={() => {
                                                         setTaskToEdit(taskName); // save current task name
                                                         setShowEditTaskPopup(true); // show popup
