@@ -44,7 +44,6 @@ function EventCard({event, onSelectEvent}){
                 >
                     Select Event
                 </button>
-                <button className="quick-view-btn">Quick View</button>
             </section>
         </section>
     );
