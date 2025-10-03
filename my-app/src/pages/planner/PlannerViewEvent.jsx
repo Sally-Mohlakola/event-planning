@@ -491,6 +491,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
             if (!res.ok) throw new Error("Failed to fetch guests");
         
             const data = await res.json();
+            console.log("guests", guests);
             return data.guests;
 
         } catch(err) {

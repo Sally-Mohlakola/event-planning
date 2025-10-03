@@ -27,7 +27,7 @@ function formatDate(date) {
     return String(date); // fallback
 }
 
-function VendorCard({ vendor, onViewMore, onAddVendor }) {
+function VendorCard({ vendor, onViewMore}) {
     return (
         <article data-testid="vendor-card" className="vendor-card">
             <img src={vendor.profilePic} alt={vendor.businessName} className="vendor-image" />
@@ -50,9 +50,7 @@ function VendorCard({ vendor, onViewMore, onAddVendor }) {
     );
 }
 
-function EventSelectionModal({ isOpen, events, onSelect, onClose, purpose}) {
-    if (!isOpen) return null;
-
+function EventSelectionModal({events, onSelect, onClose, purpose}) {
     return (
         <section className="modal-overlay" onClick={onClose}>
             <section className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -244,6 +242,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId}) {
     const [showChat, setShowChat] = useState(false);
     const [chatInfo, setChatInfo] = useState(null);
     const [pendingChatVendor, setPendingChatVendor] = useState(null);
+    const [eventSelection, showEventSelection] = useState(false);
     
     //All calls to api here
     const fetchAllEventsVendors = async () => {
@@ -408,6 +407,14 @@ export default function PlannerVendorMarketplace({ event = null, plannerId}) {
             setSelectedEvent(event);
         }
     }, [event]);
+
+    useEffect(() => {
+        async function loadEvents(){
+            const events = await fetchEvents();
+            setEvents(events);
+        }
+        loadEvents();
+    }, [])
 
     //Functionality Functions
     const handleTabChange = (tab) => {
@@ -650,7 +657,6 @@ export default function PlannerVendorMarketplace({ event = null, plannerId}) {
                             vendor={vendor} 
                             event={selectedEvent}
                             onViewMore={(vendor) => handleViewVendor(vendor)}
-                            onAddVendor={(vendor) => handleEventPicked(vendor)}
                             />
                         ))
                     ) : (
@@ -664,8 +670,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId}) {
                 </section>
             )}
 
-            <EventSelectionModal
-                isOpen={showEventModal}
+            {showEventModal && (<EventSelectionModal
                 events={events}
                 purpose={modalPurpose}
                 onSelect={async (event) => {
@@ -686,7 +691,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId}) {
                     setPendingChatVendor(null);
                     setModalPurpose(null);
                 }}
-            />
+            />)}
 
              {showVendorModal && (
                 <VendorModal

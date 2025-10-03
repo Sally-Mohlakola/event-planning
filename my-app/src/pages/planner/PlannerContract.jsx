@@ -3,8 +3,8 @@ import { Calendar, User, FileText, Search, X, Send, Edit3, Download, Save, Refre
 import { auth, db, storage } from "../../firebase";
 import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { v4 as uuidv4 } from "uuid";
 import "./PlannerContract.css";
+import { v4 as uuidv4 } from "uuid";
 
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -35,8 +35,6 @@ const PlannerContract = ({ setActivePage }) => {
         setLoading(false);
         return;
     }
-
-
     try{
       const token = await auth.currentUser.getIdToken();
 
@@ -143,50 +141,59 @@ const PlannerContract = ({ setActivePage }) => {
     return () => unsubscribe();
   }, [fetchEventsAndContracts]);
 
-  const startDrawing = (fieldId, e) => {
-    const canvas = canvasRefs.current[fieldId];
-    if (!canvas) return;
-    const rect = canvas.getBoundingRect();
-    const ctx = canvas.getContext("2d");
-    ctx.beginPath();
-    canvasRefs.current[`${fieldId}_isDrawing`] = true;
-    canvasRefs.current[`${fieldId}_prevPosition`] = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+const startDrawing = useCallback((fieldId, e) => {
+  const canvas = canvasRefs.current[fieldId];
+  if (!canvas) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const ctx = canvas.getContext("2d");
+  ctx.beginPath();
+  canvasRefs.current[`${fieldId}_isDrawing`] = true;
+  
+  const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+  const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+  
+  canvasRefs.current[`${fieldId}_prevPosition`] = {
+    x: clientX - rect.left,
+    y: clientY - rect.top,
+  };
+}, []);
+
+const handleSign = useCallback((fieldId, e) => {
+  if (!canvasRefs.current[`${fieldId}_isDrawing`]) return;
+  const canvas = canvasRefs.current[fieldId];
+  const rect = canvas.getBoundingClientRect();
+  const ctx = canvas.getContext("2d");
+  
+  const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+  const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+  
+  const currentPosition = {
+    x: clientX - rect.left,
+    y: clientY - rect.top,
   };
 
-  const handleSign = (fieldId, e) => {
-    if (!canvasRefs.current[`${fieldId}_isDrawing`]) return;
-    const canvas = canvasRefs.current[fieldId];
-    const rect = canvas.getBoundingRect();
-    const ctx = canvas.getContext("2d");
-    const currentPosition = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 
-    ctx.strokeStyle = "#1e293b";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+  ctx.moveTo(canvasRefs.current[`${fieldId}_prevPosition`].x, canvasRefs.current[`${fieldId}_prevPosition`].y);
+  ctx.lineTo(currentPosition.x, currentPosition.y);
+  ctx.stroke();
 
-    ctx.moveTo(canvasRefs.current[`${fieldId}_prevPosition`].x, canvasRefs.current[`${fieldId}_prevPosition`].y);
-    ctx.lineTo(currentPosition.x, currentPosition.y);
-    ctx.stroke();
+  canvasRefs.current[`${fieldId}_prevPosition`] = currentPosition;
+}, []);
 
-    canvasRefs.current[`${fieldId}_prevPosition`] = currentPosition;
-  };
-
-  const stopDrawing = (fieldId) => {
-    canvasRefs.current[`${fieldId}_isDrawing`] = false;
-    canvasRefs.current[`${fieldId}_prevPosition`] = null;
-    const canvas = canvasRefs.current[fieldId];
-    setSignatureData(prev => ({
-      ...prev,
-      [fieldId]: canvas.toDataURL(),
-    }));
-  };
+const stopDrawing = useCallback((fieldId) => {
+  canvasRefs.current[`${fieldId}_isDrawing`] = false;
+  canvasRefs.current[`${fieldId}_prevPosition`] = null;
+  const canvas = canvasRefs.current[fieldId];
+  setSignatureData(prev => ({
+    ...prev,
+    [fieldId]: canvas.toDataURL(),
+  }));
+}, []);
 
   const clearSignature = (fieldId) => {
     const canvas = canvasRefs.current[fieldId];
@@ -221,7 +228,6 @@ const PlannerContract = ({ setActivePage }) => {
 
   const getFreshDownloadURL = async (contractUrl) => {
     try {
-      // Extract the storage path from the URL
       const urlObj = new URL(contractUrl);
       const path = decodeURIComponent(urlObj.pathname.split('/o/')[1].split('?')[0]);
       console.log('Extracted storage path:', path);
@@ -241,7 +247,6 @@ const PlannerContract = ({ setActivePage }) => {
       setSaveStatus("Updating contract with signatures...");
 
       console.log('Original PDF URL:', originalPdfUrl);
-      // Refresh the download URL to ensure it's valid
       const freshPdfUrl = await getFreshDownloadURL(originalPdfUrl);
 
       const { PDFDocument, rgb } = await import('pdf-lib');
@@ -296,7 +301,6 @@ const PlannerContract = ({ setActivePage }) => {
       
       const modifiedPdfBytes = await pdfDoc.save();
       
-      // Extract storage path from original URL
       const urlObj = new URL(originalPdfUrl);
       const storagePath = decodeURIComponent(urlObj.pathname.split('/o/')[1].split('?')[0]);
       console.log('Uploading to storage path:', storagePath);
@@ -489,9 +493,9 @@ const PlannerContract = ({ setActivePage }) => {
 
       const allSigned = updatedFields.every(field => !field.required || field.signed);
 
-      const token = auth.currentUser.getIdToken();
+      const token = await auth.currentUser.getIdToken();
 
-      const response = await fetch(
+      await fetch(
         `https://us-central1-planit-sdp.cloudfunctions.net/api/contracts/${selectedContract.id}/signature-fields`,
         {
           method: "POST",
@@ -512,7 +516,6 @@ const PlannerContract = ({ setActivePage }) => {
         db, 
         `Event/${selectedContract.eventId}/Vendors/${selectedContract.vendorId}/Contracts`, 
         selectedContract.id
-
       );
       
       const updateData = {
@@ -679,21 +682,24 @@ const PlannerContract = ({ setActivePage }) => {
     document.body.removeChild(link);
   };
 
+  const handleModalOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setShowSignModal(false);
+      setSelectedContract(null);
+      setSignatureData({});
+      setSaveStatus("");
+    }
+  };
+
   const EventCard = React.memo(({ event }) => {
     const eventContracts = groupedContracts[event.id] || [];
 
     return (
       <div className="event-card">
         <div className="event-info">
-          <p>
-            <Calendar size={16} /> {event.name}
-          </p>
-          <p>
-            <User size={16} /> {event.clientName || "Unknown Client"}
-          </p>
-          <p>
-            <FileText size={16} /> Date: {event.date}
-          </p>
+          <p><Calendar size={16} /> {event.name}</p>
+          <p><User size={16} /> {event.clientName || "Unknown Client"}</p>
+          <p><FileText size={16} /> Date: {event.date}</p>
           <p>Status: {event.status}</p>
         </div>
         <div className="contract-section">
@@ -733,6 +739,7 @@ const PlannerContract = ({ setActivePage }) => {
                   </div>
                   <div className="contract-actions">
                     <button
+                      type="button"
                       className="sign-btn"
                       onClick={() => {
                         setSelectedContract(contract);
@@ -746,7 +753,7 @@ const PlannerContract = ({ setActivePage }) => {
                       {contract.signatureWorkflow?.workflowStatus === "completed" ? "Signed" : "Sign"}
                     </button>
                     <button
-                      className="download-btn small"
+                      className="download-btn"
                       onClick={() => handleDownloadContract(
                         contract.contractUrl, 
                         contract.fileName
@@ -757,7 +764,7 @@ const PlannerContract = ({ setActivePage }) => {
                       Download
                     </button>
                     <button
-                      className="delete-btn small"
+                      className="delete-btn"
                       onClick={() => deleteContract(contract.eventId, contract.id, contract.contractUrl)}
                       title="Delete contract"
                     >
@@ -792,27 +799,27 @@ const PlannerContract = ({ setActivePage }) => {
   }
 
   return (
-    <section className="events-page">
+    <section className="contracts-page">
       <header>
         <h1>Contract Management</h1>
-        <p>Manage vendor contracts for your events.</p>
+        <p>Manage vendor contracts for your events</p>
         <div className="stats-summary">
           <div className="stat-item">
             <FileText size={20} />
-            <span>Total Contracts: {totalContracts}</span>
+            <span>Total: {totalContracts}</span>
           </div>
           <div className="stat-item pending-stat">
-            <span>Pending Contracts: {pendingContracts}</span>
+            <span>Pending: {pendingContracts}</span>
           </div>
           <div className="stat-item signed-stat">
-            <span>Signed Contracts: {signedContracts}</span>
+            <span>Signed: {signedContracts}</span>
           </div>
         </div>
         <div className="search-container">
           <Search size={20} />
           <input
             type="text"
-            placeholder="Search by event name, client name, or email..."
+            placeholder="Search by event name or client..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="search-input"
@@ -824,6 +831,7 @@ const PlannerContract = ({ setActivePage }) => {
           )}
         </div>
       </header>
+
       <div className="events-section">
         <h2 className="section-title">
           <Calendar size={20} />
@@ -835,35 +843,29 @@ const PlannerContract = ({ setActivePage }) => {
           ))}
         </div>
       </div>
+
       {debouncedSearchTerm && filteredEvents.length === 0 && (
         <div className="no-results">
           <p>No events found matching "{debouncedSearchTerm}"</p>
         </div>
       )}
+
       {showSignModal && selectedContract && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-labelledby="modal-title"
-          onClick={() => {
-            setShowSignModal(false);
-            setSelectedContract(null);
-            setSignatureData({});
-            setSaveStatus("");
-          }}
-        >
-          <div className="modal-content sign-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onMouseDown={handleModalOverlayClick}>
+          <div className="modal-content" onMouseDown={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 id="modal-title">
+              <h3>
                 {selectedContract.signatureWorkflow?.workflowStatus === "completed" ? "View Signed Contract: " : "Sign Contract: "}
                 {selectedContract.fileName}
               </h3>
-              <div className="document-version-info">
-                <span className="original-doc-indicator">
-                  <FileText size={16} />
-                  Contract document
-                </span>
-              </div>
+              <button onClick={() => {
+                setShowSignModal(false);
+                setSelectedContract(null);
+                setSignatureData({});
+                setSaveStatus("");
+              }} className="close-btn">
+                <X size={20} />
+              </button>
               <div className="modal-status">
                 {saveStatus && (
                   <span className={`save-status ${saveStatus.includes('Failed') ? 'error' : 'success'}`}>
@@ -877,23 +879,12 @@ const PlannerContract = ({ setActivePage }) => {
                   </span>
                 )}
               </div>
-              <button 
-                onClick={() => {
-                  setShowSignModal(false);
-                  setSelectedContract(null);
-                  setSignatureData({});
-                  setSaveStatus("");
-                }} 
-                className="close-btn"
-              >
-                <X size={20} />
-              </button>
             </div>
             <div className="contract-viewer">
               <iframe
-                src={`${selectedContract.contractUrl}#toolbar=1&navpanes=0&scrollbar=1`}
-                style={{ width: "100%", height: "500px", border: "none" }}
+                src={`${selectedContract.contractUrl}#toolbar=1`}
                 title="Contract Preview"
+                allow="fullscreen"
               />
               {selectedContract.signatureFields
                 .filter(field => field.signerRole === "client")
@@ -902,16 +893,10 @@ const PlannerContract = ({ setActivePage }) => {
                     key={field.id}
                     className="signature-field-overlay"
                     style={{
-                      position: "absolute",
                       left: field.position.x,
                       top: field.position.y,
                       width: field.position.width,
                       height: field.position.height,
-                      border: field.signed ? "2px solid #10b981" : "2px dashed #2563eb",
-                      backgroundColor: field.signed 
-                        ? "rgba(16, 185, 129, 0.1)" 
-                        : "rgba(37, 99, 235, 0.1)",
-                      zIndex: 10,
                     }}
                   >
                     {field.signed ? (
@@ -927,42 +912,36 @@ const PlannerContract = ({ setActivePage }) => {
                         ref={el => (canvasRefs.current[field.id] = el)}
                         width={field.position.width}
                         height={field.position.height}
-                        onMouseDown={e => startDrawing(field.id, e)}
-                        onMouseMove={e => handleSign(field.id, e)}
+                        onMouseDown={e => {
+                          e.preventDefault();
+                          startDrawing(field.id, e);
+                        }}
+                        onMouseMove={e => {
+                          e.preventDefault();
+                          handleSign(field.id, e);
+                        }}
                         onMouseUp={() => stopDrawing(field.id)}
                         onMouseLeave={() => stopDrawing(field.id)}
-                        style={{ border: "1px solid #ccc", borderRadius: "4px" }}
+                        onTouchStart={e => {
+                          e.preventDefault();
+                          startDrawing(field.id, e);
+                        }}
+                        onTouchMove={e => {
+                          e.preventDefault();
+                          handleSign(field.id, e);
+                        }}
+                        onTouchEnd={() => stopDrawing(field.id)}
                       />
                     )}
-                    <div
-                      className="signature-field-label"
-                      style={{ 
-                        position: "absolute", 
-                        top: "-24px", 
-                        color: field.signed ? "#10b981" : "#2563eb",
-                        fontWeight: field.signed ? "bold" : "normal"
-                      }}
-                    >
+                    <div className="signature-field-label">
                       {field.label} {field.required && "*"} {field.signed && "✓"}
                     </div>
                     {!field.signed && (
                       <button
                         className="clear-signature-btn"
                         onClick={() => clearSignature(field.id)}
-                        style={{
-                          position: "absolute",
-                          top: "-10px",
-                          right: "-10px",
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          background: "#dc2626",
-                          color: "white",
-                          border: "none",
-                          cursor: "pointer",
-                        }}
                       >
-                        <X size={10} />
+                        <X size={12} />
                       </button>
                     )}
                   </div>
@@ -972,7 +951,7 @@ const PlannerContract = ({ setActivePage }) => {
               {selectedContract.signatureWorkflow?.workflowStatus !== "completed" && (
                 <>
                   <button 
-                    className="save-draft-btn" 
+                    className="save-draft-btn"
                     onClick={saveDraftSignature}
                     disabled={isSaving || Object.keys(signatureData).length === 0}
                   >
@@ -980,7 +959,7 @@ const PlannerContract = ({ setActivePage }) => {
                     Save Draft
                   </button>
                   <button 
-                    className="sign-btn" 
+                    className="sign-btn"
                     onClick={sendSignedContract}
                     disabled={isSaving}
                   >
@@ -993,7 +972,7 @@ const PlannerContract = ({ setActivePage }) => {
                 <div className="signed-contract-info">
                   <span className="completion-status">
                     <FileCheck size={16} />
-                    Contract completed and signed on {new Date(selectedContract.signedAt).toLocaleDateString()}
+                    Contract completed on {new Date(selectedContract.signedAt).toLocaleDateString()}
                   </span>
                   <button
                     className="download-btn"
@@ -1003,7 +982,7 @@ const PlannerContract = ({ setActivePage }) => {
                     )}
                   >
                     <Download size={16} />
-                    Download Contract
+                    Download
                   </button>
                 </div>
               )}
@@ -1018,7 +997,7 @@ const PlannerContract = ({ setActivePage }) => {
                 }}
               >
                 <Trash2 size={16} />
-                Delete Contract
+                Delete
               </button>
             </div>
           </div>
