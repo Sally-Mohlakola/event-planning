@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../../firebase"; // Ensure this path is correct
 import { Search, Edit } from "lucide-react";
-import Popup from "../adminGeneralComponents/Popup.jsx"; // Assuming you have a Modal.jsx component
+import Popup from "../../general/popup/Popup.jsx";
 import "./AdminVendorManagement.css";
 import AdminVendorApplications from "./AdminVendorApplications.jsx";
 
@@ -24,11 +24,13 @@ function AdminVendorManagement() {
 			? auth.currentUser.getIdToken()
 			: Promise.reject("Not logged in");
 
-	
-
-			
 	useEffect(() => {
 		const fetchVendors = async () => {
+			let user = auth.currentUser;
+			while (!user) {
+				await new Promise((res) => setTimeout(res, 50)); // wait 50ms
+				user = auth.currentUser;
+			}
 			try {
 				const token = await getToken();
 				const apiUrl =
@@ -100,7 +102,7 @@ function AdminVendorManagement() {
 			<AdminVendorApplications />
 			<section className="filters-section">
 				<h2>All approved vendors</h2>
-				<div className="search-bar">
+				<section className="search-bar">
 					<Search size={20} />
 					<input
 						type="text"
@@ -108,7 +110,7 @@ function AdminVendorManagement() {
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
 					/>
-				</div>
+				</section>
 				<select
 					value={categoryFilter}
 					onChange={(e) => setCategoryFilter(e.target.value)}
@@ -137,12 +139,12 @@ function AdminVendorManagement() {
 									alt={vendor.businessName}
 								/>
 							</figure>
-							<div className="vendor-card-info">
+							<section className="vendor-card-info">
 								<h4>{vendor.businessName}</h4>
 								<p className="vendor-category-tag">
 									{vendor.category}
 								</p>
-							</div>
+							</section>
 							<button
 								className="btn-view-details"
 								onClick={() => handleViewDetails(vendor)}
@@ -158,7 +160,7 @@ function AdminVendorManagement() {
 
 			<Popup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
 				{selectedVendor && (
-					<div className="vendor-popup-details">
+					<section className="vendor-popup-details">
 						<header className="vendor-popup-header">
 							<img
 								src={
@@ -179,7 +181,7 @@ function AdminVendorManagement() {
 							<p className="vendor-popup-description">
 								{selectedVendor.description}
 							</p>
-							<div className="vendor-contact-info">
+							<section className="vendor-contact-info">
 								<p>
 									<strong>Email:</strong>{" "}
 									{selectedVendor.email}
@@ -192,7 +194,7 @@ function AdminVendorManagement() {
 									<strong>Address:</strong>{" "}
 									{selectedVendor.address}
 								</p>
-							</div>
+							</section>
 						</section>
 						<footer className="vendor-popup-footer">
 							<button
@@ -202,7 +204,7 @@ function AdminVendorManagement() {
 								<Edit size={16} /> Edit Vendor Details
 							</button>
 						</footer>
-					</div>
+					</section>
 				)}
 			</Popup>
 		</section>

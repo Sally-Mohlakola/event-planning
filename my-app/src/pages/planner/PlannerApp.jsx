@@ -22,11 +22,18 @@ import PlannerAllEvents from "./PlannerAllEvents";
 import PlannerContract from "./PlannerContract";
 import PlannerFloorPlan from "./PlannerFloorPlan";
 import PlannerSchedules from "./PlannerSchedules";
+import PlannerCalendar from "./PlannerCalendar";
 
 const PlannerApp = () => {
-	//USing to page to the selected tab
-	const [activePage, setActivePage] = useState("dashboard");
 	const [selectedEvent, setSelectedEvent] = useState(null);
+	const [activePage, setActivePage] = useState(
+		localStorage.getItem("activePage") || "dashboard"
+	);
+
+	const handleSetActivePage = (page) => {
+		setActivePage(page);
+		localStorage.setItem("activePage", page);
+	};
 
 	const navigate = useNavigate();
 
@@ -34,7 +41,11 @@ const PlannerApp = () => {
 		{ id: "dashboard", label: "Dashboard", icon: BarChart3 },
 		{ id: "events", label: "Events", icon: Calendar },
 		{ id: "vendor", label: "Vendor Marketplace", icon: Users },
-		{ id: "schedule management", label: "Schedule Management", icon: Users },
+		{
+			id: "schedule management",
+			label: "Schedule Management",
+			icon: Users,
+		},
 		{ id: "floorplan", label: "Floorplan", icon: MapPin },
 		{ id: "documents", label: "Documents", icon: FileText },
 	];
@@ -58,7 +69,7 @@ const PlannerApp = () => {
 					built here.
 				</p>
 				<button
-					onClick={() => setActivePage("dashboard")}
+					onClick={() => handleSetActivePage("dashboard")}
 					className="back-to-dashboard-btn"
 				>
 					Back to Dashboard
@@ -70,10 +81,15 @@ const PlannerApp = () => {
 	const renderCurrentPage = () => {
 		switch (activePage) {
 			case "dashboard":
-				return <PlannerDashboard data-testid="planner-dashboard" setActivePage={setActivePage} />;
+				return (
+					<PlannerDashboard
+						data-testid="planner-dashboard"
+						setActivePage={setActivePage}
+					/>
+				);
 			case "events":
 				return (
-					<PlannerAllEvents
+					<PlannerCalendar
 						setActivePage={setActivePage}
 						onSelectEvent={onSelectEvent}
 					/>
@@ -106,11 +122,12 @@ const PlannerApp = () => {
 
 	const onSelectEvent = (event) => {
 		setSelectedEvent(event);
-		setActivePage("selected-event");
+		handleSetActivePage("selected-event");
+		localStorage.setItem("selectedEvent", JSON.stringify(event));
 	};
 
 	const onOpenMarketplace = () => {
-		setActivePage("vendor-marketplace");
+		handleSetActivePage("vendor-marketplace");
 	};
 
 	return (
@@ -147,7 +164,9 @@ const PlannerApp = () => {
 												? "active"
 												: ""
 										}`}
-										onClick={() => setActivePage(item.id)}
+										onClick={() =>
+											handleSetActivePage(item.id)
+										}
 									>
 										<Icon size={18} />
 										{item.label}

@@ -36,6 +36,12 @@ const PlannerContract = ({ setActivePage }) => {
         return;
     }
     try{
+      const auth = getAuth();
+      let user = auth.currentUser;
+      while (!user) {
+      		await new Promise((res) => setTimeout(res, 50)); // wait 50ms
+      	user = auth.currentUser;
+    	}
       const token = await auth.currentUser.getIdToken();
 
       const res = await fetch(
