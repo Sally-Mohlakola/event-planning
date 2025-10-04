@@ -142,6 +142,7 @@ function PlannerDashboard({ onSelectEvent }) {
 	const Upcoming = events
 		.filter((event) => {
 			const eventDate = toDate(event.date);
+			console.log("Event Date:", eventDate);
 			return isAfter(eventDate, today) && isBefore(eventDate, future);
 		})
 		.sort((a, b) => toDate(a.date) - toDate(b.date));

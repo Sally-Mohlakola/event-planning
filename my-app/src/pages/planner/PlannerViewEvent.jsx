@@ -6,6 +6,8 @@ import ChatComponent from './ChatComponent.jsx'
 import PlannerTasks from './PlannerTasks.jsx';
 import { format } from 'date-fns';
 import BronzeFury from './BronzeFury.jsx';
+import DeleteEvent from './PlannerDeleteEvent.jsx'
+import { on } from 'events';
 
 //Code for the pop up when manually adding a guest **********
 function AddGuestPopup({ isOpen, onClose, onSave }) {
@@ -446,6 +448,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
     const [showAddGuestPopup, setShowAddGuestPopup] = useState(false);
     const [showImportGuestPopup, setShowImportGuestPopup] = useState(false);
     const [showBronzeFuryPopup, setShowBronzeFuryPopup] = useState(false);
+    const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [services, setServices] = useState([]);
     const [showChat, setShowChat] = useState(false);
     const [chatVendorId, setChatVendorId] = useState(null);
@@ -605,6 +608,11 @@ export default function PlannerViewEvent({event, setActivePage}) {
         setIsEditing(false);
     };
 
+    const handleDelete = () => {
+        setShowDeletePopup(true);
+
+    }
+
     const handleCancel = () => {
         setEditForm({...eventData});
         setIsEditing(false);
@@ -690,7 +698,17 @@ export default function PlannerViewEvent({event, setActivePage}) {
                         ) : (
                             <section className="edit-actions">
                                 <button className="save-btn" onClick={handleSave}>Save Changes</button>
+                                <button className="delete-btn" onClick={handleDelete}>Delete Event</button>
                                 <button className="cancel-btn" onClick={handleCancel}>Cancel</button>
+
+                                {showDeletePopup && (
+                                    <DeleteEvent
+                                        eventId={eventId}
+                                        eventData={eventData}
+                                        onClose={() => setShowDeletePopup(false)}
+                                    />
+                                    )}
+
                             </section>
                         )}
                     </section>
@@ -941,8 +959,7 @@ export default function PlannerViewEvent({event, setActivePage}) {
                                 )}
 
                                 {showBronzeFuryPopup && (
-                                    <BronzeFury
-                                    onClose ={onClose}/>)}
+                                    <BronzeFury/>)}
 
                                 {showAddGuestPopup && (
                                         <section>
