@@ -87,7 +87,7 @@ const PlannerContract = () => {
 
 		try {
 			const token = await getAuthToken();
-			const response = await fetch(`${API_TEST}/planner/contracts`, {
+			const response = await fetch(`${API_BASE}/planner/contracts`, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 
@@ -201,7 +201,7 @@ const PlannerContract = () => {
 			console.log(contractId);
 
 			const response = await fetch(
-				`${API_TEST}/planner/contracts/${eventId}/${contractId}/${fieldId}/signatures/upload`,
+				`${API_BASE}/planner/contracts/${eventId}/${contractId}/${fieldId}/signatures/upload`,
 				{
 					method: 'POST',
 					headers: { Authorization: `Bearer ${token}` },
@@ -261,7 +261,7 @@ const PlannerContract = () => {
 			// Save draft to backend 
 			const token = await getAuthToken();
 			const response = await fetch(
-				`${API_TEST}/planner/contracts/${selectedContract.id}/signatures/draft`,
+				`${API_BASE}/planner/contracts/${selectedContract.id}/signatures/draft`,
 				{
 					method: 'POST',
 					headers: {
@@ -354,7 +354,7 @@ const PlannerContract = () => {
 			// Finalize contract on backend
 			const token = await getAuthToken();
 			const response = await fetch(
-				`${API_TEST}/planner/contracts/${selectedContract.id}/finalize`,
+				`${API_BASE}/planner/contracts/${selectedContract.id}/finalize`,
 				{
 					method: 'POST',
 					headers: {
@@ -378,7 +378,7 @@ const PlannerContract = () => {
 
 			// Confirm services
 			await fetch(
-				`${API_TEST}/planner/contracts/${selectedContract.id}/confirm-services`,
+				`${API_BASE}/planner/contracts/${selectedContract.id}/confirm-services`,
 				{
 					method: 'POST',
 					headers: {
@@ -433,7 +433,7 @@ const PlannerContract = () => {
 			try {
 				const token = await getAuthToken();
 				const response = await fetch(
-					`${API_TEST}/planner/contracts/${contractId}?eventId=${eventId}&vendorId=${vendorId}&contractUrl=${encodeURIComponent(contractUrl)}`,
+					`${API_BASE}/planner/contracts/${contractId}?eventId=${eventId}&vendorId=${vendorId}&contractUrl=${encodeURIComponent(contractUrl)}`,
 					{
 						method: 'DELETE',
 						headers: { Authorization: `Bearer ${token}` },

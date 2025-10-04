@@ -1638,6 +1638,186 @@ app.get('/chats/:eventId/:plannerId/:vendorId/messages', authenticate, async (re
 });
 
 // ============================================
+// VENDOR REVIEW ROUTES
+// ============================================
+
+// Create a review for a vendor
+app.post('/planner/vendors/:vendorId/reviews', authenticate, async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const plannerId = req.uid;
+    const { rating, review, eventId, serviceName } = req.body;
+
+    if (!rating || !review || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Valid rating (1-5) and review text are required' });
+    }
+
+    // Verify vendor exists
+    const vendorDoc = await db.collection('Vendor').doc(vendorId).get();
+    if (!vendorDoc.exists) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    // Create review document
+    const reviewData = {
+      plannerId,
+      vendorId,
+      rating: Number(rating),
+      review: review.trim(),
+      eventId: eventId || null,
+      serviceName: serviceName || null,
+      //createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      //updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const reviewRef = await db.collection('Reviews').add(reviewData);
+
+    // Update vendor analytics
+    const analyticsRef = db.collection('Analytics').doc(vendorId);
+    const analyticsDoc = await analyticsRef.get();
+
+    if (analyticsDoc.exists) {
+      const currentData = analyticsDoc.data();
+      const currentRating = currentData.averageRating || 0;
+      const currentCount = currentData.totalReviews || 0;
+      
+      const newCount = currentCount + 1;
+      const newRating = ((currentRating * currentCount) + rating) / newCount;
+
+      await analyticsRef.update({
+        averageRating: newRating,
+        totalReviews: newCount,
+        //lastReviewDate: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      // Create analytics doc if it doesn't exist
+      await analyticsRef.set({
+        vendorId,
+        averageRating: rating,
+        totalReviews: 1,
+        //lastReviewDate: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    // Also add to Analytics Reviews subcollection for backward compatibility
+    await analyticsRef.collection('Reviews').doc(reviewRef.id).set({
+      ...reviewData,
+      //timeOfReview: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.status(201).json({
+      message: 'Review submitted successfully',
+      reviewId: reviewRef.id,
+      review: { id: reviewRef.id, ...reviewData }
+    });
+  } catch (err) {
+    console.error('Error creating review:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Get all reviews for a vendor
+app.get('/vendors/:vendorId/reviews', async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+
+    const reviewsSnapshot = await db.collection('Reviews')
+      .where('vendorId', '==', vendorId)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const reviews = reviewsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json({ reviews });
+  } catch (err) {
+    console.error('Error fetching reviews:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Get planner's own reviews
+app.get('/planner/my-reviews', authenticate, async (req, res) => {
+  try {
+    const plannerId = req.uid;
+
+    const reviewsSnapshot = await db.collection('Reviews')
+      .where('plannerId', '==', plannerId)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const reviews = reviewsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json({ reviews });
+  } catch (err) {
+    console.error('Error fetching planner reviews:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Update a review
+app.put('/planner/reviews/:reviewId', authenticate, async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const plannerId = req.uid;
+    const { rating, review } = req.body;
+
+    const reviewRef = db.collection('Reviews').doc(reviewId);
+    const reviewDoc = await reviewRef.get();
+
+    if (!reviewDoc.exists) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    if (reviewDoc.data().plannerId !== plannerId) {
+      return res.status(403).json({ message: 'Unauthorized to edit this review' });
+    }
+
+    await reviewRef.update({
+      rating: Number(rating),
+      review: review.trim(),
+      //updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({ message: 'Review updated successfully' });
+  } catch (err) {
+    console.error('Error updating review:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Delete a review
+app.delete('/planner/reviews/:reviewId', authenticate, async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const plannerId = req.uid;
+
+    const reviewRef = db.collection('Reviews').doc(reviewId);
+    const reviewDoc = await reviewRef.get();
+
+    if (!reviewDoc.exists) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    if (reviewDoc.data().plannerId !== plannerId) {
+      return res.status(403).json({ message: 'Unauthorized to delete this review' });
+    }
+
+    await reviewRef.delete();
+
+    res.json({ message: 'Review deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting review:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// ============================================
 // CONTRACT MANAGEMENT ROUTES
 // ============================================
 
