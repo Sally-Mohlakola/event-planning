@@ -9,16 +9,14 @@ import {
 	getAllEventsSorted,
 	getTodayKey,
 	minutesToDurationString,
-	parseTimeToMinutes,
-	pad,
 	formatDateKey,
 } from "./dateUtils";
 import "./ScheduleView.css";
 
-const ScheduleView = forwardRef(({ events }, ref) => {
-	// Accept events as a prop
+// 1. Accept onEventClick as a prop
+const ScheduleView = forwardRef(({ events, onEventClick }, ref) => {
 	const listRef = useRef(null);
-	const sortedEvents = getAllEventsSorted(events); // Use the passed events
+	const sortedEvents = getAllEventsSorted(events);
 	const todayKey = getTodayKey();
 
 	useImperativeHandle(ref, () => ({
@@ -36,8 +34,7 @@ const ScheduleView = forwardRef(({ events }, ref) => {
 	}));
 
 	useEffect(() => {
-		// This useEffect can be simplified or removed if not needed for other purposes
-		// The goToday functionality in Calendar.jsx handles scrolling now
+		// The goToday functionality in Calendar.jsx handles scrolling
 	}, [sortedEvents, todayKey]);
 
 	return (
@@ -52,12 +49,14 @@ const ScheduleView = forwardRef(({ events }, ref) => {
 						: 60; // duration in minutes
 
 					return (
+						// 2. Add the onClick handler to the list item
 						<li
 							key={e.id}
 							id={`schedule-item-${e.id}`}
 							className={`schedule__item ${
 								isToday ? "schedule__item--today" : ""
 							}`}
+							onClick={() => onEventClick(e.raw)} // Pass the raw event data to the handler
 						>
 							<article>
 								<h4 className="schedule__title">{e.title}</h4>

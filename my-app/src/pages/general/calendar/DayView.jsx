@@ -4,7 +4,7 @@ import { getEventsForDay, formatDateKey, getTodayKey, pad } from "./dateUtils";
 import EventBlock from "./EventBlock";
 import "./DayView.css";
 
-export default function DayView({ events, selectedDate }) {
+export default function DayView({ selectedDate, events, onEventClick }) {
 	const y = selectedDate.getFullYear();
 	const m = selectedDate.getMonth();
 	const d = selectedDate.getDate();
@@ -74,6 +74,7 @@ export default function DayView({ events, selectedDate }) {
 								key={ev.id}
 								event={ev}
 								pxPerMinute={pxPerMinute}
+								onEventClick={onEventClick}
 							/>
 						))}
 					</section>
