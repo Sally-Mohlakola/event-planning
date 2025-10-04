@@ -28,7 +28,6 @@ import {
 	updateDoc,
 } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
-import PDFSignatureEditor from "./PDFSignatureEditor";
 import "./VendorContract.css";
 import Popup from "../general/popup/Popup.jsx";
 
@@ -53,11 +52,6 @@ const VendorContract = ({ setActivePage }) => {
 	const [showContractModal, setShowContractModal] = useState(false);
 	const [iframeSrc, setIframeSrc] = useState(null);
 
-	// E-signature states
-	const [showSignatureEditor, setShowSignatureEditor] = useState(false);
-	const [editingContractForSignature, setEditingContractForSignature] =
-		useState(null);
-
 	// Final pricing states
 	const [showPricingModal, setShowPricingModal] = useState(false);
 	const [currentClient, setCurrentClient] = useState(null);
@@ -74,18 +68,13 @@ const VendorContract = ({ setActivePage }) => {
 	const cacheTTL = 5 * 60 * 1000;
 
 	const vendorId = auth.currentUser?.uid;
+	
 	// Function to fetch services for a client (placeholder URL)
 	const fetchClientServices = useCallback(async (eventId, vendorId) => {
 		if (!auth.currentUser) return [];
 		setLoadingServices(true);
 		try {
-			const auth = getAuth();
-			let user = auth.currentUser;
-			while (!user) {
-				await new Promise((res) => setTimeout(res, 50)); // wait 50ms
-				user = auth.currentUser;
-			}
-			const token = await user.getIdToken();
+			const token = await auth.currentUser.getIdToken();
 			const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/${vendorId}/${eventId}/services-for-contract`;
 			const res = await fetch(url, {
 				headers: { Authorization: `Bearer ${token}` },
@@ -261,7 +250,7 @@ const VendorContract = ({ setActivePage }) => {
 		} finally {
 			setLoading(false);
 		}
-	}, []);
+	}, [cacheKey, cacheTTL]);
 
 	useEffect(() => {
 		const initializeContracts = async () => {
@@ -349,6 +338,16 @@ const VendorContract = ({ setActivePage }) => {
 		});
 		return () => unsubscribe();
 	}, [fetchClients]);
+
+	useEffect(() => {
+		// Refresh contracts when returning from signature setup
+		const handleStorageChange = () => {
+			loadContractsFromFirestore();
+		};
+		
+		window.addEventListener('contractUpdated', handleStorageChange);
+		return () => window.removeEventListener('contractUpdated', handleStorageChange);
+	}, [loadContractsFromFirestore]);
 
 	// Group contracts by eventId for multiple contracts per client
 	const groupedContracts = useMemo(() => {
@@ -631,7 +630,7 @@ const VendorContract = ({ setActivePage }) => {
 
 			setShowPricingModal(true);
 		},
-		[clients, fetchClientServices]
+		[clients, fetchClientServices, vendorId]
 	);
 
 	const handlePricingSubmit = async () => {
@@ -777,124 +776,11 @@ const VendorContract = ({ setActivePage }) => {
 		[groupedContracts]
 	);
 
-	// Function to handle signature setup
+	// Function to handle signature setup - Navigate to separate page
 	const handleSetupSignatures = (contract) => {
-		setEditingContractForSignature(contract);
-		setShowSignatureEditor(true);
-	};
-
-	// Function to save signature fields
-	const handleSaveSignatureFields = async (signatureFields) => {
-		if (!editingContractForSignature) return;
-
-		try {
-			const contractRef = doc(
-				db,
-				"Event",
-				editingContractForSignature.eventId,
-				"Vendors",
-				auth.currentUser.uid,
-				"Contracts",
-				editingContractForSignature.id
-			);
-
-			const signers = createSignersFromFields(signatureFields, {
-				name: editingContractForSignature.clientName,
-				email: editingContractForSignature.clientEmail,
-			});
-
-			await updateDoc(contractRef, {
-				signatureFields: signatureFields,
-				signers: signers,
-				"signatureWorkflow.isElectronic": true,
-				"signatureWorkflow.workflowStatus": "draft",
-				auditTrail: [
-					...(editingContractForSignature.auditTrail || []),
-					{
-						id: uuidv4(),
-						timestamp: new Date().toISOString(),
-						action: "signature_fields_defined",
-						actor: auth.currentUser?.email || "vendor",
-						actorRole: "vendor",
-						details: `${signatureFields.length} signature fields defined`,
-						ipAddress: "system",
-					},
-				],
-				updatedAt: new Date().toISOString(),
-			});
-
-			// Update local state
-			setAllContracts((prev) =>
-				prev.map((contract) =>
-					contract.id === editingContractForSignature.id
-						? {
-								...contract,
-								signatureFields,
-								signers,
-								signatureWorkflow: {
-									...contract.signatureWorkflow,
-									isElectronic: true,
-									workflowStatus: "draft",
-								},
-						  }
-						: contract
-				)
-			);
-
-			setShowSignatureEditor(false);
-			setEditingContractForSignature(null);
-			alert("Signature fields saved successfully!");
-		} catch (error) {
-			console.error("Error saving signature fields:", error);
-			alert("Failed to save signature fields");
-		}
-	};
-
-	// Function to send contract for signature
-	const handleSendForSignature = async (signatureFields) => {
-		if (!editingContractForSignature) return;
-
-		try {
-			// First save the signature fields
-			await handleSaveSignatureFields(signatureFields);
-
-			// Update contract status to sent
-			const contractRef = doc(
-				db,
-				"Event",
-				editingContractForSignature.eventId,
-				"Vendors",
-				auth.currentUser.uid,
-				"Contracts",
-				editingContractForSignature.id
-			);
-			await updateDoc(contractRef, {
-				"signatureWorkflow.workflowStatus": "sent",
-				"signatureWorkflow.sentAt": new Date().toISOString(),
-				auditTrail: [
-					...(editingContractForSignature.auditTrail || []),
-					{
-						id: uuidv4(),
-						timestamp: new Date().toISOString(),
-						action: "sent_for_signature",
-						actor: auth.currentUser?.email || "vendor",
-						actorRole: "vendor",
-						details: "Contract sent for electronic signature",
-						ipAddress: "system",
-					},
-				],
-			});
-
-			alert("Contract sent for signature successfully!");
-			setShowSignatureEditor(false);
-			setEditingContractForSignature(null);
-
-			// Refresh contracts
-			await loadContractsFromFirestore();
-		} catch (error) {
-			console.error("Error sending contract for signature:", error);
-			alert("Failed to send contract for signature");
-		}
+		// Store contract data in localStorage for the signature page to access
+		localStorage.setItem('contractForSignature', JSON.stringify(contract));
+		setActivePage('setup-signature');
 	};
 
 	const filteredClients = useMemo(() => {
@@ -1476,31 +1362,6 @@ const VendorContract = ({ setActivePage }) => {
 									: "Upload Contract with Pricing"}
 							</button>
 						</div>
-					</div>
-				)}
-			</Popup>
-
-			{/* Signature Editor Modal */}
-			<Popup
-				isOpen={showSignatureEditor}
-				onClose={() => setShowSignatureEditor(false)}
-			>
-				{editingContractForSignature && (
-					<div className="signature-editor-modal">
-						<div className="modal-header">
-							<h3>
-								Setup Electronic Signature -{" "}
-								{editingContractForSignature.fileName}
-							</h3>
-						</div>
-
-						<PDFSignatureEditor
-							contractUrl={
-								editingContractForSignature.contractUrl
-							}
-							onSave={handleSaveSignatureFields}
-							onSend={handleSendForSignature}
-						/>
 					</div>
 				)}
 			</Popup>
