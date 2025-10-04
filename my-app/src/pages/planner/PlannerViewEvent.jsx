@@ -85,12 +85,12 @@ function AddGuestPopup({ isOpen, onClose, onSave }) {
 	if (!isOpen) return null;
 
 	return (
-		<section className="popup-overlay" onClick={handleClose}>
+		<section className="guest-popup-overlay" onClick={handleClose}>
 			<section
-				className="popup-content"
+				className="guest-popup-content"
 				onClick={(e) => e.stopPropagation()}
 			>
-				<section className="popup-header">
+				<section className="guest-popup-header">
 					<h3>Add Guest</h3>
 					<button className="close-btn" onClick={handleClose}>
 						Close
