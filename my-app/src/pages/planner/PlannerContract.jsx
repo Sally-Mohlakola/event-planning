@@ -258,7 +258,7 @@ const PlannerContract = () => {
 				draftSignatures[fieldId] = savedSignature;
 			}
 
-			// Save draft to backend
+			// Save draft to backend 
 			const token = await getAuthToken();
 			const response = await fetch(
 				`${API_TEST}/planner/contracts/${selectedContract.id}/signatures/draft`,
