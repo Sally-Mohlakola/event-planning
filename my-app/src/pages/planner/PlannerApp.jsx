@@ -18,7 +18,7 @@ import PlannerVendorMarketplace from "./PlannerVendorMarketplace";
 //css import
 import "./PlannerApp.css";
 import PlannerViewEvent from "./PlannerViewEvent";
-import PlannerAllEvents from "./PlannerAllEvents";
+import PlannerReview from "./PlannerReview";
 import PlannerContract from "./PlannerContract";
 import PlannerFloorPlan from "./PlannerFloorPlan";
 import PlannerSchedules from "./PlannerSchedules";
@@ -47,6 +47,7 @@ const PlannerApp = () => {
 			icon: Users,
 		},
 		{ id: "floorplan", label: "Floorplan", icon: MapPin },
+		{ id: "review", label: "Reviews", icon: FileText},
 		{ id: "documents", label: "Documents", icon: FileText },
 	];
 
@@ -115,6 +116,8 @@ const PlannerApp = () => {
 						setActivePage={setActivePage}
 					/>
 				);
+			case "review":
+				return (<PlannerReview/>);
 			default:
 				return <PlannerDashboard setActivePage={setActivePage} />;
 		}
