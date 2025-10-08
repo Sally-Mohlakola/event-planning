@@ -599,6 +599,22 @@ app.put('/planner/me/:eventId', authenticate, async (req, res) => {
   }
 });
 
+//Delete an event for a planner
+app.delete('/planner/events/:eventId', async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const eventRef = db.collection('Event').doc(eventId);
+
+   
+    await eventRef.delete();
+
+    res.json({ message: 'Event deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while deleting event' });
+  }
+});
+
 //Create a guest manually
 app.post('/planner/me/:eventId/guests', authenticate, async (req, res) => {
 
