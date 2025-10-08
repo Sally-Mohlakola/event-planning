@@ -981,285 +981,196 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 	};
 
 	return (
-		<main className="floorplan-page">
-			<header className="floorplan-header">
-				<h2>Floorplan Designer</h2>
-			</header>
+    <main className="floorplan-page">
+      {/* ---------- HEADER ---------- */}
+      <header className="floorplan-header">
+        <h2>Floorplan Designer</h2>
+        <p className="subtitle">
+          Design and customize your event layout interactively.
+        </p>
+      </header>
 
-			<div className="floorplan-content">
-				<aside className="floorplan-sidebar">
-					<h3>Choose Event</h3>
-					<select
-						data-testid="event-selector"
-						value={selectedEventId}
-						onChange={(e) => setSelectedEventId(e.target.value)}
-						className="event-select"
-					>
-						<option value="">Select an event</option>
-						{events.map((event) => (
-							<option key={event.id} value={event.id}>
-								{event.name || event.id}
-							</option>
-						))}
-					</select>
+      {/* ---------- EVENT/VENDOR SELECTORS ---------- */}
+      <section className="selector-bar">
+        <div className="selector-group">
+          <label>Choose Event</label>
+          <select
+            value={selectedEventId}
+            onChange={(e) => setSelectedEventId(e.target.value)}
+          >
+            <option value="">Select an event</option>
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.name || event.id}
+              </option>
+            ))}
+          </select>
+        </div>
 
-					<h3>Choose Vendor</h3>
-					<select
-						data-testid="vendor-selector"
-						value={selectedVendor}
-						onChange={(e) => setSelectedVendor(e.target.value)}
-						className="vendor-select"
-						disabled={!selectedEventId}
-					>
-						<option value="">Select a vendor</option>
-						{vendors.map((v) => (
-							<option key={v.id} value={v.id}>
-								{v.businessName || v.id}
-							</option>
-						))}
-					</select>
+        <div className="selector-group">
+          <label>Choose Vendor</label>
+          <select
+            value={selectedVendor}
+            onChange={(e) => setSelectedVendor(e.target.value)}
+            disabled={!selectedEventId}
+          >
+            <option value="">Select a vendor</option>
+            {vendors.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.businessName || v.id}
+              </option>
+            ))}
+          </select>
+        </div>
 
-					<h3>Template</h3>
-					<select
-						value={template}
-						onChange={(e) => setTemplate(e.target.value)}
-					>
-						{TEMPLATES.map((t) => (
-							<option value={t.id} key={t.id}>
-								{t.name}
-							</option>
-						))}
-					</select>
+        <div className="selector-group">
+          <label>Template</label>
+          <select
+            value={template}
+            onChange={(e) => setTemplate(e.target.value)}
+          >
+            {TEMPLATES.map((t) => (
+              <option value={t.id} key={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
 
-					<h3>Upload Background Image</h3>
-					<div className="image-upload">
-						<input
-							type="file"
-							accept="image/jpeg,image/png,image/gif,image/webp"
-							onChange={handleImageUpload}
-						/>
-						{backgroundImage && (
-							<div className="image-preview">
-								<img
-									src={backgroundImage}
-									alt="Background preview"
-									style={{
-										maxWidth: "100%",
-										maxHeight: "100px",
-										marginTop: "10px",
-									}}
-								/>
-								<button
-									onClick={clearBackgroundImage}
-									className="clear-image"
-								>
-									Clear Image
-								</button>
-							</div>
-						)}
-					</div>
+      {/* ---------- MAIN CONTENT AREA ---------- */}
+      <div className="floorplan-content">
+        {/* Sidebar Controls */}
+        <aside className="floorplan-sidebar">
+          <h3>Upload Background Image</h3>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={handleImageUpload}
+          />
+          {backgroundImage && (
+            <div className="image-preview">
+              <img
+                src={backgroundImage}
+                alt="Background preview"
+                style={{ maxWidth: "100%", marginTop: "10px" }}
+              />
+              <button onClick={clearBackgroundImage} className="danger">
+                Clear Image
+              </button>
+            </div>
+          )}
 
-					<h3>Add Items</h3>
-					<div className="tool-buttons">
-						<button onClick={() => addItem("table_small")}>
-							Add Small Round Table
-						</button>
-						<button onClick={() => addItem("table_square")}>
-							Add Square Table
-						</button>
-						<button onClick={() => addItem("table_large")}>
-							Add Rectangle Table
-						</button>
-						<button onClick={() => addItem("chair")}>
-							Add Chair
-						</button>
-						<button onClick={() => addItem("stage")}>
-							Add Stage
-						</button>
-						<button onClick={() => addItem("light_small")}>
-							Add Small Light Fixture
-						</button>
-						<button onClick={() => addItem("light_medium")}>
-							Add Medium Light Fixture
-						</button>
-						<button onClick={() => addItem("light_large")}>
-							Add Large Light Fixture
-						</button>
-						<button onClick={() => addItem("piano")}>
-							Add Piano
-						</button>
-						<button onClick={() => addItem("dance_floor")}>
-							Add Dance Floor
-						</button>
-						<button onClick={() => addItem("drink_bar")}>
-							Add Drink Bar
-						</button>
-						<button onClick={() => addItem("cake_table")}>
-							Add Cake Table
-						</button>
-						<button onClick={() => addItem("head_table")}>
-							Add Head Table
-						</button>
-						<button onClick={() => addItem("walkway_carpet")}>
-							Add Walkway Carpet
-						</button>
-						<button onClick={() => addItem("catering_stand")}>
-							Add Catering Stand
-						</button>
-						<button onClick={() => addItem("exit_door")}>
-							Add Exit Door
-						</button>
-					</div>
+          <h3>Add Items</h3>
+          <div className="tool-buttons">
+            {[
+              ["table_small", "Small Round Table"],
+              ["table_square", "Square Table"],
+              ["table_large", "Rectangle Table"],
+              ["chair", "Chair"],
+              ["stage", "Stage"],
+              ["light_small", "Small Light"],
+              ["light_medium", "Medium Light"],
+              ["light_large", "Large Light"],
+              ["piano", "Piano"],
+              ["dance_floor", "Dance Floor"],
+              ["drink_bar", "Drink Bar"],
+              ["cake_table", "Cake Table"],
+              ["head_table", "Head Table"],
+              ["walkway_carpet", "Walkway Carpet"],
+              ["catering_stand", "Catering Stand"],
+              ["exit_door", "Exit Door"],
+            ].map(([type, label]) => (
+              <button key={type} onClick={() => addItem(type)}>
+                Add {label}
+              </button>
+            ))}
+          </div>
 
-					<h3>Selected</h3>
-					<div className="selected-controls">
-						<div className="id-selection">
-							<label htmlFor="selected-id">Selected ID:</label>
-							<select
-								id="selected-id"
-								value={selectedId || ""}
-								onChange={(e) =>
-									setSelectedId(e.target.value || null)
-								}
-							>
-								<option value="">—</option>
-								{items.map((it) => (
-									<option key={it.id} value={it.id}>
-										{it.id} (
-										{it.type
-											.replace(/_/g, " ")
-											.replace(/\b\w/g, (l) =>
-												l.toUpperCase()
-											)}
-										)
-									</option>
-								))}
-							</select>
-						</div>
-						{selectedId && (
-							<div className="control-buttons">
-								<div className="scale-controls">
-									<button
-										onClick={() => scaleSelected(0.9)}
-										disabled={!selectedId}
-									>
-										Scale Down
-									</button>
-									<button
-										onClick={() => scaleSelected(1.1)}
-										disabled={!selectedId}
-									>
-										Scale Up
-									</button>
-								</div>
-								<div className="rotate-controls">
-									<button
-										onClick={() => rotateSelected(-15)}
-										disabled={!selectedId}
-									>
-										Rotate -15°
-									</button>
-									<button
-										onClick={() => rotateSelected(15)}
-										disabled={!selectedId}
-									>
-										Rotate +15°
-									</button>
-								</div>
-								<button
-									className="danger"
-									onClick={removeSelected}
-									disabled={!selectedId}
-								>
-									Remove
-								</button>
-							</div>
-						)}
-					</div>
+          {selectedId && (
+            <>
+              <h3>Selected Item Controls</h3>
+              <div className="selected-controls">
+                <div className="scale-controls">
+                  <button onClick={() => scaleSelected(0.9)}>Scale Down</button>
+                  <button onClick={() => scaleSelected(1.1)}>Scale Up</button>
+                </div>
+                <div className="rotate-controls">
+                  <button onClick={() => rotateSelected(-15)}>Rotate -15°</button>
+                  <button onClick={() => rotateSelected(15)}>Rotate +15°</button>
+                </div>
+                <button className="danger" onClick={removeSelected}>
+                  Remove
+                </button>
+              </div>
+            </>
+          )}
 
-					<h3>Save / Upload</h3>
-					<div className="save-controls">
-						<button
-							onClick={exportToPNG}
-							disabled={!selectedEventId}
-						>
-							Download PNG
-						</button>
-						<button
-							onClick={uploadToVendor}
-							disabled={!selectedEventId || !selectedVendor}
-						>
-							Send to Selected Vendor
-						</button>
-						<button onClick={saveLocal} disabled={!selectedEventId}>
-							Save Draft
-						</button>
-						<button onClick={loadLocal} disabled={!selectedEventId}>
-							Load Draft
-						</button>
-					</div>
+          <h3>Save / Upload</h3>
+          <div className="save-controls">
+            <button onClick={exportToPNG} disabled={!selectedEventId}>
+              Download PNG
+            </button>
+            <button
+              onClick={uploadToVendor}
+              disabled={!selectedEventId || !selectedVendor}
+            >
+              Send to Vendor
+            </button>
+            <button onClick={saveLocal} disabled={!selectedEventId}>
+              Save Draft
+            </button>
+            <button onClick={loadLocal} disabled={!selectedEventId}>
+              Load Draft
+            </button>
+          </div>
+        </aside>
 
-					<p className="hint">
-						Tip: Click an item to select, drag to move, Shift+drag
-						to rotate, or use two-finger rotation on touchpad.
-					</p>
-				</aside>
-
-				<section className="floorplan-canvas-wrap">
-					<div
-						className="floorplan-canvas"
-						ref={containerRef}
-						onPointerMove={onPointerMove}
-						onPointerUp={onPointerUp}
-						onPointerCancel={onPointerUp}
-						onTouchStart={onTouchStart}
-						onTouchMove={onTouchMove}
-						onTouchEnd={onTouchEnd}
-						onTouchCancel={onTouchEnd}
-						style={{
-							background: backgroundImage
-								? `url(${backgroundImage}) no-repeat center/cover`
-								: TEMPLATES.find((t) => t.id === template)
-										?.color || "#fff",
-						}}
-					>
-						{items.map((it) => (
-							<div
-								key={it.id}
-								className={`fp-item ${
-									selectedId === it.id ? "selected" : ""
-								} ${it.type} ${
-									it.shape === "round" ? "round" : ""
-								}`}
-								style={{
-									left: `${it.x}px`,
-									top: `${it.y}px`,
-									width: `${it.w}px`,
-									height: `${it.h}px`,
-									background: it.color,
-									transform: `translate(-50%, -50%) rotate(${
-										it.rotation || 0
-									}deg)`,
-									transformOrigin: "center center",
-								}}
-								onPointerDown={(e) =>
-									onPointerDownItem(e, it.id)
-								}
-							>
-								<div className="fp-label">
-									{it.type
-										.replace(/_/g, " ")
-										.replace(/\b\w/g, (l) =>
-											l.toUpperCase()
-										)}
-								</div>
-							</div>
-						))}
-					</div>
-				</section>
-			</div>
-		</main>
-	);
+        {/* Floorplan Canvas */}
+        <section className="floorplan-canvas-wrap">
+          <div
+            className="floorplan-canvas"
+            ref={containerRef}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onTouchCancel={onTouchEnd}
+            style={{
+              background: backgroundImage
+                ? `url(${backgroundImage}) no-repeat center/cover`
+                : TEMPLATES.find((t) => t.id === template)?.color || "#fff",
+            }}
+          >
+            {items.map((it) => (
+              <div
+                key={it.id}
+                className={`fp-item ${selectedId === it.id ? "selected" : ""} ${it.type} ${
+                  it.shape === "round" ? "round" : ""
+                }`}
+                style={{
+                  left: `${it.x}px`,
+                  top: `${it.y}px`,
+                  width: `${it.w}px`,
+                  height: `${it.h}px`,
+                  background: it.color,
+                  transform: `translate(-50%, -50%) rotate(${it.rotation || 0}deg)`,
+                  transformOrigin: "center center",
+                }}
+                onPointerDown={(e) => onPointerDownItem(e, it.id)}
+              >
+                <div className="fp-label">
+                  {it.type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 };
 
 export default PlannerFloorPlan;

@@ -544,6 +544,8 @@ export default function PlannerViewEvent({ event, setActivePage }) {
     const [serviceType, setServiceType] = useState(null);
     const [chatService, setChatService] = useState(null);
     const [plannerId, setPlannerID] = useState(null);
+	const [services, setServices] = useState([]);
+
 
 	const [editForm, setEditForm] = useState({ ...eventData });
 
@@ -680,9 +682,9 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 
 	useEffect(() => {
 		async function loadServices() {
-			const services = await fetchServices();
-			setServices(services);
-			console.log(services);
+			const fetchedServices = await fetchServices();
+			setServices(fetchedServices);
+			console.log(fetchedServices);
 		}
 		loadServices();
 	}, []);
@@ -1174,17 +1176,13 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 													booked
 												</p>
 												<p>
-													Total cost: $
-													{vendors
-														.reduce(
-															(sum, v) =>
-																sum +
-																(parseFloat(
-																	v.cost
-																) || 0),
-															0
-														)
-														.toFixed(2)}
+													Total cost: R
+														{services
+															.reduce(
+																(sum, s) => sum + (parseFloat(s.estimatedCost) || 0),
+																0
+															)
+															.toFixed(2)}
 												</p>
 											</section>
 										)}
