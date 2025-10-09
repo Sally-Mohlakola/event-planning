@@ -680,30 +680,38 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 		}
 	};
 
-	useEffect(() => {
-		async function loadGuests() {
-			const guests = await fetchGuests();
-			setGuests(guests);
-		}
-		loadGuests();
-	}, []);
+	const loadGuests = async () => {
+  const guests = await fetchGuests();
+  setGuests(guests);
+};
 
-	useEffect(() => {
-		async function loadVendors() {
-			const vendors = await fetchVendors();
-			setVendors(vendors);
-		}
-		loadVendors();
-	}, []);
+useEffect(() => {
+  loadGuests();
+}, []);
 
-	useEffect(() => {
-		async function loadServices() {
-			const fetchedServices = await fetchServices();
-			setServices(fetchedServices);
-			console.log(fetchedServices);
-		}
-		loadServices();
-	}, []);
+
+const loadVendors = async () => {
+  const vendors = await fetchVendors();
+  setVendors(vendors);
+};
+
+useEffect(() => {
+  loadVendors();
+}, []);
+
+
+
+const loadServices = async () => {
+  const fetchedServices = await fetchServices();
+  setServices(fetchedServices);
+  console.log(fetchedServices);
+};
+
+// run it once on mount
+useEffect(() => {
+  loadServices();
+}, []);
+
 
 	useEffect(() => {
 		if (showAddGuestPopup === true) {
@@ -770,6 +778,7 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 		);
 		if (!res.ok) return "Guest Creation Failed";
 		console.log("Guest creation done.");
+		await loadGuests();
 	};
 
 
