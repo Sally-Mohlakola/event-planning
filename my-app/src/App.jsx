@@ -21,6 +21,7 @@ import VendorApply from "./pages/vendor/vendorApply.jsx";
 import VendorWaiting from "./pages/vendor/VendorWaiting.jsx";
 import VendorApp from "./pages/vendor/vendorApp.jsx";
 import VendorProfileEdit from "./pages/vendor/vendorProfileEdit.jsx";
+import VendorHighlights from "./pages/vendor/vendorHighlights/VendorHighlights";
 
 //admin page imports
 import Admin from "./pages/admin/Admin.jsx";
@@ -91,6 +92,10 @@ function App() {
 				<Route
 					path="/planner/contracts"
 					element={<PlannerContract />}
+				/>
+				<Route
+					path="/vendor/highlights"
+					element={<VendorHighlights />}
 				/>
 				{/*Admin Routes*/}
 				<Route path="/admin" element={<AdminGate />} />

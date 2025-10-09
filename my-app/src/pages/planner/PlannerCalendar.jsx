@@ -6,13 +6,16 @@ import Calendar from "../general/calendar/Calendar";
 import Popup from "../general/popup/Popup";
 import PlannerViewEvent from "./PlannerViewEvent";
 import NewEvent from "./NewEvent";
+import PlannerAllEvents from "./PlannerAllEvents";
 
 import "./PlannerCalendar.css";
 
-export default function PlannerCalender({ setActivePage }) {
+export default function PlannerCalender({ setActivePage, onSelectEvent }) {
 	const [events, setEvents] = useState([]);
 	const [isPopupOpen, setIsPopupOpen] = useState(false);
 	const [selectedEvent, setSelectedEvent] = useState(null);
+	const [activeTab, setActiveTab] = useState("calendar");
+
 
 	// **NEW**: State to control the "Create New Event" popup's visibility
 	const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
@@ -102,38 +105,75 @@ export default function PlannerCalender({ setActivePage }) {
 	};
 
 	return (
-		<section className="planner-all-events">
-			<header className="all-events-header">
-				<h2>My Events Calendar</h2>
-				<button onClick={handleOpenCreatePopup}>
-					+ Create New Event
-				</button>
-			</header>
+		<section data-testid="planner-all-events" className="events-list">
 
-			<Calendar
-				events={events}
-				onEventClick={handleEventClick}
-				onDateClick={handleDateClick}
-			/>
+            <section className="tabs-container">
+                <section className="tabs">
+                    <button 
+                        className={`tab-btn ${activeTab === "calendar" ? "active" : ""}`}
+                        onClick={() => setActiveTab("calendar")}
+                    >
+                        Calendar View
+                    </button>
+                    <button 
+                        className={`tab-btn ${activeTab === "list" ? "active" : ""}`}
+                        onClick={() => setActiveTab("list")}
+                    >
+                        List View
+                    </button>
+                </section>    
+            </section>
 
-			{/* When an event is selected, render your general Popup component */}
-			{selectedEvent && (
-				<Popup isOpen={isPopupOpen} onClose={handleClosePopup}>
-					{/* Render PlannerViewEvent directly inside the popup */}
-					<PlannerViewEvent
-						event={selectedEvent}
-						setActivePage={handleClosePopup} // The "Back" button will now close the popup
-					/>
-				</Popup>
-			)}
+            <section className="tab-content">
+                {activeTab === "calendar" && (
+                    <section className="calendar-view">
+						<header className="all-events-header">
+							<h2>My Events Calendar</h2>
+							<button onClick={handleOpenCreatePopup}>
+								+ Create New Event
+							</button>
+						</header>
 
-			{/* **NEW**: Popup for creating a new event */}
-			<Popup isOpen={isCreatePopupOpen} onClose={handleCloseCreatePopup}>
-				<NewEvent
-					onSave={handleSaveNewEvent}
-					onClose={handleCloseCreatePopup}
-				/>
-			</Popup>
+						<Calendar
+							events={events}
+							onEventClick={handleEventClick}
+							onDateClick={handleDateClick}
+						/>
+
+						{/* When an event is selected, render your general Popup component */}
+						{selectedEvent && (
+							<Popup isOpen={isPopupOpen} onClose={handleClosePopup}>
+								{/* Render PlannerViewEvent directly inside the popup */}
+								<PlannerViewEvent
+									event={selectedEvent}
+									setActivePage={handleClosePopup} // The "Back" button will now close the popup
+								/>
+							</Popup>
+						)}
+
+						{/* **NEW**: Popup for creating a new event */}
+						<Popup isOpen={isCreatePopupOpen} onClose={handleCloseCreatePopup}>
+							<NewEvent
+								onSave={handleSaveNewEvent}
+								onClose={handleCloseCreatePopup}
+							/>
+						</Popup>
+					</section>
+                )}
+			</section>
+			<section className="tab-content">
+				{activeTab === "list" && (
+					<>
+						{localStorage.setItem("activePage", "PlannerAllEvents")}
+						<PlannerAllEvents 
+						setActivePage={setActivePage}
+						onSelectEvent={onSelectEvent}
+						/>
+					</>
+				)}
+
+			</section>
+			
 		</section>
 	);
 }
