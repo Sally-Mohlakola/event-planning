@@ -4,10 +4,10 @@ import { getAuth } from "firebase/auth";
 import Papa from "papaparse";
 import ChatComponent from "./ChatComponent.jsx";
 import Popup from "../general/popup/Popup.jsx";
-import PlannerVendorMarketplace from "./PlannerVendorMarketplace.jsx";import PlannerTasks from './PlannerTasks.jsx';
+import PlannerVendorMarketplace from "./PlannerVendorMarketplace.jsx";
+import PlannerTasks from './PlannerTasks.jsx';
 import { format } from 'date-fns';
 import BronzeFury from './BronzeFury.jsx';
-import { on } from 'events';
 
 //Code for the pop up when manually adding a guest **********
 function AddGuestPopup({ isOpen, onClose, onSave }) {
@@ -526,6 +526,20 @@ function GuestImportWithValidation({ eventId, onImportComplete, onClose }) {
 
 //End of code for importing a guest list
 
+// Vendor Popup Component
+function VendorPopup({ isOpen, onClose }) {
+    if (!isOpen) return null;
+
+    return (
+        <Popup isOpen={isOpen} onClose={onClose}>
+            <PlannerVendorMarketplace 
+                onClose={onClose}
+                // Add any other props your PlannerVendorMarketplace needs
+            />
+        </Popup>
+    );
+}
+
 export default function PlannerViewEvent({ event, setActivePage }) {
 	if (!event) {
 		return <section>Loading Event...</section>;
@@ -545,7 +559,9 @@ export default function PlannerViewEvent({ event, setActivePage }) {
     const [chatService, setChatService] = useState(null);
     const [plannerId, setPlannerID] = useState(null);
 	const [services, setServices] = useState([]);
-
+	
+	// ADDED THE MISSING STATE VARIABLE
+	const [showVendorPopup, setShowVendorPopup] = useState(false);
 
 	const [editForm, setEditForm] = useState({ ...eventData });
 
@@ -1319,6 +1335,15 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 									+ Add Vendor
 								</button>
 							</section>
+							
+							{/* ADDED THE VENDOR POPUP */}
+							{showVendorPopup && (
+								<VendorPopup 
+									isOpen={showVendorPopup}
+									onClose={() => setShowVendorPopup(false)}
+								/>
+							)}
+							
 							<section className="vendors-list">
 								{services && services.length > 0 ? (
 									services.map((service) => (
