@@ -114,7 +114,7 @@ export default function NewEvent({ setActivePage }) {
 					body: JSON.stringify({
 						...inputs,
 						plannerId: auth.currentUser.uid,
-						date: inputs.startTime,
+						date:new Date (inputs.startTime).toISOString(),
 						description: "",
 						theme: "",
 						budget: null,

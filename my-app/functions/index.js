@@ -265,7 +265,6 @@ app.get('/vendor/bookings', authenticate, async (req, res) => {
   }
 });
 
-
 app.put("/event/:eventId/vendor/:vendorId/status", authenticate, async (req, res) => {
   try {
     const { eventId, vendorId } = req.params;
@@ -275,24 +274,28 @@ app.put("/event/:eventId/vendor/:vendorId/status", authenticate, async (req, res
       return res.status(400).json({ message: "Status is required" });
     }
 
-    const vendorRef = db
+    const servicesRef = db
       .collection("Event")
       .doc(eventId)
-      .collection("Vendors")
-      .doc(vendorId);
+      .collection("Services")
+      .where("vendorId", "==", vendorId);
 
-    // Use update() instead of set() if you just want to update fields
-    await vendorRef.update({ status });
+    const servicesSnap = await servicesRef.get();
 
-    res.json({ message: "Vendor status updated successfully" });
-  } catch (err) {
-    console.error("Error updating vendor status:", err);
-
-    // If the doc doesn't exist, update() will throw
-    if (err.code === 5 || err.message.includes("No document to update")) {
-      return res.status(404).json({ message: "Vendor not found" });
+    if (servicesSnap.empty) {
+      return res.status(404).json({ message: "No services found for vendor" });
     }
 
+    // Update all service docs under this vendor
+    const batch = db.batch();
+    servicesSnap.forEach((doc) => {
+      batch.update(doc.ref, { status });
+    });
+    await batch.commit();
+
+    res.json({ message: "Service status updated successfully" });
+  } catch (err) {
+    console.error("Error updating service status:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });

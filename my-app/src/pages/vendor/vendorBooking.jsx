@@ -61,7 +61,7 @@ const VendorBooking = ({ setActivePage }) => {
 
   let vendorId = auth.currentUser?.uid;
 
-  // -------- Fetch Bookings --------
+  //-------- Fetch Bookings--------
   useEffect(() => {
     const fetchBookings = async () => {
       const auth = getAuth();
@@ -85,7 +85,6 @@ const VendorBooking = ({ setActivePage }) => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-
         if (!res.ok) {
           const contentType = res.headers.get("content-type");
           const errorText = contentType?.includes("application/json")
@@ -93,7 +92,6 @@ const VendorBooking = ({ setActivePage }) => {
             : await res.text();
           throw new Error(`Failed to fetch bookings: ${errorText}`);
         }
-
         const data = await res.json();
         const formattedBookings = (data.bookings || []).map((booking) => ({
           ...booking,
@@ -143,6 +141,7 @@ const VendorBooking = ({ setActivePage }) => {
               user = auth.currentUser;
             }
             const token = await user.getIdToken();
+
       const res = await fetch(
         `https://us-central1-planit-sdp.cloudfunctions.net/api/event/${eventId}/vendor/${vendorId}/status`,
         {
