@@ -12,6 +12,7 @@ const busboyUploadToStorageMiddleware = require("./busboyUploadToStorageMiddlewa
 
 admin.initializeApp();
 
+
 const EXTERNAL_API_KEY = process.env.EXTERNAL_API_KEY || 'external-api-key-here';
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
@@ -67,6 +68,12 @@ app.use(cors({
     'https://event-flow-6514.onrender.com/'
   ],
 }));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+app.use(limiter);
 
 const upload = multer({ storage: multer.memoryStorage() });
 
