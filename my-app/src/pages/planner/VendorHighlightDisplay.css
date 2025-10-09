@@ -1,0 +1,94 @@
+.highlights-section {
+    padding: 0.5rem;
+    background-color: #f9fafb; /* Light background for the whole section */
+}
+
+.highlight-display-card {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Review Context (Now at the top) --- */
+.review-context-display {
+    padding: 1.5rem;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.review-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 0.75rem;
+}
+
+.star-icon.filled {
+    color: #f59e0b; /* Amber color for stars */
+    fill: #f59e0b;
+}
+
+.review-comment {
+    font-size: 1rem;
+    font-style: italic;
+    color: #4b5563; /* Darker gray for readability */
+    margin: 0 0 0.75rem 0;
+    line-height: 1.6;
+}
+
+.planner-name {
+    display: block;
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-align: right;
+    font-style: normal;
+}
+
+/* --- Gallery & Content --- */
+.highlight-gallery {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 1rem;
+    background-color: #f9fafb; /* Slightly off-white for gallery background */
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+/* For Chrome, Safari, and Opera */
+.highlight-gallery::-webkit-scrollbar {
+    display: none;
+}
+
+
+.highlight-gallery img {
+    height: 220px;
+    width: auto;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.highlight-content {
+    padding: 1.5rem;
+}
+
+.highlight-description {
+    font-size: 1rem;
+    color: #374151;
+    line-height: 1.7;
+    margin: 0;
+}
+
+/* --- Loading & Empty States --- */
+.loading-state, .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+    font-style: italic;
+    background-color: #f9fafb;
+    border-radius: 8px;
+}
