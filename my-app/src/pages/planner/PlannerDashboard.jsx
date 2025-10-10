@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { isAfter, isBefore } from "date-fns";
-import { Calendar, Users, Briefcase } from "lucide-react";
+import { Calendar, User, Users, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./PlannerDashboard.css";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
-export default function PlannerDashboard() {
+export default function PlannerDashboard( {setActivePage, onSelectEvent} ) {
 	const navigate = useNavigate();
 	const [isOpen, setIsOpen] = useState(true);
 	const [events, setEvents] = useState([]);
@@ -164,6 +164,7 @@ export default function PlannerDashboard() {
 		}
 	};
 
+	
 	// Handle file selection for profile picture
 	const handleFileSelect = (event) => {
 		const file = event.target.files[0];
