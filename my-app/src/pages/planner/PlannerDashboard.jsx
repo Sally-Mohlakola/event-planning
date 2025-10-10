@@ -1,9 +1,53 @@
 import { useState, useEffect } from "react";
 import { isAfter, isBefore } from "date-fns";
-import { Calendar, User, Users, Briefcase } from "lucide-react";
+import { Calendar, User, Users, Briefcase, X, Camera, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./PlannerDashboard.css";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+
+function VendorCard({ vendor }) {
+	const getStatusColor = (status) => {
+		switch (status) {
+			case "approved":
+				return "#10b981";
+			case "pending":
+				return "#f59e0b";
+			case "rejected":
+				return "#fd4c55ff";
+			default:
+				return "#6366f1";
+		}
+	};
+
+	return (
+		<article data-testid="vendor-card" className="vendor-card">
+			<img
+				src={vendor.profilePic}
+				alt={vendor.businessName}
+				className="vendor-image"
+			/>
+			<section className="vendor-content">
+				<h3 className="vendor-name">{vendor.businessName}</h3>
+				<section
+					className="event-status"
+					style={{ backgroundColor: getStatusColor(vendor.status) }}
+				>
+					{vendor.status}
+				</section>
+				<section className="vendor-details">
+					<span className="vendor-category">{vendor.category}</span>
+					<section className="vendor-meta">
+						<span className="vendor-rating">{vendor.rating}</span>
+						<span className="vendor-location">
+							{vendor.location}
+						</span>
+					</section>
+				</section>
+				<section className="vendor-actions"></section>
+			</section>
+		</article>
+	);
+}
 
 export default function PlannerDashboard( {setActivePage, onSelectEvent} ) {
 	const navigate = useNavigate();
@@ -164,7 +208,7 @@ export default function PlannerDashboard( {setActivePage, onSelectEvent} ) {
 		}
 	};
 
-	
+
 	// Handle file selection for profile picture
 	const handleFileSelect = (event) => {
 		const file = event.target.files[0];
