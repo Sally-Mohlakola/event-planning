@@ -4,10 +4,14 @@ import { getAuth } from "firebase/auth";
 import Papa from "papaparse";
 import ChatComponent from "./ChatComponent.jsx";
 import Popup from "../general/popup/Popup.jsx";
+import LocationPicker from './LocationPicker';
 import PlannerVendorMarketplace from "./PlannerVendorMarketplace.jsx";
 import PlannerTasks from './PlannerTasks.jsx';
 import { format } from 'date-fns';
 import BronzeFury from './BronzeFury.jsx';
+
+const API_TEST ="http://127.0.0.1:5001/planit-sdp/us-central1/api";
+const API_BASE="https://us-central1-planit-sdp.cloudfunctions.net/api";
 
 //Code for the pop up when manually adding a guest **********
 function AddGuestPopup({ isOpen, onClose, onSave }) {
@@ -347,27 +351,6 @@ function ServiceItem({ service, showChat }) {
 }
 //End of code for one vendor list item **********
 
-//Code for one vendor list item **********
-function VendorItem({ vendor }) {
-	return (
-		<section className="vendor-item">
-			<section className="vendor-info">
-				<h4>{vendor.businessName}</h4>
-				<p>{vendor.category}</p>
-			</section>
-			<section className="vendor-cost">
-				<h4>Current total cost: </h4>
-				<p>{vendor.cost}</p>
-			</section>
-			<section className="vendor-actions">
-				<button className="contact-btn">Contact</button>
-				<button className="remove-btn">Remove</button>
-			</section>
-		</section>
-	);
-}
-//End of code for one vendor list item **********
-
 //Code for prompt card (No Guests, No vendors, No tasks) (Or Guest Summary, Vendor Summary)
 function PromptCard({ title, message, buttonText, onClick }) {
 	return (
@@ -565,6 +548,12 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 
 	const [editForm, setEditForm] = useState({ ...eventData });
 
+	// NEW: Location state
+	const [locationData, setLocationData] = useState({
+		coordinates: null,
+		address: ''
+	});
+
 	const eventId = event.id;
 
 	const fetchGuests = async () => {
@@ -723,15 +712,102 @@ useEffect(() => {
 		updateEventData();
 	}, [eventData]);
 
-	const handleSave = () => {
-		setEventData({ ...editForm });
-		setIsEditing(false);
+	// NEW: Initialize location data from event
+	useEffect(() => {
+		if (eventData && eventData.locationCoordinates) {
+			// Handle both GeoPoint and plain object formats
+			const coords = eventData.locationCoordinates._latitude ? 
+				{
+					lat: eventData.locationCoordinates._latitude,
+					lng: eventData.locationCoordinates._longitude
+				} :
+				eventData.locationCoordinates;
+			
+			setLocationData({
+				coordinates: coords,
+				address: eventData.location || ''
+			});
+		}
+	}, [eventData]);
+
+	// NEW: Handler for location changes during editing
+	const handleLocationChange = (data) => {
+		setLocationData(data);
+		setEditForm(prev => ({
+			...prev,
+			location: data.address,
+			locationCoordinates: data.coordinates
+		}));
 	};
 
-    const handleCancel = () => {
-        setEditForm({...eventData});
-        setIsEditing(false);
-    };
+	// UPDATED: handleSave with conflict checking
+	const handleSave = async () => {
+		try {
+			const auth = getAuth();
+			const token = await auth.currentUser.getIdToken(true);
+
+			// Prepare update data with location coordinates
+			const updateData = {
+				...editForm,
+				locationCoordinates: locationData.coordinates
+			};
+
+			const res = await fetch(
+				`${API_BASE}/planner/me/${eventId}`,
+				{
+					method: 'PUT',
+					headers: {
+						Authorization: `Bearer ${token}`,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(updateData),
+				}
+			);
+
+			const data = await res.json();
+
+			if (!res.ok) {
+				if (res.status === 409) {
+					// Location conflict detected
+					const conflictMsg = `Location Conflict Detected!\n\n${data.message}\n\nConflicting Event: ${data.conflictingEvent?.name}\nDate: ${new Date(data.conflictingEvent?.date).toLocaleString()}\nLocation: ${data.conflictingEvent?.location}`;
+					alert(conflictMsg);
+					return;
+				}
+				throw new Error(data.message || 'Failed to update event');
+			}
+
+			// Update local state with new data including coordinates
+			setEventData({ 
+				...editForm, 
+				locationCoordinates: locationData.coordinates 
+			});
+			setIsEditing(false);
+			alert('Event updated successfully!');
+
+		} catch (err) {
+			console.error('Error saving event:', err);
+			alert(`Error updating event: ${err.message}`);
+		}
+	};
+
+	const handleCancel = () => {
+		setEditForm({ ...eventData });
+				// Reset location data to original
+		if (eventData.locationCoordinates) {
+			const coords = eventData.locationCoordinates._latitude ? 
+				{
+					lat: eventData.locationCoordinates._latitude,
+					lng: eventData.locationCoordinates._longitude
+				} :
+				eventData.locationCoordinates;
+			
+			setLocationData({
+				coordinates: coords,
+				address: eventData.location || ''
+			});
+		}
+		setIsEditing(false);
+	};
 
 	function formatDate(date) {
 		if (!date) return "";
@@ -950,17 +1026,19 @@ useEffect(() => {
 										<section className="edit-form">
 											<label>
 												Location:
-												<input
-													type="text"
-													value={editForm.location}
-													onChange={(e) =>
-														setEditForm({
-															...editForm,
-															location:
-																e.target.value,
-														})
-													}
+												<LocationPicker
+													initialLocation={locationData.coordinates}
+													initialAddress={locationData.address}
+													onLocationChange={handleLocationChange}
 												/>
+												<small style={{ 
+													display: 'block', 
+													marginTop: '5px', 
+													color: '#666',
+													fontSize: '12px'
+												}}>
+													Note: Changing location or time may conflict with other events at the same venue
+												</small>
 											</label>
 											<label>
 												Date:

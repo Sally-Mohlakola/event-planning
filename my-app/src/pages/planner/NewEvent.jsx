@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
+import LocationPicker from "./LocationPicker";
 import "./NewEvent.css";
+
+const API_TEST ="http://127.0.0.1:5001/planit-sdp/us-central1/api";
+const API_BASE="https://us-central1-planit-sdp.cloudfunctions.net/api";
+
 
 export default function NewEvent({ setActivePage }) {
 	const [inputs, setInputs] = useState({
@@ -13,16 +18,19 @@ export default function NewEvent({ setActivePage }) {
 		style: "",
 	});
 
-	//To prevent previous date selection *******************
+	const [locationData, setLocationData] = useState({
+		coordinates: null,
+		address: ""
+	});
+
 	const now = new Date();
 	const year = now.getFullYear();
-	const month = String(now.getMonth() + 1).padStart(2, "0"); // months are 0-indexed
+	const month = String(now.getMonth() + 1).padStart(2, "0");
 	const day = String(now.getDate()).padStart(2, "0");
 	const hours = String(now.getHours()).padStart(2, "0");
 	const minutes = String(now.getMinutes()).padStart(2, "0");
 
 	const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-	//End of preventing previous date selection
 
 	const [error, setError] = useState("");
 	const [success, setSuccess] = useState("");
@@ -30,7 +38,6 @@ export default function NewEvent({ setActivePage }) {
 	const navigate = useNavigate();
 	const auth = getAuth();
 
-	// Event categories dropdown options
 	const eventCategories = [
 		"Wedding",
 		"Birthday Party",
@@ -50,7 +57,6 @@ export default function NewEvent({ setActivePage }) {
 		"Other",
 	];
 
-	// Event styles dropdown options
 	const eventStyles = [
 		"Elegant/Formal",
 		"Casual/Relaxed",
@@ -75,6 +81,11 @@ export default function NewEvent({ setActivePage }) {
 		setInputs((values) => ({ ...values, [name]: value }));
 	};
 
+	const handleLocationChange = (data) => {
+		setLocationData(data);
+		setInputs((values) => ({ ...values, location: data.address }));
+	};
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 
@@ -83,7 +94,7 @@ export default function NewEvent({ setActivePage }) {
 		setError("");
 		setSuccess("");
 
-		// Basic validation
+		// Validate required fields
 		if (
 			!inputs.name ||
 			!inputs.eventCategory ||
@@ -92,39 +103,64 @@ export default function NewEvent({ setActivePage }) {
 			!inputs.style
 		) {
 			setError("Please fill in all required fields");
+			setLoading(false);
+			return;
+		}
+
+		// Validate location coordinates
+		if (!locationData.coordinates) {
+			setError("Please select a valid location on the map");
+			setLoading(false);
 			return;
 		}
 
 		if (!auth.currentUser) {
 			setError("You must be logged in to create an event");
+			setLoading(false);
 			return;
 		}
 
 		try {
 			const token = await auth.currentUser.getIdToken();
 
+			const eventData = {
+				...inputs,
+				plannerId: auth.currentUser.uid,
+				date: inputs.startTime,
+				description: "",
+				theme: "",
+				budget: null,
+				expectedGuestCount: null,
+				notes: "",
+				// Add location data
+				location: locationData.address,
+				locationCoordinates: {
+					lat: locationData.coordinates.lat,
+					lng: locationData.coordinates.lng
+				}
+			};
+
 			const res = await fetch(
-				"https://us-central1-planit-sdp.cloudfunctions.net/api/event/apply",
+				`${API_BASE}/event/apply`,
 				{
 					method: "POST",
 					headers: {
 						Authorization: `Bearer ${token}`,
 						"Content-Type": "application/json",
 					},
-					body: JSON.stringify({
-						...inputs,
-						plannerId: auth.currentUser.uid,
-						date:new Date (inputs.startTime).toISOString(),
-						description: "",
-						theme: "",
-						budget: null,
-						expectedGuestCount: null,
-						notes: "",
-					}),
+					body: JSON.stringify(eventData),
 				}
 			);
 
-			if (!res.ok) throw new Error("Failed to create event");
+			const data = await res.json();
+
+			if (!res.ok) {
+				// Check for location conflict error
+				if (res.status === 409) {
+					throw new Error(data.message || "Location conflict detected");
+				}
+				throw new Error(data.message || "Failed to create event");
+			}
 
 			setSuccess("Event created successfully!");
 			setTimeout(() => navigate("/planner-dashboard"), 1500);
@@ -205,19 +241,10 @@ export default function NewEvent({ setActivePage }) {
 				</section>
 
 				<section className="form-group">
-					<label htmlFor="location">Location *</label>
-					<input
-						type="text"
-						id="location"
-						name="location"
-						placeholder="Enter event location or select from map"
-						value={inputs.location}
-						onChange={handleChange}
-						required
+					<label>Location *</label>
+					<LocationPicker
+						onLocationChange={handleLocationChange}
 					/>
-					<small className="form-hint">
-						Start typing to search for locations
-					</small>
 				</section>
 
 				<section className="form-group">
@@ -241,10 +268,9 @@ export default function NewEvent({ setActivePage }) {
 				<button
 					type="submit"
 					className="create-event-btn"
-					onClick={handleSubmit}
 					disabled={loading}
 				>
-					Create Event
+					{loading ? "Creating..." : "Create Event"}
 				</button>
 			</form>
 
