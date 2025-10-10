@@ -8,14 +8,15 @@
   overflow: hidden;
 }
 
-/* PDF Section - Fixed Height at Top */
+/* PDF Section - 60% of viewport height */
 .pdf-section-vendor {
   flex: 0 0 auto;
   background: white;
   border-bottom: 2px solid #e2e8f0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  max-height: 40vh;
+  height: 60vh;
+  max-height: 60vh;
 }
 
 .pdf-viewer-header-vendor {
@@ -43,7 +44,7 @@
   display: flex;
   justify-content: center;
   background: #e2e8f0;
-  height: calc(40vh - 80px);
+  height: calc(60vh - 80px);
   overflow-y: auto;
 }
 
@@ -88,18 +89,20 @@
   transform: translateY(-1px);
 }
 
-/* Signature Fields Section - Scrollable with PROPER bottom padding */
+/* Signature Fields Section - 40% of viewport, scrollable with PROPER bottom padding */
 .signature-fields-section-vendor {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2rem;
-  padding-bottom: 120px; /* CRITICAL: Space for fixed buttons */
+  padding-bottom: 120px;
   background: white;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   position: relative;
+  height: 40vh;
+  max-height: 40vh;
 }
 
 .fields-header-vendor {
@@ -200,7 +203,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.25rem;
-  margin-bottom: 2rem; /* Extra space before fixed buttons */
+  margin-bottom: 2rem;
 }
 
 /* Field Card */
@@ -436,17 +439,20 @@
   }
 
   .pdf-section-vendor {
-    max-height: 35vh;
+    max-height: 50vh;
+    height: 50vh;
   }
 
   .pdf-viewer-container-vendor {
-    height: calc(35vh - 80px);
+    height: calc(50vh - 80px);
     padding: 1rem;
   }
 
   .signature-fields-section-vendor {
     padding: 1.5rem 1rem;
-    padding-bottom: 140px; /* More space on mobile */
+    padding-bottom: 140px;
+    height: auto;
+    max-height: none;
   }
 
   .fields-grid-vendor {
