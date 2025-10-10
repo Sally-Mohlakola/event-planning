@@ -1,29 +1,123 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAfter, isBefore } from "date-fns";
 import "./PlannerDashboard.css";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
-	Calendar,
-	Users,
-	Plus,
-	BarChart3,
-	MapPin,
-	FileText,
-	Store,
-	CalendarDays,
-	Building,
+  Calendar,
+  Users,
+  User,
+  Camera,
+  Save,
+  X
 } from "lucide-react";
 
 function PlannerDashboard({ onSelectEvent }) {
-	const plannerId = "";
-	const navigate = useNavigate();
-	const [isOpen, setIsOpen] = useState(true);
-	const [events, setEvents] = useState([]);
-	const [authUser, setAuthUser] = useState(undefined); // undefined = loading, null = not logged in, object = user
-	const today = new Date();
-	const future = new Date();
-	future.setDate(today.getDate() + 30);
+  const plannerId = "";
+  const navigate = useNavigate();
+  const [events, setEvents] = useState([]);
+  const [authUser, setAuthUser] = useState(undefined);
+  const [plannerProfile, setPlannerProfile] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const today = new Date();
+  const future = new Date();
+  future.setDate(today.getDate() + 30);
+
+  // Fetch planner profile
+  const fetchPlannerProfile = async (user) => {
+    if (!user) return;
+    
+    try {
+      const token = await user.getIdToken(true);
+      const res = await fetch(
+        `http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/profile`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (res.ok) {
+        const data = await res.json();
+        setPlannerProfile(data);
+        setProfileName(data.name || "");
+        setProfilePicturePreview(data.profilePicture || "");
+      }
+    } catch (error) {
+      console.error('Error fetching planner profile:', error);
+    }
+  };
+
+  // Update planner profile
+  const updatePlannerProfile = async () => {
+    if (!authUser) return;
+    
+    setIsLoading(true);
+    try {
+      const token = await authUser.getIdToken(true);
+      const formData = new FormData();
+      formData.append('name', profileName);
+      
+      if (profilePicture) {
+        formData.append('profilePicture', profilePicture);
+      }
+
+      const res = await fetch(
+        `http://127.0.0.1:5001/planit-sdp/us-central1/api/planner/profile`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setPlannerProfile(data.profile);
+        setProfilePicturePreview(data.profile.profilePicture || "");
+        setShowProfileModal(false);
+        setProfilePicture(null);
+      } else {
+        console.error('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating planner profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle file selection for profile picture
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setProfilePicture(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setProfilePicturePreview(previewUrl);
+    }
+  };
+
+  // Listen for auth state changes and set user
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAuthUser(user);
+      if (user) {
+        fetchPlannerProfile(user);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
 
 	function EventCard({ event, onSelectEvent }) {
 		const formatDate = (dateString) => {
@@ -225,13 +319,88 @@ function PlannerDashboard({ onSelectEvent }) {
 
 	return (
 		<section data-testid="planner-dashboard " className="page-container">
-			{/* Header Section */}
+			{/* Profile Modal */}
+			{showProfileModal && (
+				<section className="profile-modal-overlay" onClick={() => setShowProfileModal(false)}>
+				<section className="profile-modal" onClick={(e) => e.stopPropagation()}>
+					<section className="profile-modal-header">
+					<h3>Update Your Profile</h3>
+					<button onClick={() => setShowProfileModal(false)} className="profile-modal-close">
+						<X className="ps-icon" />
+					</button>
+					</section>
+					<section className="profile-modal-content">
+					<section className="profile-picture-section">
+						<section className="profile-picture-preview">
+						{profilePicturePreview ? (
+							<img src={profilePicturePreview} alt="Profile preview" />
+						) : (
+							<User size={80} />
+						)}
+						<label htmlFor="profile-picture-upload" className="camera-icon">
+							<Camera size={20} />
+							<input
+							id="profile-picture-upload"
+							type="file"
+							accept="image/*"
+							onChange={handleFileSelect}
+							style={{ display: 'none' }}
+							/>
+						</label>
+						</section>
+					</section>
+					<section className="profile-form-group">
+						<label>Your Name</label>
+						<input
+						type="text"
+						value={profileName}
+						onChange={(e) => setProfileName(e.target.value)}
+						className="profile-input"
+						placeholder="Enter your name"
+						/>
+					</section>
+					</section>
+					<section className="profile-modal-footer">
+					<button onClick={() => setShowProfileModal(false)} className="ps-btn ps-btn-secondary">
+						Cancel
+					</button>
+					<button 
+						onClick={updatePlannerProfile} 
+						disabled={isLoading}
+						className="ps-btn ps-btn-primary"
+					>
+						<Save className="ps-icon" />
+						{isLoading ? 'Saving...' : 'Save Profile'}
+					</button>
+					</section>
+				</section>
+				</section>
+			)}
+
+			{/* Header Section with Profile */}
 			<section className="dashboard-intro">
 				<section>
-					<h1 className="dashboard-title">Planner Dashboard</h1>
-					<p className="dashboard-subtitle">
-						Welcome back, here's what's happening with your events.
-					</p>
+				<h1 className="dashboard-title">Planner Dashboard</h1>
+				<p className="dashboard-subtitle">
+					Welcome back, {plannerProfile?.name || 'Planner'}! Here's what's happening with your events.
+				</p>
+				</section>
+				<section className="profile-section">
+				<button 
+					className="profile-button"
+					onClick={() => setShowProfileModal(true)}
+				>
+					{plannerProfile?.profilePicture ? (
+					<img 
+						src={plannerProfile.profilePicture} 
+						alt="Profile" 
+						className="profile-image"
+					/>
+					) : (
+					<User size={24} />
+					)}
+					<span>{plannerProfile?.name || 'Set Profile'}</span>
+				</button>
 				</section>
 			</section>
 

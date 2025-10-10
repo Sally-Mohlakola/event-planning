@@ -1,0 +1,77 @@
+.location-picker {
+  width: 100%;
+}
+
+.search-container {
+  margin-bottom: 16px;
+}
+
+.search-container label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.autocomplete-container {
+  width: 100%;
+}
+
+.location-search {
+  width: 100%;
+}
+
+/* Style the web component input */
+.location-search::part(input) {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.location-search::part(input):focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.selected-location-info {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+}
+
+.selected-location-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #0369a1;
+}
+
+.location-instructions {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #64748b;
+  text-align: center;
+}
+
+.location-picker-error {
+  padding: 20px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  text-align: center;
+}
+
+.location-picker-loading {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+}

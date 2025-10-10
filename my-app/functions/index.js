@@ -4,6 +4,7 @@ const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const { GeoPoint } = require('@google-cloud/firestore');
 
 const nodemailer = require('nodemailer');
 const { onDocumentCreated } = require('firebase-functions/firestore');
@@ -426,6 +427,343 @@ app.post("/analytics/:vendorId/reviews", authenticate, async (req, res) => {
 //-- Planner Routes
 //================================================================
 
+//Events with location pickers test
+// Helper function to check if two events overlap in time
+function eventsOverlap(event1Start, event1Duration, event2Start, event2Duration) {
+  const event1End = new Date(event1Start.getTime() + event1Duration * 60 * 60 * 1000);
+  const event2End = new Date(event2Start.getTime() + event2Duration * 60 * 60 * 1000);
+  
+  return event1Start < event2End && event2Start < event1End;
+}
+
+// Helper function to calculate distance between two coordinates (in meters)
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371e3; // Earth's radius in meters
+  const phi1 = lat1 * Math.PI / 180;
+  const phi2 = lat2 * Math.PI / 180;
+  const deltaphi = (lat2 - lat1) * Math.PI / 180;
+  const deltalamda = (lng2 - lng1) * Math.PI / 180;
+
+  const a = Math.sin(deltaphi / 2) * Math.sin(deltaphi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) *
+    Math.sin(deltalamda / 2) * Math.sin(deltalamda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distance in meters
+}
+
+// Check for location conflicts
+async function checkLocationConflict(newEventDate, newEventDuration, newEventCoords) {
+  const PROXIMITY_THRESHOLD = 100; // 100 meters - same location
+  
+  const eventsSnapshot = await db.collection('Event').get();
+  
+  for (const doc of eventsSnapshot.docs) {
+    const event = doc.data();
+    
+    // Skip if event doesn't have location coordinates
+    if (!event.locationCoordinates || !event.date || !event.duration) {
+      continue;
+    }
+    
+    // Convert dates
+    const existingEventDate = event.date.toDate ? event.date.toDate() : new Date(event.date);
+    const newEventDateObj = new Date(newEventDate);
+    
+    // Check if events overlap in time
+    if (eventsOverlap(newEventDateObj, newEventDuration, existingEventDate, event.duration)) {
+      // Check if locations are close (within threshold)
+      const distance = calculateDistance(
+        newEventCoords.lat,
+        newEventCoords.lng,
+        event.locationCoordinates.lat,
+        event.locationCoordinates.lng
+      );
+      
+      if (distance < PROXIMITY_THRESHOLD) {
+        return {
+          conflict: true,
+          conflictingEvent: {
+            id: doc.id,
+            name: event.name,
+            date: existingEventDate,
+            location: event.location,
+            distance: Math.round(distance)
+          }
+        };
+      }
+    }
+  }
+  
+  return { conflict: false };
+}
+
+// Updated Create Event Endpoint
+app.post('/event/apply-test', authenticate, async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      theme,
+      location,
+      locationCoordinates, // NEW: lat/lng object
+      budget,
+      expectedGuestCount,
+      duration,
+      eventCategory,
+      notes,
+      specialRequirements = [],
+      style = [],
+      tasks = [],
+      vendoringCategoriesNeeded = [],
+      files = null,
+      schedules = null,
+      services = null,
+      date,
+      plannerId
+    } = req.body;
+
+    // Validate location coordinates
+    if (!locationCoordinates || !locationCoordinates.lat || !locationCoordinates.lng) {
+      return res.status(400).json({ 
+        message: 'Location coordinates are required' 
+      });
+    }
+
+    // Check for location conflict
+    const conflictCheck = await checkLocationConflict(
+      date,
+      Number(duration),
+      locationCoordinates
+    );
+
+    if (conflictCheck.conflict) {
+      return res.status(409).json({
+        message: `Location conflict: Another event "${conflictCheck.conflictingEvent.name}" is scheduled at the same location and time`,
+        conflictingEvent: conflictCheck.conflictingEvent
+      });
+    }
+
+    // Create GeoPoint for Firestore
+    const geoPoint = new GeoPoint(
+      locationCoordinates.lat,
+      locationCoordinates.lng
+    );
+
+    const newEvent = {
+      name,
+      description,
+      theme,
+      location,
+      locationCoordinates: geoPoint, // Store as GeoPoint
+      budget: Number(budget),
+      expectedGuestCount: Number(expectedGuestCount),
+      duration: Number(duration),
+      eventCategory,
+      notes,
+      specialRequirements,
+      style,
+      tasks,
+      vendoringCategoriesNeeded,
+      files,
+      schedules,
+      services,
+      date: date ? new Date(date) : null,
+      status: "planning",
+      plannerId,
+      //createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const docRef = await db.collection("Event").add(newEvent);
+
+    res.status(200).json({ 
+      message: "Event created successfully", 
+      id: docRef.id, 
+      event: {
+        ...newEvent,
+        locationCoordinates: locationCoordinates // Return as plain object for response
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Also update the event update endpoint to check conflicts
+app.put('/planner/me-test/:eventId', authenticate, async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const updatedEventData = req.body;
+
+    // If location or date/duration are being updated, check for conflicts
+    if (updatedEventData.locationCoordinates || updatedEventData.date || updatedEventData.duration) {
+      const existingEvent = await db.collection("Event").doc(eventId).get();
+      
+      if (!existingEvent.exists) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      const existing = existingEvent.data();
+      
+      // Use new values if provided, otherwise use existing
+      const checkDate = updatedEventData.date || existing.date;
+      const checkDuration = updatedEventData.duration || existing.duration;
+      const checkCoords = updatedEventData.locationCoordinates || existing.locationCoordinates;
+
+      // Convert GeoPoint to plain object if needed
+      const coords = checkCoords._latitude ? 
+        { lat: checkCoords._latitude, lng: checkCoords._longitude } : 
+        checkCoords;
+
+      // Check for conflicts (excluding this event)
+      const eventsSnapshot = await db.collection('Event').get();
+      
+      for (const doc of eventsSnapshot.docs) {
+        if (doc.id === eventId) continue; // Skip current event
+        
+        const event = doc.data();
+        
+        if (!event.locationCoordinates || !event.date || !event.duration) {
+          continue;
+        }
+        
+        const existingEventDate = event.date.toDate ? event.date.toDate() : new Date(event.date);
+        const newEventDateObj = checkDate.toDate ? checkDate.toDate() : new Date(checkDate);
+        
+        if (eventsOverlap(newEventDateObj, checkDuration, existingEventDate, event.duration)) {
+          const eventCoords = event.locationCoordinates._latitude ?
+            { lat: event.locationCoordinates._latitude, lng: event.locationCoordinates._longitude } :
+            event.locationCoordinates;
+          
+          const distance = calculateDistance(
+            coords.lat,
+            coords.lng,
+            eventCoords.lat,
+            eventCoords.lng
+          );
+          
+          if (distance < 100) {
+            return res.status(409).json({
+              message: `Location conflict: Event "${event.name}" is at the same location and time`,
+              conflictingEvent: {
+                id: doc.id,
+                name: event.name,
+                date: existingEventDate,
+                location: event.location
+              }
+            });
+          }
+        }
+      }
+    }
+
+    // Convert locationCoordinates to GeoPoint if provided
+    if (updatedEventData.locationCoordinates) {
+      updatedEventData.locationCoordinates = new GeoPoint(
+        updatedEventData.locationCoordinates.lat,
+        updatedEventData.locationCoordinates.lng
+      );
+    }
+
+    await db.collection("Event").doc(eventId).update(updatedEventData);
+
+    res.json({ message: "Event updated successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Add this endpoint to your index.js file
+app.post('/planner/profile', authenticate, busboyUploadToStorageMiddleware(undefined, (req) => `PlannerProfiles/${req.uid}`), async (req, res) => {
+  try {
+    const { name } = req.body;
+    const bucket = admin.storage().bucket();
+    const uploadedFiles = [];
+
+    // Process uploaded file if exists
+    if (req.uploads && Object.keys(req.uploads).length > 0) {
+      for (const [field, storageFile] of Object.entries(req.uploads)) {
+        // Generate a permanent download token
+        const token = uuidv4();
+
+        // Set metadata with the token
+        await storageFile.setMetadata({
+          metadata: {
+            firebaseStorageDownloadTokens: token,
+          },
+        });
+
+        // Construct the permanent URL
+        const url = `https://firebasestorage.googleapis.com/v0/b/${storageFile.bucket.name}/o/${encodeURIComponent(
+          storageFile.name
+        )}?alt=media&token=${token}`;
+
+        uploadedFiles.push({
+          field,
+          gsPath: `gs://${storageFile.bucket.name}/${storageFile.name}`,
+          url, // permanent download URL
+        });
+      }
+    }
+
+    const profilePictureUrl = uploadedFiles.length > 0 ? uploadedFiles[0].url : null;
+
+    // Update or create planner profile in Firestore
+    const plannerRef = db.collection('Planner').doc(req.uid);
+    const plannerDoc = await plannerRef.get();
+
+    const profileData = {
+      name: name || '',
+      //updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (profilePictureUrl) {
+      profileData.profilePicture = profilePictureUrl;
+    }
+
+    if (plannerDoc.exists) {
+      // Update existing document
+      await plannerRef.update(profileData);
+    } else {
+      // Create new document
+      await plannerRef.set({
+        ...profileData,
+        //createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        uid: req.uid
+      });
+    }
+
+    res.status(200).json({
+      message: 'Profile updated successfully!',
+      profile: {
+        name: name,
+        profilePicture: profilePictureUrl
+      }
+    });
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    res.status(500).send('Failed to update profile');
+  }
+});
+
+// Add GET endpoint to fetch planner profile
+app.get('/planner/profile', authenticate, async (req, res) => {
+  try {
+    const plannerRef = db.collection('Planner').doc(req.uid);
+    const plannerDoc = await plannerRef.get();
+
+    if (plannerDoc.exists) {
+      res.status(200).json(plannerDoc.data());
+    } else {
+      res.status(404).json({ message: 'Planner profile not found' });
+    }
+  } catch (err) {
+    console.error('Error fetching planner profile:', err);
+    res.status(500).send('Failed to fetch planner profile');
+  }
+});
 
 //Create an event
 app.post('/event/apply', authenticate, async (req, res) => {
