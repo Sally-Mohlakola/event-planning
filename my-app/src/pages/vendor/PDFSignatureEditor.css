@@ -1,0 +1,517 @@
+/* VENDOR SIDE ONLY - Clean Layout with NO Overlap */
+
+.signature-editor-vendor {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+/* PDF Section - Fixed Height at Top */
+.pdf-section-vendor {
+  flex: 0 0 auto;
+  background: white;
+  border-bottom: 2px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  max-height: 40vh;
+}
+
+.pdf-viewer-header-vendor {
+  padding: 1rem 2rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pdf-viewer-header-vendor h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pdf-viewer-header-vendor p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.pdf-viewer-container-vendor {
+  padding: 1.5rem;
+  display: flex;
+  justify-content: center;
+  background: #e2e8f0;
+  height: calc(40vh - 80px);
+  overflow-y: auto;
+}
+
+.pdf-object-vendor {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background: white;
+}
+
+.pdf-fallback-vendor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.pdf-fallback-vendor p {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-link:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* Signature Fields Section - Scrollable with PROPER bottom padding */
+.signature-fields-section-vendor {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2rem;
+  padding-bottom: 120px; /* CRITICAL: Space for fixed buttons */
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+}
+
+.fields-header-vendor {
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.fields-header-vendor h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fields-header-vendor p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* Add Field Toolbar */
+.add-field-toolbar-vendor {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.add-field-toolbar-vendor h4 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.field-type-buttons-vendor {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.add-field-btn-vendor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: 2px solid #d1d5db;
+  background: white;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #475569;
+}
+
+.add-field-btn-vendor:hover {
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Fields List Section */
+.fields-list-section-vendor {
+  flex: 1;
+  min-height: 200px;
+}
+
+.empty-fields-vendor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  min-height: 250px;
+}
+
+.empty-fields-vendor p {
+  margin: 0.5rem 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.hint-vendor {
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+/* Fields Grid */
+.fields-grid-vendor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem; /* Extra space before fixed buttons */
+}
+
+/* Field Card */
+.field-card-vendor {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.field-card-vendor:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.field-card-header-vendor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.field-type-indicator-vendor {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.delete-field-btn-vendor {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 4px;
+  color: #dc2626;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-field-btn-vendor:hover {
+  background: #fef2f2;
+}
+
+.field-card-body-vendor {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Form Groups */
+.form-group-vendor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group-vendor label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.form-input-vendor,
+.form-select-vendor {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.form-input-vendor:focus,
+.form-select-vendor:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-input-vendor::placeholder {
+  color: #94a3b8;
+}
+
+.form-group-checkbox-vendor {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group-checkbox-vendor label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.form-group-checkbox-vendor input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Field Position Info */
+.field-position-info-vendor {
+  padding: 0.5rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.position-badge-vendor {
+  font-size: 0.75rem;
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.field-card-footer-vendor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.field-number-vendor {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.required-badge-vendor {
+  padding: 0.25rem 0.6rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* FIXED Action Buttons at Bottom - NO OVERLAP */
+.action-buttons-fixed-vendor {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 2rem;
+  background: white;
+  border-top: 2px solid #e2e8f0;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.btn-save-vendor,
+.btn-send-vendor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-save-vendor {
+  background: #059669;
+  color: white;
+}
+
+.btn-save-vendor:hover:not(:disabled) {
+  background: #047857;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+}
+
+.btn-send-vendor {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-send-vendor:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.btn-save-vendor:disabled,
+.btn-send-vendor:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .fields-grid-vendor {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .signature-editor-vendor {
+    height: auto;
+  }
+
+  .pdf-section-vendor {
+    max-height: 35vh;
+  }
+
+  .pdf-viewer-container-vendor {
+    height: calc(35vh - 80px);
+    padding: 1rem;
+  }
+
+  .signature-fields-section-vendor {
+    padding: 1.5rem 1rem;
+    padding-bottom: 140px; /* More space on mobile */
+  }
+
+  .fields-grid-vendor {
+    grid-template-columns: 1fr;
+  }
+
+  .field-type-buttons-vendor {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-field-btn-vendor {
+    justify-content: center;
+  }
+
+  .action-buttons-fixed-vendor {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .btn-save-vendor,
+  .btn-send-vendor {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdf-viewer-header-vendor {
+    padding: 0.75rem 1rem;
+  }
+
+  .pdf-viewer-header-vendor h3 {
+    font-size: 1rem;
+  }
+
+  .pdf-viewer-header-vendor p {
+    font-size: 0.8rem;
+  }
+
+  .signature-fields-section-vendor {
+    padding: 1rem;
+    padding-bottom: 150px;
+  }
+
+  .add-field-toolbar-vendor {
+    padding: 1rem;
+  }
+
+  .field-card-body-vendor {
+    padding: 1rem;
+  }
+
+  .fields-header-vendor h3 {
+    font-size: 1.25rem;
+  }
+
+  .action-buttons-fixed-vendor {
+    padding: 0.75rem;
+  }
+
+  .btn-save-vendor,
+  .btn-send-vendor {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}
