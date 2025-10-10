@@ -141,7 +141,7 @@ export default function NewEvent({ setActivePage }) {
 			};
 
 			const res = await fetch(
-				`${API_BASE}/event/apply-test`,
+				`${API_BASE}/event/apply`,
 				{
 					method: "POST",
 					headers: {

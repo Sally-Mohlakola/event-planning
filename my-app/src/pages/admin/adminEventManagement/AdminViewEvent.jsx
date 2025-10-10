@@ -160,7 +160,7 @@ export default function AdminViewEvent({ event, setActivePage }) {
 	}
 
 	return (
-		<section className="event-view">
+		<section className="event-view-edit">
 			<section className="event-header">
 				<button onClick={() => setActivePage ? setActivePage("event-management") : navigate(-1)} className="back-btn">
 					← Back
@@ -169,10 +169,10 @@ export default function AdminViewEvent({ event, setActivePage }) {
 			</section>
 
 			<section className="event-tabs">
-				<button onClick={() => setActiveTab("details")} className={activeTab === "details" ? "active" : ""}>Details</button>
-				<button onClick={() => setActiveTab("guests")} className={activeTab === "guests" ? "active" : ""}>Guests</button>
-				<button onClick={() => setActiveTab("vendors")} className={activeTab === "vendors" ? "active" : ""}>Vendors</button>
-				<button onClick={() => setActiveTab("tasks")} className={activeTab === "tasks" ? "active" : ""}>Tasks</button>
+				<button onClick={() => setActiveTab("details")} className={`tab-btn ${activeTab === "details" ? "active" : ""}`}>Details</button>
+				<button onClick={() => setActiveTab("guests")} className={`tab-btn ${activeTab === "guests" ? "active" : ""}`}>Guests</button>
+				<button onClick={() => setActiveTab("vendors")} className={`tab-btn ${activeTab === "vendors" ? "active" : ""}`}>Vendors</button>
+				<button onClick={() => setActiveTab("tasks")} className={`tab-btn ${activeTab === "tasks" ? "active" : ""}`}>Tasks</button>
 			</section>
 
 			<section className="event-content">

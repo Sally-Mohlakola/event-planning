@@ -13,6 +13,7 @@ const busboyUploadToStorageMiddleware = require("./busboyUploadToStorageMiddlewa
 
 admin.initializeApp();
 
+
 const EXTERNAL_API_KEY = process.env.EXTERNAL_API_KEY || 'external-api-key-here';
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
@@ -68,6 +69,12 @@ app.use(cors({
     'https://event-flow-6514.onrender.com/'
   ],
 }));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+app.use(limiter);
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -266,7 +273,6 @@ app.get('/vendor/bookings', authenticate, async (req, res) => {
   }
 });
 
-
 app.put("/event/:eventId/vendor/:vendorId/status", authenticate, async (req, res) => {
   try {
     const { eventId, vendorId } = req.params;
@@ -276,24 +282,28 @@ app.put("/event/:eventId/vendor/:vendorId/status", authenticate, async (req, res
       return res.status(400).json({ message: "Status is required" });
     }
 
-    const vendorRef = db
+    const servicesRef = db
       .collection("Event")
       .doc(eventId)
-      .collection("Vendors")
-      .doc(vendorId);
+      .collection("Services")
+      .where("vendorId", "==", vendorId);
 
-    // Use update() instead of set() if you just want to update fields
-    await vendorRef.update({ status });
+    const servicesSnap = await servicesRef.get();
 
-    res.json({ message: "Vendor status updated successfully" });
-  } catch (err) {
-    console.error("Error updating vendor status:", err);
-
-    // If the doc doesn't exist, update() will throw
-    if (err.code === 5 || err.message.includes("No document to update")) {
-      return res.status(404).json({ message: "Vendor not found" });
+    if (servicesSnap.empty) {
+      return res.status(404).json({ message: "No services found for vendor" });
     }
 
+    // Update all service docs under this vendor
+    const batch = db.batch();
+    servicesSnap.forEach((doc) => {
+      batch.update(doc.ref, { status });
+    });
+    await batch.commit();
+
+    res.json({ message: "Service status updated successfully" });
+  } catch (err) {
+    console.error("Error updating service status:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
@@ -499,7 +509,7 @@ async function checkLocationConflict(newEventDate, newEventDuration, newEventCoo
 }
 
 // Updated Create Event Endpoint
-app.post('/event/apply-test', authenticate, async (req, res) => {
+app.post('/event/apply', authenticate, async (req, res) => {
   try {
     const {
       name,
@@ -591,7 +601,7 @@ app.post('/event/apply-test', authenticate, async (req, res) => {
 });
 
 // Also update the event update endpoint to check conflicts
-app.put('/planner/me-test/:eventId', authenticate, async (req, res) => {
+app.put('/planner/me/:eventId', authenticate, async (req, res) => {
   try {
     const eventId = req.params.eventId;
     const updatedEventData = req.body;
@@ -675,7 +685,6 @@ app.put('/planner/me-test/:eventId', authenticate, async (req, res) => {
   }
 });
 
-// Add this endpoint to your index.js file
 app.post('/planner/profile', authenticate, busboyUploadToStorageMiddleware(undefined, (req) => `PlannerProfiles/${req.uid}`), async (req, res) => {
   try {
     const { name } = req.body;
@@ -748,7 +757,6 @@ app.post('/planner/profile', authenticate, busboyUploadToStorageMiddleware(undef
   }
 });
 
-// Add GET endpoint to fetch planner profile
 app.get('/planner/profile', authenticate, async (req, res) => {
   try {
     const plannerRef = db.collection('Planner').doc(req.uid);
@@ -765,61 +773,6 @@ app.get('/planner/profile', authenticate, async (req, res) => {
   }
 });
 
-//Create an event
-app.post('/event/apply', authenticate, async (req, res) => {
-  try {
-    const {
-      name,
-      description,
-      theme,
-      location,
-      budget,
-      expectedGuestCount,
-      duration,
-      eventCategory,
-      notes,
-      specialRequirements = [],
-      style = [],
-      tasks = [],
-      vendoringCategoriesNeeded = [],
-      files = null,
-      schedules = null,
-      services = null,
-      date,
-      plannerId
-    } = req.body;
-
-    const newEvent = {
-      name,
-      description,
-      theme,
-      location,
-      budget: Number(budget),
-      expectedGuestCount: Number(expectedGuestCount),
-      duration: Number(duration),
-      eventCategory,
-      notes,
-      specialRequirements,
-      style,
-      tasks,
-      vendoringCategoriesNeeded,
-      files,
-      schedules,
-      services,
-      date: date ? new Date(date) : null,
-      status: "planning",
-      plannerId,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const docRef = await db.collection("Event").add(newEvent);
-
-    res.status(200).json({ message: "Event created successfully", id: docRef.id, event: newEvent });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-});
 
 //Fetch events
 app.get('/planner/me/events', authenticate, async (req, res) => {
@@ -919,21 +872,19 @@ app.get('/planner/all/vendors', authenticate, async (req, res) => {
   }
 });
 
-//Updates the information of an event
-app.put('/planner/me/:eventId', authenticate, async (req, res) => {
-  try{
-      const eventId = req.params.eventId;
-      const updatedEventData = req.body;
+//Delete an event for a planner
+app.delete('/planner/events/:eventId', async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const eventRef = db.collection('Event').doc(eventId);
 
-      await db.collection("Event").doc(eventId).update(updatedEventData);
+   
+    await eventRef.delete();
 
-      res.json({message: "Event updated successfully"});
-
-
-  }
-  catch(err){
+    res.json({ message: 'Event deleted successfully' });
+  } catch (err) {
     console.error(err);
-    res.status(500).json({message: "Server error"});
+    res.status(500).json({ message: 'Server error while deleting event' });
   }
 });
 
@@ -3846,8 +3797,6 @@ app.get('/public/analytics/platform-summary-debug', async (req, res) => {
   }
 });
 
-exports.api = functions.https.onRequest(app);
-
 
 // GET /analytics/:vendorId
 app.get("/analytics/:vendorId", authenticate, async (req, res) => {
@@ -3947,7 +3896,353 @@ app.post(
   }
 );
 
+// ===================================================================
+// =================== VENDOR HIGHLIGHTS ENDPOINTS ===================
+// ===================================================================
+
+const highlightsCollection = 'Highlights';
+const reviewsCollection = 'Reviews';
+const eventsCollection = 'Event';
+const plannersCollection = 'Planner';
+
+const uploadBase64Images = async (images, vendorId, highlightId) => {
+    const imageUrls = [];
+    const imageArray = Array.isArray(images) ? images : [images];
+
+    for (const image of imageArray) {
+        const base64Data = image.split(';base64,').pop();
+        const buffer = Buffer.from(base64Data, 'base64');
+        const uniqueId = uuidv4();
+        
+        // --- THIS IS THE CORRECTED FILE PATH ---
+        // It now includes the 'highlights' root folder and the vendorId subfolder.
+        const filePath = `Highlights/${vendorId}/${highlightId}/${uniqueId}.jpg`;
+        const fileRef = bucket.file(filePath);
+
+        await fileRef.save(buffer, {
+            metadata: { 
+                contentType: 'image/jpeg',
+                cacheControl: 'public, max-age=31536000',
+            },
+        });
+        
+        await fileRef.makePublic();
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        imageUrls.push(publicUrl);
+    }
+    return imageUrls;
+};
+
+
+// CREATE a new highlight with base64 images
+app.post('/vendor/highlights', authenticate, async (req, res) => {
+    const vendorId = req.uid; 
+    try {
+        const { reviewId, description, images } = req.body; // `images` is an array of base64 strings
+
+        if (!reviewId || !description || !images || images.length === 0) {
+            return res.status(400).send({ message: 'Missing required fields.' });
+        }
+        
+        const highlightRef = db.collection(highlightsCollection).doc();
+        const highlightId = highlightRef.id;
+
+        const imageUrls = await uploadBase64Images(images, vendorId, highlightId);
+
+        const newHighlight = {
+            reviewId,
+            vendorId,
+            description,
+            imageUrls,
+            createdAt: 'Timestamp.now()',
+            updatedAt: 'Timestamp.now()',
+        };
+
+        await highlightRef.set(newHighlight);
+        res.status(201).send({ id: highlightId, ...newHighlight });
+
+    } catch (error) {
+        console.error('Error creating highlight:', error);
+        res.status(500).send({ message: 'Error creating highlight', error: error.message });
+    }
+});
+
+
+// UPDATE a highlight (with optional new base64 images)
+app.put('/vendor/highlights/:highlightId', authenticate, async (req, res) => {
+    const vendorId = req.uid;
+    const { highlightId } = req.params;
+    try {
+        const { description, images } = req.body;
+        
+        const highlightRef = db.collection(highlightsCollection).doc(highlightId);
+        const doc = await highlightRef.get();
+        if(!doc.exists) return res.status(404).send({ message: "Highlight not found" });
+
+        // Security check: ensure the vendor owns this highlight
+        if (doc.data().vendorId !== vendorId) {
+             return res.status(403).send({ message: "You are not authorized to edit this highlight."});
+        }
+        
+        let finalImageUrls = doc.data().imageUrls;
+
+        if (images && images.length > 0) {
+            finalImageUrls = await uploadBase64Images(images, vendorId, highlightId);
+        }
+
+        const updateData = {
+            description,
+            imageUrls: finalImageUrls,
+            updatedAt: 'Timestamp.now()',
+        };
+        
+        await highlightRef.update(updateData);
+        res.status(200).send({ message: 'Highlight updated successfully.' });
+
+    } catch (error) {
+        console.error('Error updating highlight:', error);
+        res.status(500).send({ message: 'Error updating highlight', error: error.message });
+    }
+});
+
+// DELETE a highlight
+app.delete('/vendor/highlights/:highlightId', async (req, res) => {
+    try {
+        const { highlightId } = req.params;
+        // Optional: Add security check here to ensure vendor owns the highlight
+        await db.collection(highlightsCollection).doc(highlightId).delete();
+        res.status(200).send({ message: 'Highlight deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting highlight:', error);
+        res.status(500).send({ message: 'Error deleting highlight', error: "Internal Server Error" });
+    }
+});
+
+// GET all highlights for the authenticated vendor (ENRICHED)
+app.get('/vendor/:vendorId/highlights', authenticate, async (req, res) => {
+    try {
+        // Ensure the authenticated user is requesting their own highlights
+        if (req.uid !== req.params.vendorId) {
+            return res.status(403).send({ message: "Forbidden: You can only access your own highlights." });
+        }
+        const { vendorId } = req.params;
+
+        // 1. Fetch all highlights for the vendor
+        const highlightsSnap = await db.collection(highlightsCollection)
+            .where('vendorId', '==', vendorId)
+            .get();
+
+        if (highlightsSnap.empty) {
+            return res.status(404).send({ message: 'No highlights found.' });
+        }
+
+        const highlights = highlightsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // --- Data Enrichment ---
+        
+        // 2. Collect unique IDs for reviews, events, and planners
+        const reviewIds = [...new Set(highlights.map(h => h.reviewId))];
+        if (reviewIds.length === 0) {
+            return res.status(200).send(highlights); // Return highlights if no reviews are linked
+        }
+
+        // 3. Fetch all related documents in batches
+        const reviewDocs = await Promise.all(reviewIds.map(id => db.collection(reviewsCollection).doc(id).get()));
+        
+        const reviewsMap = new Map();
+        reviewDocs.forEach(doc => {
+            if (doc.exists) reviewsMap.set(doc.id, doc.data());
+        });
+
+        const eventIds = [...new Set(Array.from(reviewsMap.values()).map(r => r.eventId))];
+        const plannerIds = [...new Set(Array.from(reviewsMap.values()).map(r => r.plannerId))];
+
+        const [eventDocs, plannerDocs] = await Promise.all([
+            Promise.all(eventIds.map(id => db.collection(eventsCollection).doc(id).get())),
+            Promise.all(plannerIds.map(id => db.collection(plannersCollection).doc(id).get()))
+        ]);
+
+        const eventsMap = new Map();
+        eventDocs.forEach(doc => {
+            if (doc.exists) eventsMap.set(doc.id, doc.data());
+        });
+
+        const plannersMap = new Map();
+        plannerDocs.forEach(doc => {
+            if (doc.exists) plannersMap.set(doc.id, doc.data());
+        });
+        
+        // 4. Combine all the data
+        const enrichedHighlights = highlights.map(highlight => {
+            const review = reviewsMap.get(highlight.reviewId);
+            if (!review) return highlight; // Return original if review is not found
+
+            const event = eventsMap.get(review.eventId);
+            const planner = plannersMap.get(review.plannerId);
+
+            return {
+                ...highlight,
+                reviewData: {
+                    comment: review.comment,
+                    rating: review.rating,
+                },
+                eventData: {
+                    name: event ? event.name : 'Unknown Event',
+                },
+                plannerData: {
+                    name: planner ? planner.name : 'Unknown Planner',
+                },
+            };
+        });
+
+        res.status(200).send(enrichedHighlights);
+
+    } catch (error) {
+        console.error('Error fetching enriched highlights for vendor:', error);
+        res.status(500).send({ message: 'Error fetching highlights', error: error.message });
+    }
+});
+
+// GET all ENRICHED highlights for a specific vendor (for planners to view)
+app.get('/highlights/vendor/:vendorId', authenticate, async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+
+        // 1. Fetch all highlights for the specified vendor - FIXED COLLECTION NAME
+        const highlightsSnap = await db.collection('Highlights')
+            .where('vendorId', '==', vendorId)
+            .get();
+
+        if (highlightsSnap.empty) {
+            return res.status(404).send({ message: 'No highlights found for this vendor.' });
+        }
+
+        const highlights = highlightsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // 2. Collect unique IDs for data enrichment
+        const reviewIds = [...new Set(highlights.map(h => h.reviewId))];
+        if (reviewIds.length === 0) {
+            return res.status(200).send(highlights);
+        }
+
+        // 3. Fetch all related documents - FIXED COLLECTION NAMES
+        const reviewDocs = await Promise.all(reviewIds.map(id => db.collection('Reviews').doc(id).get()));
+        
+        const reviewsMap = new Map();
+        reviewDocs.forEach(doc => doc.exists && reviewsMap.set(doc.id, doc.data()));
+
+        const eventIds = [...new Set(Array.from(reviewsMap.values()).map(r => r.eventId))];
+        const plannerIds = [...new Set(Array.from(reviewsMap.values()).map(r => r.plannerId))];
+
+        const [eventDocs, plannerDocs] = await Promise.all([
+            Promise.all(eventIds.map(id => db.collection('Event').doc(id).get())),
+            Promise.all(plannerIds.map(id => db.collection('Planner').doc(id).get()))
+        ]);
+
+        const eventsMap = new Map();
+        eventDocs.forEach(doc => doc.exists && eventsMap.set(doc.id, doc.data()));
+
+        const plannersMap = new Map();
+        plannerDocs.forEach(doc => doc.exists && plannersMap.set(doc.id, doc.data()));
+        
+        // 4. Combine all the data into enriched highlight objects
+        const enrichedHighlights = highlights.map(highlight => {
+            const review = reviewsMap.get(highlight.reviewId);
+            if (!review) return highlight;
+
+            const event = eventsMap.get(review.eventId);
+            const planner = plannersMap.get(review.plannerId);
+
+            return {
+                ...highlight,
+                reviewData: {
+                    comment: review.review || review.comment || '',
+                    rating: review.rating,
+                },
+                eventData: {
+                    name: event ? event.name : 'Unknown Event',
+                },
+                plannerData: {
+                    name: planner ? planner.name : 'Unknown Planner',
+                },
+            };
+        });
+
+        res.status(200).send(enrichedHighlights);
+
+    } catch (error) {
+        console.error('Error fetching public highlights:', error);
+        res.status(500).send({ message: 'Error fetching highlights', error: error.message });
+    }
+});
+
+// ===================================================================
+// ======================= VENDOR REVIEWS ENDPOINTS ======================
+// ===================================================================
+
+// GET all reviews for a specific vendor
+app.get('/reviews/vendor/:vendorId', async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        const reviewsSnap = await db.collection(reviewsCollection)
+            .where('vendorId', '==', vendorId)
+            .get();
+        
+        if (reviewsSnap.empty) {
+            return res.status(404).send({ message: 'No reviews found for this vendor.' });
+        }
+
+        const reviewsData = reviewsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // --- NEW LOGIC TO ADD EVENT NAMES ---
+        // 1. Get all unique event IDs from the reviews
+        const eventIds = [...new Set(reviewsData.map(review => review.eventId).filter(id => id))];
+
+        let eventsMap = {};
+        if (eventIds.length > 0) {
+            // 2. Fetch all corresponding event documents in one batch
+            const eventDocs = await Promise.all(
+                eventIds.map(id => db.collection(eventsCollection).doc(id).get())
+            );
+            // 3. Create a map of eventId -> eventName
+            eventDocs.forEach(doc => {
+                if (doc.exists) {
+                    eventsMap[doc.id] = doc.data().name || 'Unnamed Event';
+                }
+            });
+        }
+        
+        // 4. Merge the event name into each review object
+        const enrichedReviews = reviewsData.map(review => ({
+            ...review,
+            eventName: eventsMap[review.eventId] || 'Unknown Event'
+        }));
+        // --- END NEW LOGIC ---
+
+        res.status(200).send(enrichedReviews);
+
+    } catch (error) {
+        console.error('Error fetching vendor reviews:', error);
+        res.status(500).send({ message: 'Error fetching reviews', error: error.message });
+    }
+});
+
+// GET a single review by its ID
+app.get('/reviews/:reviewId', async (req, res) => {
+    try {
+        const reviewId = req.params.reviewId;
+        const doc = await db.collection(reviewsCollection).doc(reviewId).get();
+
+        if (!doc.exists) {
+            return res.status(404).send({ message: 'Review not found.' });
+        }
+
+        res.status(200).send({ id: doc.id, ...doc.data() });
+    } catch (error) {
+        console.error('Error fetching single review:', error);
+        res.status(500).send({ message: 'Error fetching review', error: error.message });
+    }
+});
 
 
 exports.api = functions.https.onRequest(app);
-

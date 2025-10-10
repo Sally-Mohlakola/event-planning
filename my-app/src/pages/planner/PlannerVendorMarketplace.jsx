@@ -1,22 +1,12 @@
 import { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
 import "./PlannerVendorMarketplace.css";
-import {
-	X,
-	MapPin,
-	Phone,
-	Mail,
-	AlertCircle,
-	Clock,
-	DollarSign,
-	Users,
-	Square,
-	Calendar,
-	FileText,
-} from "lucide-react";
+import { X, MapPin, Phone, Mail, AlertCircle, CheckCircle } from "lucide-react";
 import InformationToolTip from "./InformationToolTip";
 import ChatComponent from "./ChatComponent";
 import Popup from "../general/popup/Popup.jsx";
+import VendorHighlightDisplay from "./VendorHighlightDisplay"; // Import the highlight display component
+import BASE_URL from "../../apiConfig.js";
 
 function formatDate(date) {
 	if (!date) return "";
@@ -30,20 +20,18 @@ function formatDate(date) {
 		return jsDate.toLocaleString();
 	}
 
-	// Already a JS Date
 	if (date instanceof Date) {
 		return date.toLocaleString();
 	}
 
-	// String
 	if (typeof date === "string") {
 		return new Date(date).toLocaleString();
 	}
 
-	return String(date); // fallback
+	return String(date);
 }
 
-function VendorCard({ vendor, onViewMore, onAddVendor }) {
+function VendorCard({ vendor, onViewMore }) {
 	return (
 		<article data-testid="vendor-card" className="vendor-card">
 			<img
@@ -135,22 +123,31 @@ function VendorModal({ vendor, onClose, addService, onContactVendor }) {
 
 				{/* Tabs */}
 				<section className="vendor-modal-tabs">
-					<section
+					<button
 						onClick={() => setActiveTab("overview")}
 						className={`vendor-modal-tab ${
 							activeTab === "overview" ? "active-tab" : ""
 						}`}
 					>
 						Overview
-					</section>
-					<section
+					</button>
+					<button
 						onClick={() => setActiveTab("services")}
 						className={`vendor-modal-tab ${
 							activeTab === "services" ? "active-tab" : ""
 						}`}
 					>
 						Services ({vendor.services.length})
-					</section>
+					</button>
+					{/* --- NEW HIGHLIGHTS TAB --- */}
+					<button
+						onClick={() => setActiveTab("highlights")}
+						className={`vendor-modal-tab ${
+							activeTab === "highlights" ? "active-tab" : ""
+						}`}
+					>
+						Highlights
+					</button>
 				</section>
 
 				{/* Content */}
@@ -159,15 +156,14 @@ function VendorModal({ vendor, onClose, addService, onContactVendor }) {
 						<section className="vendor-modal-overview">
 							<h3>About</h3>
 							<p>{vendor.description}</p>
-
 							<h3>Contact Information</h3>
 							<section className="vendor-modal-contact-grid">
 								<section className="vendor-modal-contact-item">
-									<Phone size={18} />
+									<Phone size={18} />{" "}
 									<span>{vendor.phone}</span>
 								</section>
 								<section className="vendor-modal-contact-item">
-									<Mail size={18} />
+									<Mail size={18} />{" "}
 									<span>{vendor.email}</span>
 								</section>
 							</section>
@@ -190,31 +186,15 @@ function VendorModal({ vendor, onClose, addService, onContactVendor }) {
 											</span>
 										</section>
 									</section>
-
 									{service.extraNotes && (
 										<p className="vendor-modal-service-notes">
 											{service.extraNotes}
 										</p>
 									)}
-
-									<section className="vendor-modal-service-details">
-										<span>
-											Hourly: R {service.chargeByHour}
-										</span>
-										<span>
-											Per Person: R{" "}
-											{service.chargePerPerson}
-										</span>
-										<span>
-											Per m²: R{" "}
-											{service.chargePerSquareMeter}
-										</span>
-										<span>Base: R {service.cost}</span>
-									</section>
 									<section>
 										<InformationToolTip
 											content={
-												"Clicking this button will add this service to your event as pending.\nContact and chat with the vendor to confirm this service."
+												"Clicking this button will add this service to your event as pending. Contact and chat with the vendor to confirm this service."
 											}
 											top={"-20%"}
 											left={"275%"}
@@ -233,6 +213,11 @@ function VendorModal({ vendor, onClose, addService, onContactVendor }) {
 								</section>
 							))}
 						</section>
+					)}
+
+					{/* --- NEW HIGHLIGHTS CONTENT --- */}
+					{activeTab === "highlights" && (
+						<VendorHighlightDisplay vendorId={vendor.id} />
 					)}
 				</section>
 
@@ -282,18 +267,18 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 	const [chatInfo, setChatInfo] = useState(null);
 	const [pendingChatVendor, setPendingChatVendor] = useState(null);
 
-	//All calls to api here
 	const fetchAllEventsVendors = async () => {
 		const auth = getAuth();
 		let user = auth.currentUser;
-		while (!user) {
-			await new Promise((res) => setTimeout(res, 50)); // wait 50ms
+		if (!user) {
+			await new Promise((res) => setTimeout(res, 1000));
 			user = auth.currentUser;
 		}
+		if (!user) return [];
 		const token = await user.getIdToken(true);
 
 		const res = await fetch(
-			`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${plannerId}/bestVendors`,
+			`${BASE_URL}/planner/${plannerId}/bestVendors`,
 			{
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -310,10 +295,11 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 	const fetchEventSpecificVendors = async (eventId) => {
 		const auth = getAuth();
 		const user = auth.currentUser;
+		if (!user) return [];
 		const token = await user.getIdToken(true);
 
 		const res = await fetch(
-			`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/events/${eventId}/bestVendors`,
+			`${BASE_URL}/planner/events/${eventId}/bestVendors`,
 			{
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -330,17 +316,15 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 	const fetchEvents = async () => {
 		const auth = getAuth();
 		const user = auth.currentUser;
+		if (!user) return [];
 		const token = await user.getIdToken(true);
 
-		const res = await fetch(
-			`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events`,
-			{
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-			}
-		);
+		const res = await fetch(`${BASE_URL}/planner/me/events`, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Content-Type": "application/json",
+			},
+		});
 
 		if (!res.ok) return [];
 		const data = await res.json();
@@ -350,11 +334,12 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 	const addVendorToEvent = async (vendorId, eventId) => {
 		const auth = getAuth();
 		const user = auth.currentUser;
+		if (!user) return null;
 		const token = await user.getIdToken(true);
 
 		try {
 			const res = await fetch(
-				`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/vendors/${vendorId}`,
+				`${BASE_URL}/planner/${eventId}/vendors/${vendorId}`,
 				{
 					method: "POST",
 					headers: {
@@ -366,6 +351,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 			return res;
 		} catch (err) {
 			console.error("Error adding vendor to event:", err);
+			return null;
 		}
 	};
 
@@ -373,10 +359,11 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 		try {
 			const auth = getAuth();
 			const user = auth.currentUser;
+			if (!user) return null;
 			const token = await user.getIdToken(true);
 
 			const res = await fetch(
-				`https://us-central1-planit-sdp.cloudfunctions.net/api/vendors/${vendorId}/services`,
+				`${BASE_URL}/vendors/${vendorId}/services`,
 				{
 					headers: {
 						Authorization: `Bearer ${token}`,
@@ -384,7 +371,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 				}
 			);
 
-			if (!res) {
+			if (!res.ok) {
 				throw new Error("Failed to fetch vendor services");
 			}
 
@@ -392,33 +379,32 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 			return data;
 		} catch (err) {
 			console.error(err);
-			alert("Failed to fetch vendor services");
+			showNotification("error", "Failed to fetch vendor services.");
+			return null;
 		}
 	};
 
 	const addService = async (eventId, service) => {
 		const auth = getAuth();
 		const user = auth.currentUser;
+		if (!user) return null;
 		const token = await user.getIdToken(true);
 
 		try {
-			const res = fetch(
-				`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${eventId}/services`,
-				{
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${token}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(service),
-				}
-			);
+			const res = await fetch(`${BASE_URL}/planner/${eventId}/services`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(service),
+			});
 			return res;
 		} catch (err) {
 			console.error("Error Adding Service to Event: ", err);
+			return null;
 		}
 	};
-	//End of calls to api
 
 	const showNotification = (type, message) => {
 		setNotification({ show: true, type, message });
@@ -430,11 +416,9 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 	useEffect(() => {
 		async function loadInitialData() {
 			setLoading(true);
-
 			if (activeTab === "all-events") {
 				const allVendors = await fetchAllEventsVendors();
 				setVendors(allVendors);
-				console.log(vendors);
 			} else if (activeTab === "event-specific") {
 				const eventsData = await fetchEvents();
 				setEvents(eventsData);
@@ -444,13 +428,10 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 						selectedEvent.id
 					);
 					setVendors(eventVendors);
-					console.log(vendors);
 				}
 			}
-
 			setLoading(false);
 		}
-
 		loadInitialData();
 	}, [activeTab, selectedEvent]);
 
@@ -466,7 +447,6 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 		}
 	}, [event]);
 
-	//Functionality Functions
 	const handleTabChange = (tab) => {
 		setActiveTab(tab);
 		setVendors([]);
@@ -487,10 +467,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 
 	const handleViewVendor = async (vendor) => {
 		const services = await fetchVendorServices(vendor.id);
-		console.log(services);
 		if (services === null) {
-			console.log("failed");
-			alert("Failed to get services as json");
 			return;
 		}
 		const vendorInfo = {
@@ -503,12 +480,11 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 	};
 
 	const handleAddVendor = async (event, vendor) => {
-		// otherwise add directly
 		const res = await addVendorToEvent(vendor.id, event.id);
-		if (!res.ok) {
-			alert("Failed to add vendor to event.");
+		if (res && res.ok) {
+			showNotification("success", "Vendor added to event successfully!");
 		} else {
-			alert("Vendor added to event successfully!");
+			showNotification("error", "Failed to add vendor to event.");
 		}
 	};
 
@@ -519,7 +495,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 				await handleAddVendor(selectedEvent, vendor);
 				await handleAddService(selectedEvent.id, vendor, service);
 			} else {
-				alert("Please select an event first.");
+				showNotification("info", "Please select an event first.");
 			}
 		} else {
 			setShowVendorModal(false);
@@ -536,12 +512,11 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 			vendorName: vendor.businessName,
 			...service,
 		};
-		console.log(data);
 		const res = await addService(eventId, data);
-		if (!res) {
-			alert("Failed to add service");
+		if (res && res.ok) {
+			showNotification("success", "Service added successfully.");
 		} else {
-			alert("Services Added successfully");
+			showNotification("error", "Failed to add service.");
 		}
 	};
 
@@ -568,7 +543,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 			eventId: event.id,
 			currentUser: {
 				id: currentUserId,
-				name: event.name, // Using event name as requested
+				name: event.name,
 				type: "planner",
 			},
 			otherUser: {
@@ -580,7 +555,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 
 		setChatInfo(chatData);
 		setShowChat(true);
-		setShowVendorModal(false); // Close vendor modal if open
+		setShowVendorModal(false);
 	};
 
 	const handleEventSelectionForChat = (selectedEventData) => {
@@ -603,7 +578,6 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 			(categoryFilter === "All" || v.category === categoryFilter)
 	);
 
-	//End of functionality functions
 	const categories = [
 		"All",
 		"Catering",
@@ -631,7 +605,6 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 				/>
 			)}
 
-			{/* Custom Notification */}
 			{notification.show && (
 				<section
 					className={`ps-notification ps-notification-${notification.type}`}
@@ -650,6 +623,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 					</section>
 				</section>
 			)}
+
 			<header className="marketplace-header">
 				<h1 className="marketplace-title">Vendor Marketplace</h1>
 				<p className="marketplace-subtitle">
@@ -736,13 +710,7 @@ export default function PlannerVendorMarketplace({ event = null, plannerId }) {
 							<VendorCard
 								key={vendor.id}
 								vendor={vendor}
-								event={selectedEvent}
-								onViewMore={(vendor) =>
-									handleViewVendor(vendor)
-								}
-								onAddVendor={(vendor) =>
-									handleEventPicked(vendor)
-								}
+								onViewMore={() => handleViewVendor(vendor)}
 							/>
 						))
 					) : (
