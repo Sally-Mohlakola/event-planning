@@ -164,6 +164,7 @@ export default function PlannerDashboard( {setActivePage, onSelectEvent} ) {
 		}
 	};
 
+	
 	// Handle file selection for profile picture
 	const handleFileSelect = (event) => {
 		const file = event.target.files[0];
@@ -352,7 +353,7 @@ export default function PlannerDashboard( {setActivePage, onSelectEvent} ) {
 	}
 
 	if (!events.length) return <p>Loading events...</p>;
-	
+
 	return (
 		<section data-testid="planner-dashboard " className="page-container">
 			{/* Profile Modal */}
