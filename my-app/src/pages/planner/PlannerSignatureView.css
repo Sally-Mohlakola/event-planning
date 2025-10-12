@@ -1,0 +1,693 @@
+/* Planner Signature View - Complete Styling with Field Type Display */
+
+.planner-signature-container {
+  display: flex;
+  flex-direction: column;
+  height: 85vh;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+/* PDF Viewer Section - Top 60% */
+.pdf-viewer-section-planner {
+  flex: 0 0 auto;
+  background: white;
+  border-bottom: 2px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  height: 60%;
+  max-height: 60%;
+}
+
+.pdf-header-planner {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pdf-header-planner h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pdf-header-planner p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.pdf-viewer-wrapper-planner {
+  height: calc(100% - 70px);
+  padding: 1.5rem;
+  background: #e2e8f0;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pdf-iframe-planner {
+  width: 100%;
+  max-width: 900px;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+/* Signature Fields Section - Bottom 40% */
+.signature-fields-section-planner {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2rem;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.fields-header-planner {
+  text-align: center;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fields-header-planner h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fields-header-planner p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* No Fields Message */
+.no-fields-planner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  min-height: 250px;
+}
+
+.no-fields-planner p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+/* Fields List */
+.fields-list-planner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Individual Signature Field */
+.signature-field-planner {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.signature-field-planner:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.field-header-planner {
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.field-title-planner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.required-star-planner {
+  color: #dc2626;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-left: 0.25rem;
+}
+
+.field-type-badge {
+  flex-shrink: 0;
+}
+
+.field-body-planner {
+  padding: 1.5rem;
+}
+
+/* Canvas Container for Signatures */
+.canvas-container-planner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.canvas-wrapper {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: #fafafa;
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.signature-canvas-planner {
+  display: block;
+  border: 2px dashed #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff !important;
+  cursor: crosshair;
+  transition: all 0.2s ease;
+  touch-action: none;
+}
+
+.signature-canvas-planner:hover {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.signature-canvas-planner:active {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.clear-btn-planner {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.clear-btn-planner:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.clear-btn-planner:active {
+  transform: translateY(0);
+}
+
+.canvas-hint-planner {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: left;
+  font-style: italic;
+  padding: 0.5rem;
+  background: #f0f9ff;
+  border-radius: 6px;
+  border-left: 3px solid #0284c7;
+}
+
+/* Date Field */
+.date-field-planner {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.date-input-planner {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #1e293b;
+  background: #f8fafc;
+  font-weight: 500;
+}
+
+.date-btn-planner {
+  padding: 0.75rem 1.25rem;
+  background: #059669;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-btn-planner:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+
+.date-btn-planner:active {
+  transform: translateY(0);
+}
+
+/* Text Input */
+.text-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.text-input-planner {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.text-input-planner:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  background: white;
+}
+
+.text-input-planner::placeholder {
+  color: #94a3b8;
+}
+
+.char-count {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-align: right;
+}
+
+/* Checkbox */
+.checkbox-label-planner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: #1e293b;
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  border: 2px solid #e2e8f0;
+}
+
+.checkbox-label-planner:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.checkbox-input-planner {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+/* Progress Indicator */
+.progress-indicator {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin: 0.5rem 0;
+}
+
+.progress-text {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+/* Action Buttons */
+.action-buttons-planner {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem 0;
+  border-top: 2px solid #e2e8f0;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-draft-planner,
+.btn-finalize-planner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-draft-planner {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-draft-planner:hover:not(:disabled) {
+  background: #4b5563;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(107, 114, 128, 0.3);
+}
+
+.btn-finalize-planner {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-finalize-planner:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.btn-draft-planner:disabled,
+.btn-finalize-planner:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.btn-draft-planner:active:not(:disabled),
+.btn-finalize-planner:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Signing Notice */
+.signing-notice-planner {
+  padding: 1rem 1.5rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-left: 4px solid #0284c7;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.signing-notice-planner p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #0369a1;
+  line-height: 1.6;
+}
+
+.signing-notice-planner strong {
+  font-weight: 700;
+  color: #075985;
+}
+
+/* Signature Complete View */
+.signature-complete-planner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  height: 100%;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.complete-icon-planner {
+  margin-bottom: 2rem;
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.signature-complete-planner h2 {
+  margin: 0 0 1rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #059669;
+}
+
+.signature-complete-planner p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+  color: #047857;
+}
+
+.signed-date-planner {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #065f46;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d1fae5;
+}
+
+.btn-close-planner {
+  margin-top: 2rem;
+  padding: 0.875rem 2rem;
+  background: #059669;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-close-planner:hover {
+  background: #047857;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+}
+
+.btn-close-planner:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .planner-signature-container {
+    height: auto;
+  }
+
+  .pdf-viewer-section-planner {
+    max-height: 50vh;
+    height: 50vh;
+  }
+
+  .pdf-viewer-wrapper-planner {
+    padding: 1rem;
+  }
+
+  .signature-fields-section-planner {
+    padding: 1.5rem 1rem;
+  }
+
+  .fields-header-planner h3 {
+    font-size: 1.25rem;
+  }
+
+  .action-buttons-planner {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .btn-draft-planner,
+  .btn-finalize-planner {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .date-field-planner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-btn-planner {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .signature-canvas-planner {
+    max-width: 100%;
+  }
+
+  .canvas-wrapper {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdf-header-planner {
+    padding: 0.75rem 1rem;
+  }
+
+  .pdf-header-planner h3 {
+    font-size: 1rem;
+  }
+
+  .pdf-header-planner p {
+    font-size: 0.8rem;
+  }
+
+  .signature-fields-section-planner {
+    padding: 1rem;
+  }
+
+  .field-body-planner {
+    padding: 1rem;
+  }
+
+  .btn-draft-planner,
+  .btn-finalize-planner {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+  }
+
+  .signature-complete-planner h2 {
+    font-size: 1.5rem;
+  }
+
+  .signature-complete-planner p {
+    font-size: 1rem;
+  }
+
+  .no-fields-planner {
+    padding: 2rem 1rem;
+    min-height: 200px;
+  }
+
+  .field-header-planner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Smooth Scrolling */
+.signature-fields-section-planner {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+.signature-fields-section-planner::-webkit-scrollbar {
+  width: 8px;
+}
+
+.signature-fields-section-planner::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.signature-fields-section-planner::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.signature-fields-section-planner::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Loading State Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.btn-draft-planner:disabled,
+.btn-finalize-planner:disabled {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Focus Styles for Accessibility */
+.signature-canvas-planner:focus,
+.text-input-planner:focus,
+.date-btn-planner:focus,
+.checkbox-input-planner:focus,
+.btn-draft-planner:focus,
+.btn-finalize-planner:focus,
+.btn-close-planner:focus,
+.clear-btn-planner:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
