@@ -183,24 +183,31 @@ const LocationPicker = ({
   }, [selectedLocation, isLoaded, disabled]);
 
   // Reverse geocoding for address from coordinates
-  const reverseGeocode = (coords) => {
-    if (!window.google) return;
+  const reverseGeocode = async (coords) => {
+  if (!window.google || !window.google.maps) return;
 
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ location: coords }, (results, status) => {
-      if (status === "OK" && results[0]) {
-        const formattedAddress = results[0].formatted_address;
-        setAddress(formattedAddress);
+  try {
+    // Import the geocoding library dynamically
+    const { Geocoder } = await window.google.maps.importLibrary("geocoding");
+    const geocoder = new Geocoder();
 
-        if (onLocationChange) {
-          onLocationChange({
-            coordinates: coords,
-            address: formattedAddress,
-          });
-        }
+    const { results } = await geocoder.geocode({ location: coords });
+
+    if (results && results[0]) {
+      const formattedAddress = results[0].formatted_address;
+      setAddress(formattedAddress);
+
+      if (onLocationChange) {
+        onLocationChange({
+          coordinates: coords,
+          address: formattedAddress,
+        });
       }
-    });
-  };
+    }
+  } catch (err) {
+    console.error("Geocoding failed:", err);
+  }
+};
 
   const handleMapClick = (e) => {
     if (disabled || !window.google) return;
