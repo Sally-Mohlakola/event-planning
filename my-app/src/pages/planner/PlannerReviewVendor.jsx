@@ -40,7 +40,7 @@ export default function PlannerReviewVendor({
       const token = await auth.currentUser.getIdToken();
 
       const response = await fetch(
-        `${API_TEST}/planner/vendors/${vendorId}/reviews`,
+        `${API_BASE}/planner/vendors/${vendorId}/reviews`,
         {
           method: "POST",
           headers: {

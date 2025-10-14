@@ -4,7 +4,7 @@ import { auth, db } from "../../firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import PDFSignatureEditor from "./PDFSignatureEditor";
-import "./SetupElectronicSignature.css";
+//import "./SetupElectronicSignature.css";
 
 const SetupElectronicSignature = ({ setActivePage }) => {
   const [contract, setContract] = useState(null);

@@ -3,15 +3,32 @@ import "../../planner/PlannerAllEvents.css";
 import { getAuth } from "firebase/auth";
 
 function EventCard({ event, onQuickView, onDeleteEvent }) {
-	const formatDate = (dateString) => {
-		const date = new Date(dateString);
-		return date.toLocaleDateString("en-US", {
-			weekday: "short",
-			month: "short",
-			day: "numeric",
-			year: "numeric",
-		});
-	};
+	function formatDate(dateString) {
+  if (!dateString) return "";
+
+  let jsDate;
+
+  if (typeof dateString === 'object' && typeof dateString._seconds === 'number') {
+    jsDate = new Date(dateString._seconds * 1000 + (dateString._nanoseconds || 0) / 1e6);
+  } else if (dateString instanceof Date) {
+    jsDate = dateString;
+  } else if (typeof dateString === "string") {
+    jsDate = new Date(dateString);
+  } else {
+    return String(dateString);
+  }
+
+  if (isNaN(jsDate)) return "Invalid Date";
+
+  const day = String(jsDate.getDate()).padStart(2, "0");
+  const monthName = jsDate.toLocaleString("en-US", { month: "long" });
+  const year = jsDate.getFullYear();
+  const hours = String(jsDate.getHours()).padStart(2, "0");
+  const minutes = String(jsDate.getMinutes()).padStart(2, "0");
+
+  return `${day} ${monthName} ${year} @${hours}:${minutes}`;
+}
+
 
 	const getStatusColor = (status) => {
 		switch (status) {

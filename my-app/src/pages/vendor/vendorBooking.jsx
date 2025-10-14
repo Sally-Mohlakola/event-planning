@@ -61,29 +61,7 @@ const VendorBooking = ({ setActivePage }) => {
 
   let vendorId = auth.currentUser?.uid;
 
-  // ---------- Local Storage Helpers ----------
-  const loadPersistedStatuses = () => {
-    try {
-      return JSON.parse(localStorage.getItem("vendorStatuses")) || {};
-    } catch {
-      return {};
-    }
-  };
-
-  const savePersistedStatuses = (statuses) => {
-    localStorage.setItem("vendorStatuses", JSON.stringify(statuses));
-  };
-
-  // ---------- Status Helpers ----------
-  const getOverallBookingStatus = (vendorServices) => {
-    if (!vendorServices || vendorServices.length === 0) return "pending";
-    const statuses = vendorServices.map((s) => s.status || "pending");
-    if (statuses.every((s) => s === "accepted")) return "accepted";
-    if (statuses.some((s) => s === "rejected")) return "rejected";
-    return "pending";
-  };
-
-  // ---------- Fetch Bookings ----------
+  //-------- Fetch Bookings--------
   useEffect(() => {
    const fetchBookings = async () => {
   const auth = getAuth();
@@ -100,42 +78,27 @@ const VendorBooking = ({ setActivePage }) => {
     return;
   }
 
-  try {
-    const token = await user.getIdToken();
-    const res = await fetch(
-      "https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/bookings/services",
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    if (!res.ok) {
-      const contentType = res.headers.get("content-type");
-      const errorText = contentType?.includes("application/json")
-        ? (await res.json()).message
-        : await res.text();
-      throw new Error(`Failed to fetch bookings: ${errorText}`);
-    }
-
-    const data = await res.json();
-    const persistedStatuses = loadPersistedStatuses();
-
-    const formattedBookings = (data.bookings || []).map((booking) => {
-      // API status takes priority
-      const apiOverallStatus = getOverallBookingStatus(booking.vendorServices);
-
-      // If user has locally updated this booking, use that for status
-      const persisted = persistedStatuses[booking.eventId];
-
-      return {
-        ...booking,
-        vendorServices: booking.vendorServices.map((service) => ({
-          ...service,
-          // local update only overrides API if it exists
-          status: persisted || service.status || "pending",
-        })),
-        overallStatus: persisted || apiOverallStatus,
-        contractUploaded: booking.contractUploaded ?? false,
-      };
-    });
+      try {
+              const token = await user.getIdToken();
+        const res = await fetch(
+          "https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/bookings/services",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (!res.ok) {
+          const contentType = res.headers.get("content-type");
+          const errorText = contentType?.includes("application/json")
+            ? (await res.json()).message
+            : await res.text();
+          throw new Error(`Failed to fetch bookings: ${errorText}`);
+        }
+        const data = await res.json();
+        const formattedBookings = (data.bookings || []).map((booking) => ({
+          ...booking,
+          overallStatus: getOverallBookingStatus(booking.vendorServices),
+          contractUploaded: false, // placeholder
+        }));
 
     setBookings(formattedBookings);
   } catch (err) {
@@ -166,12 +129,12 @@ const VendorBooking = ({ setActivePage }) => {
 
     try {
       const auth = getAuth();
-      let user = auth.currentUser;
-      while (!user) {
-        await new Promise((res) => setTimeout(res, 50));
-        user = auth.currentUser;
-      }
-      const token = await user.getIdToken();
+            let user = auth.currentUser;
+            while (!user) {
+                await new Promise((res) => setTimeout(res, 50)); // wait 50ms
+              user = auth.currentUser;
+            }
+            const token = await user.getIdToken();
 
       const res = await fetch(
         `https://us-central1-planit-sdp.cloudfunctions.net/api/event/${eventId}/vendor/${vendorId}/status`,

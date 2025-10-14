@@ -600,6 +600,7 @@
 .ps-export-option div div { font-weight: 600; margin-bottom: 4px; }
 .ps-export-option small { color: var(--text-muted); }
 
+
 /* Responsive */
 @media (max-width: 1024px) {
   .ps-grid { grid-template-columns: 1fr; }

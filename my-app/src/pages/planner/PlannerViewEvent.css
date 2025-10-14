@@ -522,7 +522,7 @@
 
 .add-guest-btn,
 .add-vendor-btn,
-.add-task-btn {
+.task-btn {
     padding: 6px 12px;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
@@ -536,7 +536,7 @@
 
 .add-guest-btn:hover,
 .add-vendor-btn:hover,
-.add-task-btn:hover {
+.task-btn:hover {
     border-color: #6366f1;
     color: #6366f1;
     background: #f8fafc;

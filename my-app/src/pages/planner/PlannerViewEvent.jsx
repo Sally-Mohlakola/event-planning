@@ -4,7 +4,14 @@ import { getAuth } from "firebase/auth";
 import Papa from "papaparse";
 import ChatComponent from "./ChatComponent.jsx";
 import Popup from "../general/popup/Popup.jsx";
+import LocationPicker from './LocationPicker';
 import PlannerVendorMarketplace from "./PlannerVendorMarketplace.jsx";
+import PlannerTasks from './PlannerTasks.jsx';
+import { format } from 'date-fns';
+import BronzeFury from './BronzeFury.jsx';
+
+const API_TEST ="http://127.0.0.1:5001/planit-sdp/us-central1/api";
+const API_BASE="https://us-central1-planit-sdp.cloudfunctions.net/api";
 
 //Code for the pop up when manually adding a guest **********
 function AddGuestPopup({ isOpen, onClose, onSave }) {
@@ -344,48 +351,6 @@ function ServiceItem({ service, showChat }) {
 }
 //End of code for one vendor list item **********
 
-//Code for one vendor list item **********
-function VendorItem({ vendor }) {
-	return (
-		<section className="vendor-item">
-			<section className="vendor-info">
-				<h4>{vendor.businessName}</h4>
-				<p>{vendor.category}</p>
-			</section>
-			<section className="vendor-cost">
-				<h4>Current total cost: </h4>
-				<p>{vendor.cost}</p>
-			</section>
-			<section className="vendor-actions">
-				<button className="contact-btn">Contact</button>
-				<button className="remove-btn">Remove</button>
-			</section>
-		</section>
-	);
-}
-//End of code for one vendor list item **********
-
-//Code for one task list item **********
-function TaskItem({ taskName, taskStatus, onToggle }) {
-	const isCompleted = taskStatus === true;
-
-	return (
-		<section className="task-item">
-			<section className="task-checkbox">
-				<input
-					type="checkbox"
-					checked={isCompleted}
-					onChange={() => onToggle(taskName)}
-				/>
-			</section>
-			<section className="task-content">
-				<h4 className={isCompleted ? "completed" : ""}>{taskName}</h4>
-			</section>
-		</section>
-	);
-}
-//End of code for one task list item **********
-
 //Code for prompt card (No Guests, No vendors, No tasks) (Or Guest Summary, Vendor Summary)
 function PromptCard({ title, message, buttonText, onClick }) {
 	return (
@@ -544,27 +509,50 @@ function GuestImportWithValidation({ eventId, onImportComplete, onClose }) {
 
 //End of code for importing a guest list
 
+// Vendor Popup Component
+function VendorPopup({ isOpen, onClose }) {
+    if (!isOpen) return null;
+
+    return (
+        <Popup isOpen={isOpen} onClose={onClose}>
+            <PlannerVendorMarketplace 
+                onClose={onClose}
+                // Add any other props your PlannerVendorMarketplace needs
+            />
+        </Popup>
+    );
+}
+
 export default function PlannerViewEvent({ event, setActivePage }) {
 	if (!event) {
 		return <section>Loading Event...</section>;
 	}
 
-	const [isEditing, setIsEditing] = useState(false);
-	const [activeTab, setActiveTab] = useState("overview");
-	const [guests, setGuests] = useState([]);
-	const [vendors, setVendors] = useState([]);
-	const [eventData, setEventData] = useState(event);
-	const [showAddGuestPopup, setShowAddGuestPopup] = useState(false);
-	const [showImportGuestPopup, setShowImportGuestPopup] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [activeTab, setActiveTab] = useState("overview");
+    const [guests, setGuests] = useState([]);
+    const [vendors, setVendors] = useState([]);
+    const [eventData, setEventData] = useState(event);
+    const [showAddGuestPopup, setShowAddGuestPopup] = useState(false);
+    const [showImportGuestPopup, setShowImportGuestPopup] = useState(false);
+    const [showBronzeFuryPopup, setShowBronzeFuryPopup] = useState(false);
+    const [showChat, setShowChat] = useState(false);
+    const [chatVendorId, setChatVendorId] = useState(null);
+    const [serviceType, setServiceType] = useState(null);
+    const [chatService, setChatService] = useState(null);
+    const [plannerId, setPlannerID] = useState(null);
 	const [services, setServices] = useState([]);
-	const [showChat, setShowChat] = useState(false);
-	const [chatVendorId, setChatVendorId] = useState(null);
-	const [serviceType, setServiceType] = useState(null);
-	const [chatService, setChatService] = useState(null);
-	const [plannerId, setPlannerID] = useState(null);
+	
+	// ADDED THE MISSING STATE VARIABLE
 	const [showVendorPopup, setShowVendorPopup] = useState(false);
 
 	const [editForm, setEditForm] = useState({ ...eventData });
+
+	// NEW: Location state
+	const [locationData, setLocationData] = useState({
+		coordinates: null,
+		address: ''
+	});
 
 	const eventId = event.id;
 
@@ -615,25 +603,22 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 		return data.vendors || [];
 	};
 
-	const updateEventData = async () => {
-		const auth = getAuth();
-		const user = auth.currentUser;
-		const token = await user.getIdToken(true);
-
-		const res = await fetch(
-			`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/${eventId}`,
-			{
-				method: "PUT",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(eventData),
-			}
-		);
-		if (!res.ok) console.log("Update Failed");
-		console.log("Updated Event.");
-	};
+    const updateEventData = async () => {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        const token = await user.getIdToken(true);
+    
+        const res = await fetch(`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/${eventId}`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(eventData)
+        });
+        if (!res.ok) console.log("Update Failed"); 
+        console.log("Updated Event.");
+    };       
 
 	const sendReminder = async (guestId, eventId) => {
 		const auth = getAuth();
@@ -684,30 +669,38 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 		}
 	};
 
-	useEffect(() => {
-		async function loadGuests() {
-			const guests = await fetchGuests();
-			setGuests(guests);
-		}
-		loadGuests();
-	}, []);
+	const loadGuests = async () => {
+  const guests = await fetchGuests();
+  setGuests(guests);
+};
 
-	useEffect(() => {
-		async function loadVendors() {
-			const vendors = await fetchVendors();
-			setVendors(vendors);
-		}
-		loadVendors();
-	}, []);
+useEffect(() => {
+  loadGuests();
+}, []);
 
-	useEffect(() => {
-		async function loadServices() {
-			const services = await fetchServices();
-			setServices(services);
-			console.log(services);
-		}
-		loadServices();
-	}, []);
+
+const loadVendors = async () => {
+  const vendors = await fetchVendors();
+  setVendors(vendors);
+};
+
+useEffect(() => {
+  loadVendors();
+}, []);
+
+
+
+const loadServices = async () => {
+  const fetchedServices = await fetchServices();
+  setServices(fetchedServices);
+  console.log(fetchedServices);
+};
+
+// run it once on mount
+useEffect(() => {
+  loadServices();
+}, []);
+
 
 	useEffect(() => {
 		if (showAddGuestPopup === true) {
@@ -719,24 +712,101 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 		updateEventData();
 	}, [eventData]);
 
-	const handleSave = () => {
-		setEventData({ ...editForm });
-		setIsEditing(false);
+	// NEW: Initialize location data from event
+	useEffect(() => {
+		if (eventData && eventData.locationCoordinates) {
+			// Handle both GeoPoint and plain object formats
+			const coords = eventData.locationCoordinates._latitude ? 
+				{
+					lat: eventData.locationCoordinates._latitude,
+					lng: eventData.locationCoordinates._longitude
+				} :
+				eventData.locationCoordinates;
+			
+			setLocationData({
+				coordinates: coords,
+				address: eventData.location || ''
+			});
+		}
+	}, [eventData]);
+
+	// NEW: Handler for location changes during editing
+	const handleLocationChange = (data) => {
+		setLocationData(data);
+		setEditForm(prev => ({
+			...prev,
+			location: data.address,
+			locationCoordinates: data.coordinates
+		}));
+	};
+
+	// UPDATED: handleSave with conflict checking
+	const handleSave = async () => {
+		try {
+			const auth = getAuth();
+			const token = await auth.currentUser.getIdToken(true);
+
+			// Prepare update data with location coordinates
+			const updateData = {
+				...editForm,
+				locationCoordinates: locationData.coordinates
+			};
+
+			const res = await fetch(
+				`${API_BASE}/planner/me/${eventId}`,
+				{
+					method: 'PUT',
+					headers: {
+						Authorization: `Bearer ${token}`,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(updateData),
+				}
+			);
+
+			const data = await res.json();
+
+			if (!res.ok) {
+				if (res.status === 409) {
+					// Location conflict detected
+					const conflictMsg = `Location Conflict Detected!\n\n${data.message}\n\nConflicting Event: ${data.conflictingEvent?.name}\nDate: ${new Date(data.conflictingEvent?.date).toLocaleString()}\nLocation: ${data.conflictingEvent?.location}`;
+					alert(conflictMsg);
+					return;
+				}
+				throw new Error(data.message || 'Failed to update event');
+			}
+
+			// Update local state with new data including coordinates
+			setEventData({ 
+				...editForm, 
+				locationCoordinates: locationData.coordinates 
+			});
+			setIsEditing(false);
+			alert('Event updated successfully!');
+
+		} catch (err) {
+			console.error('Error saving event:', err);
+			alert(`Error updating event: ${err.message}`);
+		}
 	};
 
 	const handleCancel = () => {
 		setEditForm({ ...eventData });
+				// Reset location data to original
+		if (eventData.locationCoordinates) {
+			const coords = eventData.locationCoordinates._latitude ? 
+				{
+					lat: eventData.locationCoordinates._latitude,
+					lng: eventData.locationCoordinates._longitude
+				} :
+				eventData.locationCoordinates;
+			
+			setLocationData({
+				coordinates: coords,
+				address: eventData.location || ''
+			});
+		}
 		setIsEditing(false);
-	};
-
-	const handleTaskToggle = (taskName) => {
-		setEventData((prev) => ({
-			...prev,
-			tasks: {
-				...prev.tasks,
-				[taskName]: !prev.tasks[taskName],
-			},
-		}));
 	};
 
 	function formatDate(date) {
@@ -784,7 +854,10 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 		);
 		if (!res.ok) return "Guest Creation Failed";
 		console.log("Guest creation done.");
+		await loadGuests();
 	};
+
+
 
 	const onShowChat = async (service) => {
 		//Data fetching will go here
@@ -843,6 +916,7 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 								>
 									Cancel
 								</button>
+
 							</section>
 						)}
 					</section>
@@ -952,17 +1026,19 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 										<section className="edit-form">
 											<label>
 												Location:
-												<input
-													type="text"
-													value={editForm.location}
-													onChange={(e) =>
-														setEditForm({
-															...editForm,
-															location:
-																e.target.value,
-														})
-													}
+												<LocationPicker
+													initialLocation={locationData.coordinates}
+													initialAddress={locationData.address}
+													onLocationChange={handleLocationChange}
 												/>
+												<small style={{ 
+													display: 'block', 
+													marginTop: '5px', 
+													color: '#666',
+													fontSize: '12px'
+												}}>
+													Note: Changing location or time may conflict with other events at the same venue
+												</small>
 											</label>
 											<label>
 												Date:
@@ -1203,17 +1279,13 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 													booked
 												</p>
 												<p>
-													Total cost: $
-													{vendors
-														.reduce(
-															(sum, v) =>
-																sum +
-																(parseFloat(
-																	v.cost
-																) || 0),
-															0
-														)
-														.toFixed(2)}
+													Total cost: R
+														{services
+															.reduce(
+																(sum, s) => sum + (parseFloat(s.estimatedCost) || 0),
+																0
+															)
+															.toFixed(2)}
 												</p>
 											</section>
 										)}
@@ -1230,6 +1302,7 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 							<section className="guests-section">
 								<section className="guests-header">
 									<h3>Guest List</h3>
+                                    <button className="add-guest-btn" onClick={() => setShowBronzeFuryPopup(true)}>+ Add Guests from BronzeFury</button>
 									<button
 										className="add-guest-btn"
 										onClick={() =>
@@ -1259,6 +1332,9 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 										}}
 									/>
 								)}
+
+                                {showBronzeFuryPopup && (
+                                    <BronzeFury/>)}
 
 								{showAddGuestPopup && (
 									<section>
@@ -1346,6 +1422,15 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 									+ Add Vendor
 								</button>
 							</section>
+							
+							{/* ADDED THE VENDOR POPUP */}
+							{showVendorPopup && (
+								<VendorPopup 
+									isOpen={showVendorPopup}
+									onClose={() => setShowVendorPopup(false)}
+								/>
+							)}
+							
 							<section className="vendors-list">
 								{services && services.length > 0 ? (
 									services.map((service) => (
@@ -1368,47 +1453,16 @@ export default function PlannerViewEvent({ event, setActivePage }) {
 						</section>
 					)}
 
-					{activeTab === "tasks" && (
-						<section className="tasks-content">
-							<section className="tasks-header">
-								<h3>Event Tasks</h3>
-								<button className="add-task-btn">
-									+ Add Task
-								</button>
-							</section>
-							<section className="tasks-list">
-								{eventData.tasks &&
-								Object.keys(eventData.tasks).length > 0 ? (
-									Object.entries(eventData.tasks).map(
-										([taskName, completed], i) => (
-											<TaskItem
-												key={`${taskName}-${i}`}
-												taskName={taskName}
-												taskStatus={completed}
-												onToggle={handleTaskToggle}
-											/>
-										)
-									)
-								) : (
-									<section className="empty-state">
-										<p>
-											No tasks added yet. Click "Add Task"
-											to start organizing your event
-											planning.
-										</p>
-									</section>
-								)}
-							</section>
-						</section>
-					)}
-				</section>
-			</section>
-			<Popup
-				isOpen={showVendorPopup}
-				onClose={() => setShowVendorPopup(false)}
-			>
-				<PlannerVendorMarketplace event={event} />
-			</Popup>
-		</section>
-	);
+                     {activeTab === "tasks" && (
+                        <PlannerTasks setActivePage={setActivePage}
+                        eventId= {eventId}
+                        eventData={eventData}
+                        setEventData={setEventData}
+                        />
+                    )}
+
+                </section>
+            </section>
+        </section>
+    );
 }
