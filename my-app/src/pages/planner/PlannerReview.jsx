@@ -1,3 +1,4 @@
+// PlannerReview.jsx - Updated with Reviews Section
 import React, { useState, useEffect } from "react";
 import { getAuth } from "firebase/auth";
 import "./PlannerReview.css";
@@ -13,9 +14,12 @@ export default function PlannerReviewsPage() {
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [filter, setFilter] = useState("all"); // all, past, upcoming
+  const [reviews, setReviews] = useState([]); // NEW: State for reviews
+  const [reviewsLoading, setReviewsLoading] = useState(false); // NEW: Loading state for reviews
 
   useEffect(() => {
     fetchEventsAndVendors();
+    fetchPlannerReviews(); // NEW: Fetch reviews on component mount
   }, []);
 
   const fetchEventsAndVendors = async () => {
@@ -96,6 +100,30 @@ export default function PlannerReviewsPage() {
     }
   };
 
+  // NEW: Function to fetch planner's reviews
+  const fetchPlannerReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser.getIdToken();
+
+      const response = await fetch(`${API_TEST}/planner/my-reviews`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setReviews(data.reviews || []);
+      } else {
+        console.error("Failed to fetch reviews");
+      }
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
   const handleReviewVendor = (vendor, event) => {
     setSelectedVendor({
       ...vendor,
@@ -110,6 +138,7 @@ export default function PlannerReviewsPage() {
     setShowReviewModal(false);
     setSelectedVendor(null);
     alert("Thank you for your review!");
+    fetchPlannerReviews(); // NEW: Refresh reviews after submitting a new one
   };
 
   const filteredEvents = events.filter((event) => {
@@ -125,6 +154,47 @@ export default function PlannerReviewsPage() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // NEW: Format review date
+  const formatReviewDate = (timestamp) => {
+    if (!timestamp) return "Date not available";
+    
+    let date;
+    if (timestamp._seconds) {
+      date = new Date(timestamp._seconds * 1000);
+    } else if (timestamp.toDate) {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
+    
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // NEW: Render star rating
+  const renderRating = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <svg
+          key={i}
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill={i <= rating ? "#f59e0b" : "none"}
+          stroke={i <= rating ? "#f59e0b" : "#d1d5db"}
+          strokeWidth="2"
+        >
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      );
+    }
+    return <div className="review-rating">{stars}</div>;
   };
 
   if (loading) {
@@ -284,6 +354,52 @@ export default function PlannerReviewsPage() {
               </section>
             );
           })
+        )}
+      </section>
+
+      {/* NEW: Reviews Section */}
+      <section className="reviews-section">
+        <h2>My Reviews</h2>
+        {reviewsLoading ? (
+          <section className="reviews-page-loading">
+            <section className="spinner"></section>
+            <p>Loading your reviews...</p>
+          </section>
+        ) : reviews.length === 0 ? (
+          <section className="no-events">
+            <svg
+              width="64"
+              height="64"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+            <h3>No reviews yet</h3>
+            <p>You haven't written any reviews yet. Start by reviewing vendors from your past events.</p>
+          </section>
+        ) : (
+          <section className="reviews-list">
+            {reviews.map((review) => (
+              <section key={review.id} className="review-card">
+                <section className="review-header">
+                  <h3 className="review-vendor-name">{review.vendorName || "Vendor"}</h3>
+                  {renderRating(review.rating || 0)}
+                </section>
+                <p className="review-event">
+                  Event: {review.eventName || "Not specified"}
+                </p>
+                <p className="review-text">
+                  {review.review || "No review text provided."}
+                </p>
+                <p className="review-date">
+                  {formatReviewDate(review.createdAt || review.timeOfReview)}
+                </p>
+              </section>
+            ))}
+          </section>
         )}
       </section>
 

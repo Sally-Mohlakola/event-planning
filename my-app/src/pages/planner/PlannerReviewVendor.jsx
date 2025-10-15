@@ -1,3 +1,4 @@
+// PlannerReviewVendor.jsx - Updated with Dark Mode Support
 import React, { useState } from "react";
 import { getAuth } from "firebase/auth";
 import "./PlannerReviewVendor.css";
@@ -76,6 +77,19 @@ export default function PlannerReviewVendor({
     }
   };
 
+  const getRatingText = () => {
+    if (rating === 0 && hoverRating === 0) return "Select a rating";
+    const currentRating = hoverRating || rating;
+    switch (currentRating) {
+      case 1: return "Poor";
+      case 2: return "Fair";
+      case 3: return "Good";
+      case 4: return "Very Good";
+      case 5: return "Excellent";
+      default: return "Select a rating";
+    }
+  };
+
   return (
     <section className="review-vendor-overlay" onClick={onClose}>
       <section 
@@ -109,18 +123,14 @@ export default function PlannerReviewVendor({
                     onClick={() => setRating(star)}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
+                    aria-label={`Rate ${star} star${star !== 1 ? 's' : ''}`}
                   >
                     ★
                   </button>
                 ))}
               </section>
               <p className="rating-text">
-                {rating === 0 && "Select a rating"}
-                {rating === 1 && "Poor"}
-                {rating === 2 && "Fair"}
-                {rating === 3 && "Good"}
-                {rating === 4 && "Very Good"}
-                {rating === 5 && "Excellent"}
+                {getRatingText()}
               </p>
             </section>
 
@@ -133,13 +143,18 @@ export default function PlannerReviewVendor({
                 rows="6"
                 required
                 minLength="10"
+                maxLength="1000"
               />
               <p className="char-count">
-                {reviewText.length} characters
+                {reviewText.length}/1000 characters
               </p>
             </section>
 
-            {error && <p className="review-error">{error}</p>}
+            {error && (
+              <section className="review-error" role="alert">
+                {error}
+              </section>
+            )}
 
             <section className="review-actions">
               <button
@@ -153,7 +168,7 @@ export default function PlannerReviewVendor({
               <button
                 type="submit"
                 className="submit-review-btn"
-                disabled={isSubmitting || rating === 0}
+                disabled={isSubmitting || rating === 0 || reviewText.trim().length < 10}
               >
                 {isSubmitting ? "Submitting..." : "Submit Review"}
               </button>

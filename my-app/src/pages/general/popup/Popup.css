@@ -4,11 +4,12 @@
     width: 100vw;
     height: 100vh;
     display: flex;
-    justify-content: center;   /* horizontal center */
-    align-items: center;       /* vertical center */
+    justify-content: center; 
+    align-items: center;       
     padding: 0.5rem;
     z-index: 9999;
 }
+
 .popup-content{
     max-width: none;
     width: 95vw;
@@ -21,10 +22,11 @@
     overflow-y: overlay;
     position: relative;
 }
+
 .popup-close-button{
     position: sticky;
-    top: 0;                    /* sticks to the top of .popup-content */
-    float: right;              /* optional for right-edge */
+    top: 0;
+    float: right;       
     margin-left: auto;
     padding: 0.5rem 1rem;
     z-index: 1;

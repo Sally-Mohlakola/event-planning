@@ -986,7 +986,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 				<h2>Floorplan Designer</h2>
 			</header>
 
-			<div className="floorplan-content">
+			<section className="floorplan-content">
 				<aside className="floorplan-sidebar">
 					<h3>Choose Event</h3>
 					<select
@@ -1032,14 +1032,14 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 					</select>
 
 					<h3>Upload Background Image</h3>
-					<div className="image-upload">
+					<section className="image-upload">
 						<input
 							type="file"
 							accept="image/jpeg,image/png,image/gif,image/webp"
 							onChange={handleImageUpload}
 						/>
 						{backgroundImage && (
-							<div className="image-preview">
+							<section className="image-preview">
 								<img
 									src={backgroundImage}
 									alt="Background preview"
@@ -1055,12 +1055,12 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 								>
 									Clear Image
 								</button>
-							</div>
+							</section>
 						)}
-					</div>
+					</section>
 
 					<h3>Add Items</h3>
-					<div className="tool-buttons">
+					<section className="tool-buttons">
 						<button onClick={() => addItem("table_small")}>
 							Add Small Round Table
 						</button>
@@ -1109,11 +1109,11 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 						<button onClick={() => addItem("exit_door")}>
 							Add Exit Door
 						</button>
-					</div>
+					</section>
 
 					<h3>Selected</h3>
-					<div className="selected-controls">
-						<div className="id-selection">
+					<section className="selected-controls">
+						<section className="id-selection">
 							<label htmlFor="selected-id">Selected ID:</label>
 							<select
 								id="selected-id"
@@ -1135,10 +1135,10 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 									</option>
 								))}
 							</select>
-						</div>
+						</section>
 						{selectedId && (
-							<div className="control-buttons">
-								<div className="scale-controls">
+							<section className="control-buttons">
+								<section className="scale-controls">
 									<button
 										onClick={() => scaleSelected(0.9)}
 										disabled={!selectedId}
@@ -1151,8 +1151,8 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 									>
 										Scale Up
 									</button>
-								</div>
-								<div className="rotate-controls">
+								</section>
+								<section className="rotate-controls">
 									<button
 										onClick={() => rotateSelected(-15)}
 										disabled={!selectedId}
@@ -1165,7 +1165,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 									>
 										Rotate +15°
 									</button>
-								</div>
+								</section>
 								<button
 									className="danger"
 									onClick={removeSelected}
@@ -1173,12 +1173,12 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 								>
 									Remove
 								</button>
-							</div>
+							</section>
 						)}
-					</div>
+					</section>
 
 					<h3>Save / Upload</h3>
-					<div className="save-controls">
+					<section className="save-controls">
 						<button
 							onClick={exportToPNG}
 							disabled={!selectedEventId}
@@ -1197,7 +1197,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 						<button onClick={loadLocal} disabled={!selectedEventId}>
 							Load Draft
 						</button>
-					</div>
+					</section>
 
 					<p className="hint">
 						Tip: Click an item to select, drag to move, Shift+drag
@@ -1206,7 +1206,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 				</aside>
 
 				<section className="floorplan-canvas-wrap">
-					<div
+					<section
 						className="floorplan-canvas"
 						ref={containerRef}
 						onPointerMove={onPointerMove}
@@ -1224,7 +1224,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 						}}
 					>
 						{items.map((it) => (
-							<div
+							<section
 								key={it.id}
 								className={`fp-item ${
 									selectedId === it.id ? "selected" : ""
@@ -1246,18 +1246,18 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 									onPointerDownItem(e, it.id)
 								}
 							>
-								<div className="fp-label">
+								<section className="fp-label">
 									{it.type
 										.replace(/_/g, " ")
 										.replace(/\b\w/g, (l) =>
 											l.toUpperCase()
 										)}
-								</div>
-							</div>
+								</section>
+							</section>
 						))}
-					</div>
+					</section>
 				</section>
-			</div>
+			</section>
 		</main>
 	);
 };
