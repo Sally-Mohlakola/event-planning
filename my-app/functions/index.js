@@ -2373,45 +2373,8 @@ app.delete('/admin/events/:eventId', async (req, res) => {
 });
 
 
-// Unprotected: Get all events for a user by UID (guid)
-app.get('/public/user/:uid/events', async (req, res) => {
-  try {
-    const uid = req.params.uid;
-    const snapshot = await db.collection("Event")
-      .where("plannerId", "==", uid)
-      .get();
-
-    if (snapshot.empty) {
-      return res.json({ uid, events: [] });
-    }
-
-    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json({ uid, events });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// Unprotected guest list endpoint (public)
-app.get('/public/event/:eventId/guests', async (req, res) => {
-  try {
-    const eventId = req.params.eventId;
-    const snapshot = await db.collection("Event").doc(eventId).collection("Guests").get();
-
-    if (snapshot.empty) {
-      return res.json({ message: "No guests found for this event" });
-    }
-
-    const guests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json({ eventId, guests });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-
+const publicRoutes = require("./public.js")(db, bucket, EXTERNAL_API_KEY);
+app.use("/public", publicRoutes);
 
 
 // =================================================================
