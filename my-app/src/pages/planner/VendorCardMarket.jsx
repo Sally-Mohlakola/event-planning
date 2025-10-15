@@ -61,12 +61,12 @@ function VendorCard({ vendor, onViewMore }) {
                     
                     {vendor.services && vendor.services.length > 0 ? (
                         <div className="vendor-services-preview">
-                        <p className="services-label">Services offered:</p>
-                        <ul className="services-list">
+                        <p className="services-label-market">Services offered:</p>
+                        <ul className="services-list-market">
                             {topServices.map((service, index) => (
-                            <li key={index} className="service-item">
-                                <span className="service-name">{service.serviceName}</span>
-                                <span className="service-price">
+                            <li key={index} className="service-item-market">
+                                <span className="service-name-market">{service.serviceName}</span>
+                                <span className="service-price-market">
                                 {service.chargeByHour > 0 ? "Per hour" : 
                                 service.chargePerPerson > 0 ? "Per person" : 
                                 service.chargePerSquareMeter > 0 ? "Per m²" : 

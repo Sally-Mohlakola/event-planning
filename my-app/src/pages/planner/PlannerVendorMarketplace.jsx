@@ -474,7 +474,7 @@ export default function PlannerVendorMarketplace({ event = null }) {
 						placeholder="Search vendors..."
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
-						className="search-input"
+						className="search-input-market"
 					/>
 				</section>
 				<section className="filter-container">
@@ -547,7 +547,7 @@ export default function PlannerVendorMarketplace({ event = null }) {
 							{events.map((event) => (
 								<li key={event.id} className="event-item">
 									<button
-										className="event-button"
+										className="event-button-market"
 										onClick={async () => {
 											if (modalPurpose === "chat") {
 												handleEventSelectionForChat(
