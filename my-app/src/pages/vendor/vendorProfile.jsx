@@ -1,636 +1,794 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAuth } from 'firebase/auth';
-import { Edit, Plus, X, Trash2, Phone, Mail, MapPin, Calendar, Award, Users, Star, CheckCircle } from "lucide-react";
+import { getAuth } from "firebase/auth";
+import VendorProfileHTML from "./VendorProfileHTML";
 import "./vendorProfile.css";
+import BASE_URL from "../../apiConfig";
+
+// Cache for API responses with TTL
+const API_CACHE = {
+	vendor: { data: null, timestamp: 0, ttl: 300000 }, // 5 minutes
+	services: { data: null, timestamp: 0, ttl: 300000 }, // 5 minutes
+	analytics: { data: null, timestamp: 0, ttl: 300000 }, // 5 minutes
+	bookings: { data: null, timestamp: 0, ttl: 120000 }, // 2 minutes
+	reviews: { data: null, timestamp: 0, ttl: 300000 }, // 5 minutes
+};
+
+// Global notification system that can be used across components
+export const NotificationSystem = {
+	listeners: new Set(),
+
+	showNotification: function (
+		title,
+		message,
+		type = "info",
+		duration = 5000
+	) {
+		const notification = {
+			id: Date.now() + Math.random(),
+			title,
+			message,
+			type,
+			timestamp: new Date(),
+			duration,
+			visible: true,
+		};
+
+		this.listeners.forEach((listener) => {
+			listener(notification);
+		});
+	},
+
+	subscribe: function (listener) {
+		this.listeners.add(listener);
+		return () => this.listeners.delete(listener);
+	},
+};
+
+// Request browser notification permission and override with custom ones
+const setupBrowserNotifications = () => {
+	if ("Notification" in window) {
+		Notification.requestPermission().then((permission) => {
+			if (permission === "granted") {
+				// Override the native Notification with our custom system
+				const originalNotification = window.Notification;
+
+				window.Notification = function (title, options = {}) {
+					// Use our custom notification system instead
+					NotificationSystem.showNotification(
+						title,
+						options.body || "",
+						"info",
+						options.requireInteraction ? 10000 : 5000
+					);
+
+					// Return a mock notification object to maintain compatibility
+					return {
+						close: () => {},
+						onclick: null,
+						onclose: null,
+						onerror: null,
+						onshow: null,
+					};
+				};
+
+				// Copy static properties
+				window.Notification.permission =
+					originalNotification.permission;
+				window.Notification.requestPermission =
+					originalNotification.requestPermission;
+				window.Notification.maxActions =
+					originalNotification.maxActions;
+			}
+		});
+	}
+};
 
 const VendorProfile = () => {
-  const navigate = useNavigate();
-  const [vendor, setVendor] = useState(null);
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [imageVersion, setImageVersion] = useState(Date.now());
-  const [showServiceForm, setShowServiceForm] = useState(false);
-  const [editingService, setEditingService] = useState(null);
-  const [deleting, setDeleting] = useState(null);
-  const [formData, setFormData] = useState({
-    serviceName: "",
-    cost: "",
-    chargeByHour: "",
-    chargePerPerson: "",
-    chargePerSquareMeter: "",
-    extraNotes: "",
-  });
-  const [formErrors, setFormErrors] = useState({});
+	const navigate = useNavigate();
+	const [vendor, setVendor] = useState(null);
+	const [services, setServices] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
+	const [imageVersion, setImageVersion] = useState(Date.now());
+	const [showServiceForm, setShowServiceForm] = useState(false);
+	const [editingService, setEditingService] = useState(null);
+	const [deleting, setDeleting] = useState(null);
+	const [analytics, setAnalytics] = useState(null);
+	const [vendorBookings, setVendorBookings] = useState([]);
+	const [vendorReviews, setVendorReviews] = useState([]);
+	const [popupNotifications, setPopupNotifications] = useState([]);
+	const [formData, setFormData] = useState({
+		serviceName: "",
+		cost: "",
+		chargeByHour: "",
+		chargePerPerson: "",
+		chargePerSquareMeter: "",
+		extraNotes: "",
+	});
+	const [formErrors, setFormErrors] = useState({});
 
-  const navProfileEdit = useCallback(() => navigate("/vendor/vendor-edit-profile"), [navigate]);
+	const navProfileEdit = useCallback(
+		() => navigate("/vendor/vendor-edit-profile"),
+		[navigate]
+	);
 
-  // Validation function
-  const validateForm = () => {
-    const errors = {};
+	// Enhanced caching function with stale-while-revalidate pattern
+	const fetchWithCache = useCallback(async (cacheKey, url, options = {}) => {
+		const now = Date.now();
+		const cache = API_CACHE[cacheKey];
 
-    // Service Name Validation - Must contain at least one letter
-    if (!formData.serviceName.trim()) {
-      errors.serviceName = "Service name is required";
-    } else if (formData.serviceName.length > 100) {
-      errors.serviceName = "Service name must be less than 100 characters";
-    } else if (!/[a-zA-Z]/.test(formData.serviceName)) {
-      errors.serviceName = "Service name must contain at least one letter";
-    } else if (/^\d+$/.test(formData.serviceName.trim())) {
-      errors.serviceName = "Service name cannot be only numbers";
-    }
+		// Return cached data if it's still fresh (within TTL)
+		if (cache.data && now - cache.timestamp < cache.ttl) {
+			return { data: cache.data, fromCache: true };
+		}
 
-    if (!formData.cost) {
-      errors.cost = "Base cost is required";
-    } else if (isNaN(formData.cost) || parseFloat(formData.cost) < 0) {
-      errors.cost = "Base cost must be a valid positive number";
-    } else if (parseFloat(formData.cost) > 1000000) {
-      errors.cost = "Base cost is too high";
-    }
+		// If data is stale but exists, return it immediately but refresh in background
+		if (cache.data && now - cache.timestamp < cache.ttl * 2) {
+			// Refresh in background
+			fetch(url, options)
+				.then((response) => {
+					if (response.ok) return response.json();
+					throw new Error(`Failed to fetch ${cacheKey}`);
+				})
+				.then((data) => {
+					API_CACHE[cacheKey] = {
+						data,
+						timestamp: Date.now(),
+						ttl: cache.ttl,
+					};
+				})
+				.catch((error) => {
+					console.warn(
+						`Background refresh failed for ${cacheKey}:`,
+						error
+					);
+				});
 
-    // Validate optional numeric fields
-    const numericFields = [
-      { field: "chargeByHour", name: "Charge by hour" },
-      { field: "chargePerPerson", name: "Charge per person" },
-      { field: "chargePerSquareMeter", name: "Charge per square meter" }
-    ];
+			return { data: cache.data, fromCache: true };
+		}
 
-    numericFields.forEach(({ field, name }) => {
-      if (formData[field] && (isNaN(formData[field]) || parseFloat(formData[field]) < 0)) {
-        errors[field] = `${name} must be a valid positive number`;
-      } else if (formData[field] && parseFloat(formData[field]) > 1000000) {
-        errors[field] = `${name} is too high`;
-      }
-    });
+		// Fetch fresh data
+		try {
+			const response = await fetch(url, options);
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch ${cacheKey}: ${response.statusText}`
+				);
+			}
+			const data = await response.json();
 
-    if (formData.extraNotes.length > 500) {
-      errors.extraNotes = "Extra notes must be less than 500 characters";
-    }
+			// Update cache
+			API_CACHE[cacheKey] = {
+				data,
+				timestamp: Date.now(),
+				ttl: cache.ttl,
+			};
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+			return { data, fromCache: false };
+		} catch (error) {
+			// If we have any cached data, return it as fallback
+			if (cache.data) {
+				return { data: cache.data, fromCache: true };
+			}
 
-  const fetchVendor = useCallback(async () => {
-    const auth = getAuth();
-    if (!auth.currentUser) {
-      setError("User not authenticated");
-      setLoading(false);
-      return;
-    }
-    try {
-      const auth = getAuth();
-      let user = auth.currentUser;
-      while (!user) {
-      		await new Promise((res) => setTimeout(res, 50)); // wait 50ms
-      	user = auth.currentUser;
-    	}
-      const token = await user.getIdToken();
-      const res = await fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(`Failed to fetch vendor profile: ${res.statusText}`);
-      const data = await res.json();
-      setVendor(data);
-      setImageVersion(Date.now());
-    } catch (err) {
-      setError(err.message);
-      console.error("Failed to fetch vendor profile:", err);
-    }
-  }, []);
+			throw error;
+		}
+	}, []);
 
-  const fetchServices = useCallback(async () => {
-    const auth = getAuth();
-    if (!auth.currentUser) {
-      setError("User not authenticated");
-      return;
-    }
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const vendorId = auth.currentUser.uid;
-      const res = await fetch(
-        `https://us-central1-planit-sdp.cloudfunctions.net/api/vendors/${vendorId}/services`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!res.ok) throw new Error(`Failed to fetch services: ${res.statusText}`);
-      const data = await res.json();
-      setServices(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-      console.error("Failed to fetch services:", err);
-    }
-  }, []);
+	// Popup Notification System
+	const showPopupNotification = useCallback(
+		(title, message, type = "info", duration = 5000) => {
+			const notification = {
+				id: Date.now() + Math.random(),
+				title,
+				message,
+				type,
+				timestamp: new Date(),
+				duration,
+				visible: true,
+			};
 
-  const handleSaveService = useCallback(async () => {
-    if (!validateForm()) {
-      return;
-    }
+			setPopupNotifications((prev) => [
+				notification,
+				...prev.slice(0, 4),
+			]); // Keep max 5 notifications
 
-    const auth = getAuth();
-    if (!auth.currentUser) {
-      setError("User not authenticated");
-      return;
-    }
+			// Auto remove after duration
+			setTimeout(() => {
+				setPopupNotifications((prev) =>
+					prev.map((n) =>
+						n.id === notification.id ? { ...n, visible: false } : n
+					)
+				);
 
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const vendorId = auth.currentUser.uid;
-      const response = await fetch(
-        `https://us-central1-planit-sdp.cloudfunctions.net/api/vendors/${vendorId}/services`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(
-            editingService ? { ...formData, serviceId: editingService.id } : formData
-          ),
-        }
-      );
+				// Remove from state after fade out
+				setTimeout(() => {
+					setPopupNotifications((prev) =>
+						prev.filter((n) => n.id !== notification.id)
+					);
+				}, 500);
+			}, duration);
+		},
+		[]
+	);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (editingService) {
-          setServices((prev) =>
-            prev.map((s) => (s.id === editingService.id ? { ...s, ...formData } : s))
-          );
-        } else {
-          setServices((prev) => [...prev, { id: data.serviceId, ...formData }]);
-        }
+	const removePopupNotification = useCallback((id) => {
+		setPopupNotifications((prev) =>
+			prev.map((n) => (n.id === id ? { ...n, visible: false } : n))
+		);
 
-        setShowServiceForm(false);
-        setEditingService(null);
-        setFormData({
-          serviceName: "",
-          cost: "",
-          chargeByHour: "",
-          chargePerPerson: "",
-          chargePerSquareMeter: "",
-          extraNotes: "",
-        });
-        setFormErrors({});
-        setError("");
-      } else {
-        const errorData = await response.json();
-        setError(`Failed to save service: ${errorData.error || response.statusText}`);
-      }
-    } catch (error) {
-      setError("Error saving service");
-      console.error("Error saving service:", error);
-    }
-  }, [editingService, formData]);
+		// Remove from state after fade out
+		setTimeout(() => {
+			setPopupNotifications((prev) => prev.filter((n) => n.id !== id));
+		}, 500);
+	}, []);
 
-  const handleEditService = useCallback((service) => {
-    setEditingService(service);
-    setFormData({
-      serviceName: service.serviceName || "",
-      cost: service.cost || "",
-      chargeByHour: service.chargeByHour || "",
-      chargePerPerson: service.chargePerPerson || "",
-      chargePerSquareMeter: service.chargePerSquareMeter || "",
-      extraNotes: service.extraNotes || "",
-    });
-    setFormErrors({});
-    setShowServiceForm(true);
-    setError("");
-  }, []);
+	// Subscribe to global notification system
+	useEffect(() => {
+		const unsubscribe = NotificationSystem.subscribe((notification) => {
+			showPopupNotification(
+				notification.title,
+				notification.message,
+				notification.type,
+				notification.duration
+			);
+		});
 
-  const handleDeleteService = useCallback(async (serviceId) => {
-    const auth = getAuth();
-    if (!auth.currentUser) {
-      setError("User not authenticated");
-      console.error("Delete failed: User not authenticated");
-      return;
-    }
-    if (!serviceId) {
-      setError("Cannot delete service: Missing service ID");
-      console.error("Delete failed: serviceId not provided");
-      return;
-    }
-    if (!confirm("Are you sure you want to delete this service?")) {
-      return;
-    }
+		return unsubscribe;
+	}, [showPopupNotification]);
 
-    setDeleting(serviceId);
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const vendorId = auth.currentUser.uid;
-      const response = await fetch(
-        `https://us-central1-planit-sdp.cloudfunctions.net/api/vendors/${vendorId}/services/${serviceId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+	// Validation function
+	const validateForm = () => {
+		const errors = {};
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Delete API error:", errorData);
-        let errorMessage = errorData.error || `Failed to delete service (Status: ${response.status})`;
-        if (errorData.details && errorData.details.includes("not defined")) {
-          errorMessage = "Server error: Firestore configuration issue. Contact support.";
-        } else if (errorData.error.includes("Permission denied")) {
-          errorMessage = "Permission denied: You are not authorized to delete this service.";
-        }
-        throw new Error(errorMessage);
-      }
+		// Service Name Validation - Must contain at least one letter
+		if (!formData.serviceName.trim()) {
+			errors.serviceName = "Service name is required";
+		} else if (formData.serviceName.length > 100) {
+			errors.serviceName =
+				"Service name must be less than 100 characters";
+		} else if (!/[a-zA-Z]/.test(formData.serviceName)) {
+			errors.serviceName =
+				"Service name must contain at least one letter";
+		} else if (/^\d+$/.test(formData.serviceName.trim())) {
+			errors.serviceName = "Service name cannot be only numbers";
+		}
 
-      setServices((prev) => prev.filter((s) => s.id !== serviceId));
-      setError("");
-      await fetchServices();
-    } catch (error) {
-      setError(`Failed to delete service: ${error.message}`);
-      console.error("Error deleting service:", error);
-    } finally {
-      setDeleting(null);
-    }
-  }, [fetchServices]);
+		if (!formData.cost) {
+			errors.cost = "Base cost is required";
+		} else if (isNaN(formData.cost) || parseFloat(formData.cost) < 0) {
+			errors.cost = "Base cost must be a valid positive number";
+		} else if (parseFloat(formData.cost) > 1000000) {
+			errors.cost = "Base cost is too high";
+		}
 
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    
-    // Clear error for this field when user starts typing
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
-    }
-    
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  }, [formErrors]);
+		// Validate optional numeric fields
+		const numericFields = [
+			{ field: "chargeByHour", name: "Charge by hour" },
+			{ field: "chargePerPerson", name: "Charge per person" },
+			{ field: "chargePerSquareMeter", name: "Charge per square meter" },
+		];
 
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        setError("User not authenticated");
-        setLoading(false);
-        return;
-      }
-      await Promise.all([fetchVendor(), fetchServices()]);
-      setLoading(false);
-    });
+		numericFields.forEach(({ field, name }) => {
+			if (
+				formData[field] &&
+				(isNaN(formData[field]) || parseFloat(formData[field]) < 0)
+			) {
+				errors[field] = `${name} must be a valid positive number`;
+			} else if (
+				formData[field] &&
+				parseFloat(formData[field]) > 1000000
+			) {
+				errors[field] = `${name} is too high`;
+			}
+		});
 
-    return () => unsubscribe();
-  }, [fetchVendor, fetchServices]);
+		if (formData.extraNotes.length > 500) {
+			errors.extraNotes = "Extra notes must be less than 500 characters";
+		}
 
-  useEffect(() => {
-    const auth = getAuth();
-    const handleFocus = () => {
-      if (auth.currentUser) {
-        Promise.all([fetchVendor(), fetchServices()]);
-      }
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [fetchVendor, fetchServices]);
+		setFormErrors(errors);
+		return Object.keys(errors).length === 0;
+	};
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-        <p>Loading your profile and services...</p>
-      </div>
-    );
-  }
+	const fetchVendor = useCallback(async () => {
+		const auth = getAuth();
+		if (!auth.currentUser) {
+			setError("User not authenticated");
+			setLoading(false);
+			return;
+		}
+		try {
+			const auth = getAuth();
+			let user = auth.currentUser;
+			while (!user) {
+				await new Promise((res) => setTimeout(res, 50)); // wait 50ms
+				user = auth.currentUser;
+			}
+			const token = await user.getIdToken();
 
-  if (error && !showServiceForm) {
-    return <div className="error">{error}</div>;
-  }
+			const result = await fetchWithCache(
+				"vendor",
+				`${BASE_URL}/vendor/me`,
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				}
+			);
 
-  if (!vendor) {
-    return <p id="no-profile-found">No vendor profile found.</p>;
-  }
+			setVendor(result.data);
+			if (!result.fromCache) {
+				setImageVersion(Date.now());
+				showPopupNotification(
+					"Profile Loaded",
+					"Your vendor profile has been successfully loaded",
+					"success"
+				);
+			}
+		} catch (err) {
+			setError(err.message);
+			showPopupNotification(
+				"Profile Error",
+				"Failed to load your vendor profile",
+				"error"
+			);
+			console.error("Failed to fetch vendor profile:", err);
+		}
+	}, [fetchWithCache, showPopupNotification]);
 
-  return (
-    <div className="vendor-profile">
-      {/* Header */}
-      <div className="profile-header">
-        <div>
-          <h1 className="profile-title">Vendor Profile</h1>
-          <p className="profile-subtitle">Manage your business profile and services</p>
-        </div>
-        <div className="profile-actions">
-          <button className="btn-primary" onClick={navProfileEdit}>
-            <Edit size={16} />
-            Edit Profile
-          </button>
-        </div>
-      </div>
+	const fetchServices = useCallback(async () => {
+		const auth = getAuth();
+		if (!auth.currentUser) {
+			setError("User not authenticated");
+			return;
+		}
+		try {
+			const token = await auth.currentUser.getIdToken();
+			const vendorId = auth.currentUser.uid;
 
-      {/* Summary Cards */}
-      <div className="summary-grid">
-        <div className="summary-card blue">
-          <div className="summary-card-header">
-            <div className="summary-icon blue">
-              <Calendar size={24} />
-            </div>
-            <span className="summary-change">Active</span>
-          </div>
-          <div>
-            <h3 className="summary-label">Bookings</h3>
-            <p className="summary-value">{vendor.bookings || 0}</p>
-            <p className="summary-subtext">Total bookings</p>
-          </div>
-        </div>
+			const result = await fetchWithCache(
+				"services",
+				`${BASE_URL}/vendors/${vendorId}/services`,
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				}
+			);
 
-        <div className="summary-card green">
-          <div className="summary-card-header">
-            <div className="summary-icon green">
-              <Award size={24} />
-            </div>
-            <span className="summary-change">{services.length} active</span>
-          </div>
-          <div>
-            <h3 className="summary-label">Services</h3>
-            <p className="summary-value">{services.length || 0}</p>
-            <p className="summary-subtext">Total services offered</p>
-          </div>
-        </div>
+			const servicesData = Array.isArray(result.data) ? result.data : [];
+			setServices(servicesData);
 
-        <div className="summary-card yellow">
-          <div className="summary-card-header">
-            <div className="summary-icon yellow">
-              <Users size={24} />
-            </div>
-            <span className="summary-change">Reviews</span>
-          </div>
-          <div>
-            <h3 className="summary-label">Reviews</h3>
-            <p className="summary-value">{vendor.totalReviews || 0}</p>
-            <p className="summary-subtext">Customer reviews</p>
-          </div>
-        </div>
+			if (!result.fromCache && servicesData.length > 0) {
+				showPopupNotification(
+					"Services Updated",
+					`${servicesData.length} services loaded successfully`,
+					"success"
+				);
+			}
+		} catch (err) {
+			setError(err.message);
+			showPopupNotification(
+				"Services Error",
+				"Failed to load your services",
+				"error"
+			);
+			console.error("Failed to fetch services:", err);
+		}
+	}, [fetchWithCache, showPopupNotification]);
 
-        <div className="summary-card purple">
-          <div className="summary-card-header">
-            <div className="summary-icon purple">
-              <Star size={24} />
-            </div>
-            <span className="summary-change">Rating</span>
-          </div>
-          <div>
-            <h3 className="summary-label">Avg Rating</h3>
-            <p className="summary-value">{vendor.avgRating || 0}★</p>
-            <p className="summary-subtext">Overall rating</p>
-          </div>
-        </div>
-      </div>
+	const fetchAnalytics = useCallback(async () => {
+		const auth = getAuth();
+		if (!auth.currentUser) {
+			setError("User not authenticated");
+			return;
+		}
+		try {
+			const token = await auth.currentUser.getIdToken();
+			const vendorId = auth.currentUser.uid;
 
-      {/* Main Grid */}
-      <div className="profile-grid">
-        {/* Business Information */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <h3>Business Information</h3>
-          </div>
-          <div className="card-content">
-            <div className="business-info">
-              <div className="business-name-section">
-                <h2>{vendor.businessName || "Unnamed Business"}</h2>
-                <span className="category-badge">{vendor.category || "Uncategorized"}</span>
-              </div>
-              
-              <div className="profile-image-container">
-                <div className="profile-image-wrapper">
-                  <img
-                    src={
-                      vendor.profilePic
-                        ? `${vendor.profilePic}?v=${imageVersion}`
-                        : "/default-avatar.png"
-                    }
-                    alt="Vendor Profile"
-                    className="profile-image-large"
-                  />
-                  <div className="profile-image-hover"></div>
-                </div>
-                <div className="verified-badge">
-                  <CheckCircle size={16} />
-                  <span>Verified Vendor</span>
-                </div>
-              </div>
-            </div>
+			const result = await fetchWithCache(
+				"analytics",
+				`${BASE_URL}/analytics/${vendorId}`,
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				}
+			);
 
-            <div className="description-section">
-              <h4>Description</h4>
-              <p>{vendor.description || "No description provided."}</p>
-            </div>
-          </div>
-        </div>
+			setAnalytics(result.data);
+		} catch (err) {
+			console.error("Failed to fetch analytics:", err);
+		}
+	}, [fetchWithCache]);
 
-        {/* Contact Information */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <h3>Contact Information</h3>
-          </div>
-          <div className="card-content">
-            <div className="contact-item">
-              <MapPin className="contact-icon" size={20} />
-              <div className="contact-details">
-                <span className="contact-label">Address</span>
-                <span className="contact-value">{vendor.address || "No address provided"}</span>
-              </div>
-            </div>
-            
-            <div className="contact-item">
-              <Phone className="contact-icon" size={20} />
-              <div className="contact-details">
-                <span className="contact-label">Phone</span>
-                <span className="contact-value">{vendor.phone || "No phone provided"}</span>
-              </div>
-            </div>
-            
-            <div className="contact-item">
-              <Mail className="contact-icon" size={20} />
-              <div className="contact-details">
-                <span className="contact-label">Email</span>
-                <span className="contact-value">{vendor.email || "No email provided"}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+	const fetchVendorBookings = useCallback(async () => {
+		const auth = getAuth();
+		if (!auth.currentUser) {
+			return;
+		}
+		try {
+			const token = await auth.currentUser.getIdToken();
 
-      {/* Services Section */}
-      <div className="dashboard-card">
-        <div className="card-header">
-          <h3>Services</h3>
-          <button onClick={() => setShowServiceForm(true)} className="btn-primary">
-            <Plus size={16} /> Add Service
-          </button>
-        </div>
-        <div className="card-content">
-          {services.length === 0 && <p>No services added yet.</p>}
-          {services.map((service, index) => (
-            <div key={service.id || `temp-${index}`} className="service-item">
-              <div>
-                <h4>{service.serviceName || "Unnamed Service"}</h4>
-                <p>Cost: R{service.cost || "N/A"}</p>
-                {service.chargeByHour && <p>Per Hour: R{service.chargeByHour}</p>}
-                {service.chargePerPerson && <p>Per Person: R{service.chargePerPerson}</p>}
-                {service.chargePerSquareMeter && <p>Per m²: R{service.chargePerSquareMeter}</p>}
-                {service.extraNotes && <p className="service-notes">Notes: {service.extraNotes}</p>}
-                {!service.id && (
-                  <p className="error-text">Warning: This service is missing an ID and cannot be edited or deleted.</p>
-                )}
-              </div>
-              <div className="service-actions">
-                <button
-                  className="btn-secondary"
-                  onClick={() => handleEditService(service)}
-                  disabled={!service.id}
-                  title={service.id ? "Edit service" : "Cannot edit: Missing service ID"}
-                >
-                  <Edit size={16} /> Edit
-                </button>
-                <button
-                  className="btn-delete"
-                  onClick={() => handleDeleteService(service.id)}
-                  disabled={deleting === service.id || !service.id}
-                  title={service.id ? "Delete service" : "Cannot delete: Missing service ID"}
-                >
-                  <Trash2 size={16} /> {deleting === service.id ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+			const result = await fetchWithCache(
+				"bookings",
+				`${BASE_URL}/vendor/bookings`,
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				}
+			);
 
-      {/* Add/Edit Service Modal */}
-      {showServiceForm && (
-        <div className="modal" onClick={() => setShowServiceForm(false)}>
-          <div className="modal-content service-form" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editingService ? "Edit Service" : "Add New Service"}</h3>
-              <button onClick={() => setShowServiceForm(false)} className="close-btn">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              {error && <div className="error-message">{error}</div>}
-              
-              <div className="form-columns">
-                {/* Left Column */}
-                <div className="form-column">
-                  <div className="form-field">
-                    <label className="form-label">Service Name *</label>
-                    <input
-                      type="text"
-                      name="serviceName"
-                      placeholder="e.g., Catering, Photography"
-                      value={formData.serviceName}
-                      onChange={handleChange}
-                      className={formErrors.serviceName ? 'error' : ''}
-                      maxLength={100}
-                    />
-                    {formErrors.serviceName && <span className="field-error">{formErrors.serviceName}</span>}
-                  </div>
-                  
-                  <div className="form-field">
-                    <label className="form-label">Base Cost (R) *</label>
-                    <input
-                      type="number"
-                      name="cost"
-                      placeholder="e.g., 10000"
-                      value={formData.cost}
-                      onChange={handleChange}
-                      className={formErrors.cost ? 'error' : ''}
-                      min="0"
-                      max="1000000"
-                      step="0.01"
-                    />
-                    {formErrors.cost && <span className="field-error">{formErrors.cost}</span>}
-                  </div>
-                  
-                  <div className="form-field">
-                    <label className="form-label">Per Hour (R)</label>
-                    <input
-                      type="number"
-                      name="chargeByHour"
-                      placeholder="e.g., 1000"
-                      value={formData.chargeByHour}
-                      onChange={handleChange}
-                      className={formErrors.chargeByHour ? 'error' : ''}
-                      min="0"
-                      max="1000000"
-                      step="0.01"
-                    />
-                    {formErrors.chargeByHour && <span className="field-error">{formErrors.chargeByHour}</span>}
-                  </div>
-                </div>
-                
-                {/* Right Column */}
-                <div className="form-column">
-                  <div className="form-field">
-                    <label className="form-label">Per Person (R)</label>
-                    <input
-                      type="number"
-                      name="chargePerPerson"
-                      placeholder="e.g., 100"
-                      value={formData.chargePerPerson}
-                      onChange={handleChange}
-                      className={formErrors.chargePerPerson ? 'error' : ''}
-                      min="0"
-                      max="1000000"
-                      step="0.01"
-                    />
-                    {formErrors.chargePerPerson && <span className="field-error">{formErrors.chargePerPerson}</span>}
-                  </div>
-                  
-                  <div className="form-field">
-                    <label className="form-label">Per Square Meter (R)</label>
-                    <input
-                      type="number"
-                      name="chargePerSquareMeter"
-                      placeholder="e.g., 250"
-                      value={formData.chargePerSquareMeter}
-                      onChange={handleChange}
-                      className={formErrors.chargePerSquareMeter ? 'error' : ''}
-                      min="0"
-                      max="1000000"
-                      step="0.01"
-                    />
-                    {formErrors.chargePerSquareMeter && <span className="field-error">{formErrors.chargePerSquareMeter}</span>}
-                  </div>
-                  
-                  <div className="form-field">
-                    <label className="form-label">Notes</label>
-                    <textarea
-                      name="extraNotes"
-                      placeholder="e.g., We provide decor services"
-                      value={formData.extraNotes}
-                      onChange={handleChange}
-                      className={formErrors.extraNotes ? 'error' : ''}
-                      rows="3"
-                      maxLength={500}
-                    />
-                    {formErrors.extraNotes && <span className="field-error">{formErrors.extraNotes}</span>}
-                    <div className="character-count">
-                      {formData.extraNotes.length}/500
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn-primary" onClick={handleSaveService}>
-                {editingService ? "Update Service" : "Add Service"}
-              </button>
-              <button className="btn-secondary" onClick={() => setShowServiceForm(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+			setVendorBookings(result.data.bookings || []);
+		} catch (err) {
+			console.error("Failed to fetch bookings:", err);
+		}
+	}, [fetchWithCache]);
+
+	const fetchVendorReviews = useCallback(async () => {
+		const auth = getAuth();
+		if (!auth.currentUser) {
+			return;
+		}
+		try {
+			const token = await auth.currentUser.getIdToken();
+			const vendorId = auth.currentUser.uid;
+
+			const result = await fetchWithCache(
+				"reviews",
+				`${BASE_URL}/vendors/${vendorId}/reviews`,
+				{
+					headers: { Authorization: `Bearer ${token}` },
+				}
+			);
+
+			setVendorReviews(result.data.reviews || []);
+		} catch (err) {
+			console.error("Failed to fetch reviews:", err);
+		}
+	}, [fetchWithCache]);
+
+	const handleSaveService = useCallback(async () => {
+		if (!validateForm()) {
+			showPopupNotification(
+				"Validation Error",
+				"Please fix the errors in the form",
+				"warning"
+			);
+			return;
+		}
+
+		const auth = getAuth();
+		if (!auth.currentUser) {
+			setError("User not authenticated");
+			return;
+		}
+
+		try {
+			const token = await auth.currentUser.getIdToken();
+			const vendorId = auth.currentUser.uid;
+			const response = await fetch(
+				`${BASE_URL}/vendors/${vendorId}/services`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify(
+						editingService
+							? { ...formData, serviceId: editingService.id }
+							: formData
+					),
+				}
+			);
+
+			if (response.ok) {
+				const data = await response.json();
+				if (editingService) {
+					setServices((prev) =>
+						prev.map((s) =>
+							s.id === editingService.id
+								? { ...s, ...formData }
+								: s
+						)
+					);
+					showPopupNotification(
+						"Service Updated",
+						`${formData.serviceName} has been updated successfully`,
+						"success"
+					);
+				} else {
+					setServices((prev) => [
+						...prev,
+						{ id: data.serviceId, ...formData },
+					]);
+					showPopupNotification(
+						"Service Added",
+						`${formData.serviceName} has been added successfully`,
+						"success"
+					);
+				}
+
+				// Clear cache for services to force refresh next time
+				API_CACHE.services.data = null;
+
+				setShowServiceForm(false);
+				setEditingService(null);
+				setFormData({
+					serviceName: "",
+					cost: "",
+					chargeByHour: "",
+					chargePerPerson: "",
+					chargePerSquareMeter: "",
+					extraNotes: "",
+				});
+				setFormErrors({});
+				setError("");
+			} else {
+				const errorData = await response.json();
+				const errorMsg = `Failed to save service: ${
+					errorData.error || response.statusText
+				}`;
+				setError(errorMsg);
+				showPopupNotification("Save Failed", errorMsg, "error");
+			}
+		} catch (error) {
+			const errorMsg = "Error saving service";
+			setError(errorMsg);
+			showPopupNotification("Save Error", errorMsg, "error");
+			console.error("Error saving service:", error);
+		}
+	}, [editingService, formData, showPopupNotification]);
+
+	const handleEditService = useCallback((service) => {
+		setEditingService(service);
+		setFormData({
+			serviceName: service.serviceName || "",
+			cost: service.cost || "",
+			chargeByHour: service.chargeByHour || "",
+			chargePerPerson: service.chargePerPerson || "",
+			chargePerSquareMeter: service.chargePerSquareMeter || "",
+			extraNotes: service.extraNotes || "",
+		});
+		setFormErrors({});
+		setShowServiceForm(true);
+		setError("");
+	}, []);
+
+	const handleDeleteService = useCallback(
+		async (serviceId) => {
+			const auth = getAuth();
+			if (!auth.currentUser) {
+				setError("User not authenticated");
+				console.error("Delete failed: User not authenticated");
+				return;
+			}
+			if (!serviceId) {
+				setError("Cannot delete service: Missing service ID");
+				console.error("Delete failed: serviceId not provided");
+				return;
+			}
+			if (!confirm("Are you sure you want to delete this service?")) {
+				return;
+			}
+
+			setDeleting(serviceId);
+			try {
+				const token = await auth.currentUser.getIdToken();
+				const vendorId = auth.currentUser.uid;
+				const response = await fetch(
+					`${BASE_URL}/vendors/${vendorId}/services/${serviceId}`,
+					{
+						method: "DELETE",
+						headers: {
+							Authorization: `Bearer ${token}`,
+							"Content-Type": "application/json",
+						},
+					}
+				);
+
+				if (!response.ok) {
+					const errorData = await response.json();
+					console.error("Delete API error:", errorData);
+					let errorMessage =
+						errorData.error ||
+						`Failed to delete service (Status: ${response.status})`;
+					if (
+						errorData.details &&
+						errorData.details.includes("not defined")
+					) {
+						errorMessage =
+							"Server error: Firestore configuration issue. Contact support.";
+					} else if (errorData.error.includes("Permission denied")) {
+						errorMessage =
+							"Permission denied: You are not authorized to delete this service.";
+					}
+					throw new Error(errorMessage);
+				}
+
+				setServices((prev) => prev.filter((s) => s.id !== serviceId));
+				setError("");
+
+				// Clear cache for services to force refresh next time
+				API_CACHE.services.data = null;
+
+				showPopupNotification(
+					"Service Deleted",
+					"Service has been deleted successfully",
+					"success"
+				);
+
+				await fetchServices();
+			} catch (error) {
+				const errorMsg = `Failed to delete service: ${error.message}`;
+				setError(errorMsg);
+				showPopupNotification("Delete Failed", errorMsg, "error");
+				console.error("Error deleting service:", error);
+			} finally {
+				setDeleting(null);
+			}
+		},
+		[fetchServices, showPopupNotification]
+	);
+
+	const handleChange = useCallback(
+		(e) => {
+			const { name, value } = e.target;
+
+			// Clear error for this field when user starts typing
+			if (formErrors[name]) {
+				setFormErrors((prev) => ({ ...prev, [name]: "" }));
+			}
+
+			setFormData((prev) => ({ ...prev, [name]: value }));
+		},
+		[formErrors]
+	);
+
+	// Calculate real statistics from APIs
+	const calculateStats = useCallback(() => {
+		const totalBookings = vendorBookings.length;
+
+		// Calculate confirmed bookings (accepted or confirmed status)
+		const confirmedBookings = vendorBookings.filter(
+			(booking) =>
+				booking.status === "confirmed" || booking.status === "accepted"
+		).length;
+
+		// Get total reviews count from analytics or vendorReviews
+		let totalReviews = 0;
+		if (analytics?.reviews?.length > 0) {
+			totalReviews = analytics.reviews.length;
+		} else if (vendorReviews.length > 0) {
+			totalReviews = vendorReviews.length;
+		}
+
+		// Calculate average rating from analytics or reviews
+		let avgRating = 0;
+		if (analytics?.reviews?.length > 0) {
+			const totalRating = analytics.reviews.reduce(
+				(sum, review) => sum + (review.rating || 0),
+				0
+			);
+			avgRating = totalRating / analytics.reviews.length;
+		} else if (vendorReviews.length > 0) {
+			const totalRating = vendorReviews.reduce(
+				(sum, review) => sum + (review.rating || 0),
+				0
+			);
+			avgRating = totalRating / vendorReviews.length;
+		}
+
+		return {
+			totalBookings,
+			confirmedBookings,
+			totalReviews,
+			avgRating: avgRating.toFixed(1),
+			totalServices: services.length,
+		};
+	}, [vendorBookings, vendorReviews, analytics, services]);
+
+	// Setup browser notification override on component mount
+	useEffect(() => {
+		setupBrowserNotifications();
+	}, []);
+
+	useEffect(() => {
+		const auth = getAuth();
+		const unsubscribe = auth.onAuthStateChanged(async (user) => {
+			if (!user) {
+				setError("User not authenticated");
+				setLoading(false);
+				return;
+			}
+			await Promise.all([
+				fetchVendor(),
+				fetchServices(),
+				fetchAnalytics(),
+				fetchVendorBookings(),
+				fetchVendorReviews(),
+			]);
+			setLoading(false);
+		});
+
+		return () => unsubscribe();
+	}, [
+		fetchVendor,
+		fetchServices,
+		fetchAnalytics,
+		fetchVendorBookings,
+		fetchVendorReviews,
+	]);
+
+	useEffect(() => {
+		const auth = getAuth();
+		const handleFocus = () => {
+			if (auth.currentUser) {
+				Promise.all([
+					fetchVendor(),
+					fetchServices(),
+					fetchAnalytics(),
+					fetchVendorBookings(),
+					fetchVendorReviews(),
+				]);
+			}
+		};
+		window.addEventListener("focus", handleFocus);
+		return () => window.removeEventListener("focus", handleFocus);
+	}, [
+		fetchVendor,
+		fetchServices,
+		fetchAnalytics,
+		fetchVendorBookings,
+		fetchVendorReviews,
+	]);
+
+	if (loading) {
+		return (
+			<div className="loading-screen">
+				<div className="spinner"></div>
+				<p>Loading your profile and services...</p>
+			</div>
+		);
+	}
+
+	if (error && !showServiceForm) {
+		return <div className="error">{error}</div>;
+	}
+
+	if (!vendor) {
+		return <p id="no-profile-found">No vendor profile found.</p>;
+	}
+
+	const stats = calculateStats();
+
+	return (
+		<VendorProfileHTML
+			// State props
+			vendor={vendor}
+			services={services}
+			loading={loading}
+			error={error}
+			imageVersion={imageVersion}
+			showServiceForm={showServiceForm}
+			editingService={editingService}
+			deleting={deleting}
+			formData={formData}
+			formErrors={formErrors}
+			stats={stats}
+			popupNotifications={popupNotifications}
+			// Function props
+			navProfileEdit={navProfileEdit}
+			setShowServiceForm={setShowServiceForm}
+			setEditingService={setEditingService}
+			setFormData={setFormData}
+			setFormErrors={setFormErrors}
+			setError={setError}
+			handleChange={handleChange}
+			handleSaveService={handleSaveService}
+			handleEditService={handleEditService}
+			handleDeleteService={handleDeleteService}
+			removePopupNotification={removePopupNotification}
+			showPopupNotification={showPopupNotification}
+		/>
+	);
 };
 
 export default VendorProfile;

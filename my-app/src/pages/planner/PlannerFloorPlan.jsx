@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import "./PlannerFloorPlan.css";
+import BASE_URL from "../../apiConfig";
 
 const TEMPLATES = [
 	{ id: "blank", name: "Blank", color: "#ffffff" },
@@ -162,18 +163,12 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 					return;
 				}
 				const token = await user.getIdToken(true);
-				console.log(
-					"Fetching events from https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events"
-				);
-				const res = await fetch(
-					`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`,
-							"Content-Type": "application/json",
-						},
-					}
-				);
+				const res = await fetch(`${BASE_URL}/planner/me/events`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+						"Content-Type": "application/json",
+					},
+				});
 				if (!res.ok) {
 					const text = await res.text();
 					console.error(
@@ -212,7 +207,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 				const token = user ? await user.getIdToken(true) : "";
 				console.log(`Fetching vendors for event ${selectedEventId}`);
 				const res = await fetch(
-					`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/${selectedEventId}/vendors`,
+					`${BASE_URL}/planner/${selectedEventId}/vendors`,
 					{
 						headers: {
 							Authorization: `Bearer ${token}`,

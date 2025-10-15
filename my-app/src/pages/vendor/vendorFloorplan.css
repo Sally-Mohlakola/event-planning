@@ -1,44 +1,133 @@
 /* ===== Vendor Floorplan Page ===== */
+
+/* ===== Tiles Grid with Scrollbar ===== */
+.tiles-grid.minimized {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  max-height: 70vh; /* Limit height to enable scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
+  padding-right: 0.5rem; /* Space for scrollbar */
+}
+
+/* Custom scrollbar styling */
+.tiles-grid.minimized::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tiles-grid.minimized::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.tiles-grid.minimized::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.tiles-grid.minimized::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar */
+.tiles-grid.minimized {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Ensure the page layout accommodates the scrollable area */
 .floorplan-page {
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1rem -0.75rem;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full viewport height */
+}
+
+/* Header section stays fixed at top */
+.floorplan-page header {
+  text-align: left;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+/* Controls row stays fixed */
+.controls-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0; /* Prevent controls from shrinking */
+}
+
+/* Tiles grid takes remaining space and scrolls */
+.tiles-grid.minimized {
+  flex: 1; /* Take remaining vertical space */
+  min-height: 0; /* Important for flex child scrolling */
+}
+
+.floorplan-page {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: -2rem -1rem; /* Reduced top padding from 1.5rem to 1rem */
   box-sizing: border-box;
   font-family: "Inter", sans-serif;
 }
 
-.floorplan-page .header-left {
-  text-align: left; /* Changed to left-align the header */
-  margin-bottom: 2rem;
+.floorplan-page header {
+  text-align: left;
+  margin-bottom: 1.5rem; /* Reduced from 2rem */
+  margin-top: 1rem; /* Pulls the header up */
 }
 
 .floorplan-page h1 {
-  font-size: 1.75rem;
+  font-size: 2rem;
   color: #111827;
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 8px; /* Reduced from 10px */
+  margin-top: -0.25rem; /* Pulls title up */
+  padding-top: 0; /* Remove padding-top, use negative margin instead */
 }
 
 .floorplan-page p {
   color: #6b7280;
-  margin-top: 0.25rem;
+  margin-top: 0; /* Remove the 0.25rem margin */
   font-size: 0.95rem;
-  padding-bottom: 20px;
+  padding-bottom: 0; /* Remove the 20px padding */
+  margin-bottom: 0; /* Ensure no bottom margin */
 }
 
-/* ===== Controls ===== */
-.controls {
+/* ===== Controls Row ===== */
+.controls-row {
   display: flex;
   justify-content: flex-start;
-  gap: 0.75rem;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
   width: 100%;
   box-sizing: border-box;
 }
 
+.left-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ===== Inputs and Dropdowns ===== */
 .search-input,
+.filter-dropdown,
 .sort-dropdown {
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
@@ -48,123 +137,190 @@
   min-width: 150px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   background-color: white;
-  color: #111827; /* Ensure input text is black */
+  color: #111827;
 }
 
 .search-input::placeholder {
-  color: #9ca3af; /* Optional: placeholder in lighter gray */
+  color: #9ca3af;
 }
 
 .search-input:focus,
+.filter-dropdown:focus,
 .sort-dropdown:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
-/* ===== Tiles Grid ===== */
-.tiles-grid {
+/* ===== Rotating Cube Animation ===== */
+.no-floorplans-alert {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.rotating-cube {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: rotateCube 8s infinite linear;
+  margin: 0 auto;
+}
+
+.cube-face {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  backface-visibility: visible;
+}
+
+.cube-front { transform: translateZ(40px); }
+.cube-back { transform: translateZ(-40px) rotateY(180deg); }
+.cube-right { transform: translateX(40px) rotateY(90deg); }
+.cube-left { transform: translateX(-40px) rotateY(-90deg); }
+.cube-top { transform: translateY(-40px) rotateX(90deg); }
+.cube-bottom { transform: translateY(40px) rotateX(-90deg); }
+
+@keyframes rotateCube {
+  0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
+  25% { transform: rotateX(90deg) rotateY(45deg) rotateZ(45deg); }
+  50% { transform: rotateX(180deg) rotateY(90deg) rotateZ(90deg); }
+  75% { transform: rotateX(270deg) rotateY(135deg) rotateZ(135deg); }
+  100% { transform: rotateX(360deg) rotateY(180deg) rotateZ(180deg); }
+}
+
+.no-floorplans-alert h3 {
+  color: #374151;
+  font-size: 1.25rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+.no-floorplans-alert p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* ===== Minimized Tiles Grid ===== */
+.tiles-grid.minimized {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 
-.client-tile {
+.client-tile.minimized {
   background: #fff;
-  border: 2px solid #2563eb;
-  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   padding: 1rem;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-height: 280px;
+  gap: 0.5rem;
+  min-height: auto;
+  position: relative;
 }
 
-.client-tile:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+.client-tile.minimized:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #2563eb;
 }
 
-.client-tile h3 {
-  margin: 0 0 0.25rem;
-  color: #111827;
-  font-size: 1.1rem;
-  font-weight: 500;
+.client-tile.minimized.has-floorplan {
+  border-left: 4px solid #10b981;
 }
 
-.client-tile p {
-  margin: 0;
-  color: #6b7280;
-  font-size: 0.9rem;
+.client-tile.minimized.no-floorplan {
+  border-left: 4px solid #6b7280;
 }
 
-/* ===== Floorplan Section ===== */
-.floorplan-section {
-  margin-top: 0.75rem;
-  width: 100%;
-  min-height: 180px;
+/* ===== Tile Header with Notification ===== */
+.tile-header {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: space-between;
-  flex-grow: 1;
-}
-
-.floorplan-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  justify-content: flex-start;
-}
-
-.floorplan-image {
+  align-items: flex-start;
   width: 100%;
-  max-height: 150px;
-  object-fit: contain;
-  border-radius: 0.5rem;
-  border: 2px solid #000000;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-sizing: border-box;
 }
 
-.floorplan-image:hover {
-  transform: scale(1.03);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.floorplan-label {
-  font-size: 0.85rem;
-  color: #2563eb;
+.tile-header h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 1rem;
   font-weight: 500;
-  border: 1px solid #93c5fd;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
+  flex: 1;
+  line-height: 1.4;
 }
 
-.no-floorplan {
-  text-align: center;
-  color: #9ca3af;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 100%;
-  padding-bottom: 0.5rem;
-  flex-grow: 1;
+.new-indicator {
+  position: relative;
+  margin-left: 0.5rem;
 }
 
-.no-results {
-  grid-column: 1 / -1;
-  text-align: center;
+.ping {
+  display: block;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: ping 1.5s ease-in-out infinite both;
+}
+
+@keyframes ping {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+}
+
+/* ===== Event Date ===== */
+.event-date {
   color: #6b7280;
-  font-size: 0.95rem;
-  padding: 1rem 0;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ===== Availability Tags ===== */
+.availability-tag {
+  margin-top: 0.25rem;
+}
+
+.tag {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.tag.available {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.tag.unavailable {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 /* ===== Modal Styling ===== */
@@ -190,8 +346,8 @@
 .modal-content {
   background: #fff;
   border-radius: 12px;
-  max-width: 700px;
-  width: 100%;
+  max-width: 90vw;
+  width: 800px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 1.5rem;
@@ -227,13 +383,23 @@
   color: #111827;
 }
 
-/* ===== Modal Floorplan Image ===== */
-.modal-floorplan {
+/* ===== Modal Body ===== */
+.modal-body {
+  width: 100%;
+}
+
+.event-info {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ===== Floorplan Display ===== */
+.floorplan-display {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 100%;
+  gap: 1rem;
 }
 
 .modal-floorplan-image {
@@ -241,18 +407,46 @@
   max-height: 60vh;
   object-fit: contain;
   border-radius: 0.5rem;
-  border: 2px solid #000000;
-  margin-bottom: 0.5rem;
+  border: 2px solid #e5e7eb;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
-.modal-floorplan a {
-  color: #2563eb;
-  text-decoration: underline;
-  font-weight: 500;
+.modal-floorplan-image:hover {
+  border-color: #2563eb;
 }
 
-.modal-floorplan a:hover {
-  color: #1d4ed8;
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.enlarge-btn {
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.enlarge-btn:hover {
+  background: #1d4ed8;
+}
+
+/* ===== No Floorplan Message ===== */
+.no-floorplan-message {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.no-floorplan-message .subtext {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
 }
 
 /* ===== Loading States ===== */
@@ -288,22 +482,72 @@
   100% { transform: rotate(360deg); }
 }
 
+/* ===== Error State ===== */
+.error {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #fecaca;
+  text-align: center;
+  margin: 2rem auto;
+  max-width: 400px;
+}
+
 /* ===== Responsive Adjustments ===== */
-@media (max-width: 640px) {
-  .controls {
+@media (max-width: 768px) {
+  .controls-row {
     flex-direction: column;
-    gap: 0.5rem;
+    align-items: stretch;
+    gap: 0.75rem;
   }
-
-  .client-tile h3 {
-    font-size: 1rem;
+  
+  .left-controls {
+    justify-content: stretch;
   }
+  
+  .search-input,
+  .filter-dropdown,
+  .sort-dropdown {
+    flex: 1;
+    min-width: auto;
+  }
+  
+  .rotating-cube {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .cube-face {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+  
+  .cube-front { transform: translateZ(30px); }
+  .cube-back { transform: translateZ(-30px) rotateY(180deg); }
+  .cube-right { transform: translateX(30px) rotateY(90deg); }
+  .cube-left { transform: translateX(-30px) rotateY(-90deg); }
+  .cube-top { transform: translateY(-30px) rotateX(90deg); }
+  .cube-bottom { transform: translateY(30px) rotateX(-90deg); }
+}
 
-  .client-tile p {
-    font-size: 0.8rem;
+@media (max-width: 640px) {
+  .tiles-grid.minimized {
+    grid-template-columns: 1fr;
   }
 
   .modal-content {
     padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .enlarge-btn {
+    width: 100%;
   }
 }
