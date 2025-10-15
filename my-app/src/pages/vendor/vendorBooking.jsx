@@ -17,7 +17,7 @@ import { auth } from "../../firebase";
 import { getAuth } from "firebase/auth";
 import "./vendorBooking.css";
 import ChatComponent from "../planner/ChatComponent.jsx";
-import BASE_URL from "../../../apiConfig";
+import BASE_URL from "../../apiConfig";
 
 // ---------- Format Date ----------
 function formatDate(date) {
