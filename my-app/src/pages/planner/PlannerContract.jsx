@@ -3,13 +3,10 @@ import React, {
 	useState,
 	useMemo,
 	useCallback,
-	useRef,
 } from "react";
 import {
 	Calendar,
-	User,
 	FileText,
-	Search,
 	X,
 	Edit3,
 	Download,
@@ -733,7 +730,6 @@ const PlannerContract = () => {
 					</section>
 				</section>
 				<section className="search-container">
-					<Search size={20} />
 					<input
 						type="text"
 						placeholder="Search by event name..."

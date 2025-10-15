@@ -141,7 +141,7 @@ const PlannerApp = () => {
 	};
 
 	return (
-		<section className="vendor-app">
+		<section className="planner-app">
 			{/* Navigation Bar */}
 			<nav className="vendor-navbar">
 				<section className="navbar-container">
@@ -189,7 +189,7 @@ const PlannerApp = () => {
 			</nav>
 
 			{/* Main Content */}
-			<main className="vendor-main">{renderCurrentPage()}</main>
+			<main className="planner-main">{renderCurrentPage()}</main>
 		</section>
 	);
 };

@@ -1,4 +1,4 @@
-import { MapPin, Star } from "lucide-react";
+import { MapPin} from "lucide-react";
 import "./VendorCardMarket.css";
 import placeholder from "../../assets/elementor-placeholder-image.png";
 
