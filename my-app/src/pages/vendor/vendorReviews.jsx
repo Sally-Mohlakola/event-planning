@@ -1,7 +1,7 @@
 // src/vendor/VendorReviews.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { auth } from "../../firebase";
-import { Star, StarHalf, ChevronDown, TrendingUp, TrendingDown } from "lucide-react";
+import { Star, StarHalf, ChevronDown, TrendingUp, TrendingDown, BarChart3, Calendar } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import "./vendorReviews.css";
 
@@ -26,6 +26,7 @@ const VendorReviews = () => {
   const [error, setError] = useState("");
   const [vendorId, setVendorId] = useState(null);
   const [sortOption, setSortOption] = useState("newest");
+  const [viewMode, setViewMode] = useState("distribution"); // 'distribution' or 'monthly'
 
   // Convert Firebase timestamps (same as VendorDashboard)
   const convertFirebaseTimestamp = useCallback((timestamp) => {
@@ -151,6 +152,9 @@ const VendorReviews = () => {
       if (rating >= 1 && rating <= 5) ratingDistribution[rating]++;
     });
 
+    // Calculate monthly data for the chart
+    const monthlyData = calculateMonthlyData(reviews, getReviewDate);
+
     return {
       overallRating,
       totalReviews,
@@ -160,9 +164,42 @@ const VendorReviews = () => {
       ratingChangePercent,
       ratingDistribution,
       thisMonthCount: thisMonthReviews.length,
-      lastMonthCount: lastMonthReviews.length
+      lastMonthCount: lastMonthReviews.length,
+      monthlyData
     };
   }, [reviews, getReviewDate]);
+
+  // Calculate monthly review data
+  const calculateMonthlyData = useCallback((reviews, getReviewDate) => {
+    const monthlyData = {};
+    
+    reviews.forEach(review => {
+      const reviewDate = getReviewDate(review);
+      const monthYear = `${reviewDate.getFullYear()}-${reviewDate.getMonth() + 1}`;
+      
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          count: 0,
+          totalRating: 0,
+          averageRating: 0
+        };
+      }
+      
+      monthlyData[monthYear].count++;
+      monthlyData[monthYear].totalRating += review.rating || 0;
+      monthlyData[monthYear].averageRating = monthlyData[monthYear].totalRating / monthlyData[monthYear].count;
+    });
+
+    // Convert to array and sort by date
+    return Object.entries(monthlyData)
+      .map(([monthYear, data]) => ({
+        monthYear,
+        ...data,
+        date: new Date(monthYear + '-01')
+      }))
+      .sort((a, b) => a.date - b.date)
+      .slice(-6); // Last 6 months
+  }, []);
 
   // Sort reviews when sortOption or reviews change
   useEffect(() => {
@@ -176,14 +213,14 @@ const VendorReviews = () => {
       const dateB = getReviewDate(b);
       
       switch (sortOption) {
-        case "newest":
-          return dateB - dateA; // Newest first
         case "oldest":
-          return dateA - dateB; // Oldest first
+          return dateB - dateA; 
+        case "newest":
+          return dateA - dateB; 
         case "most-critical":
-          return a.rating - b.rating; // Lowest ratings first
+          return a.rating - b.rating;
         case "most-praiseworthy":
-          return b.rating - a.rating; // Highest ratings first
+          return b.rating - a.rating; 
         default:
           return dateB - dateA;
       }
@@ -231,6 +268,89 @@ const VendorReviews = () => {
     }
   };
 
+  // Render monthly chart
+  const renderMonthlyChart = useCallback((monthlyData) => {
+    if (!monthlyData || monthlyData.length === 0) {
+      return (
+        <div className="no-monthly-data">
+          <p>No monthly data available</p>
+          <small>Data will appear as reviews are received over time</small>
+        </div>
+      );
+    }
+
+    const maxCount = Math.max(...monthlyData.map(m => m.count));
+    const maxRating = 5; // Maximum possible rating
+
+    return (
+      <div className="monthly-chart">
+        <div className="chart-bars">
+          {monthlyData.map((month, index) => {
+            const monthName = new Date(month.date).toLocaleDateString('en-US', { month: 'short' });
+            const countPercentage = (month.count / maxCount) * 100;
+            const ratingPercentage = (month.averageRating / maxRating) * 100;
+
+            return (
+              <div key={index} className="chart-bar-container">
+                <div className="chart-bar-group">
+                  <div className="chart-bar-label">{monthName}</div>
+                  <div className="chart-bars-wrapper">
+                    <div className="chart-bar-count" style={{ height: `${countPercentage}%` }}>
+                      <span className="chart-bar-value">{month.count}</span>
+                    </div>
+                    <div className="chart-bar-rating" style={{ height: `${ratingPercentage}%` }}>
+                      <span className="chart-bar-value">{month.averageRating.toFixed(1)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="chart-legend">
+          <div className="legend-item">
+            <div className="legend-color count"></div>
+            <span>Reviews Count</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-color rating"></div>
+            <span>Avg Rating</span>
+          </div>
+        </div>
+      </div>
+    );
+  }, []);
+
+  // Render distribution view
+  const renderDistributionView = useCallback((analytics) => {
+    return (
+      <>
+        <div className="rating-distribution">
+          {[5, 4, 3, 2, 1].map((rating) => {
+            const count = analytics.ratingDistribution[rating];
+            const percentage = (count / analytics.totalReviews) * 100;
+            return (
+              <div key={rating} className="distribution-item">
+                <div className="distribution-stars">
+                  <span className="distribution-rating">{rating}</span>
+                  <Star size={16} color="#fbbf24" fill="#fbbf24" />
+                </div>
+                <div className="distribution-progress">
+                  <div className="distribution-progress-bar" style={{ width: `${percentage}%` }}></div>
+                </div>
+                <span className="distribution-count">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="distribution-summary">
+          <p>Total Reviews: <strong>{analytics.totalReviews}</strong></p>
+          <p>This Month: <strong>{analytics.thisMonthCount}</strong></p>
+        </div>
+      </>
+    );
+  }, []);
+
   if (loading) return <div className="loading-screen"><div className="spinner"></div><p>Loading your reviews...</p></div>;
   if (error) return <p className="error">{error}</p>;
   if (!reviews.length) return <p>No reviews found.</p>;
@@ -267,30 +387,34 @@ const VendorReviews = () => {
 
       {/* Top Section - Two Tiles */}
       <div className="reviews-top-section">
-        {/* Left Tile - Rating Distribution */}
+        {/* Left Tile - Toggle between Distribution and Monthly Chart */}
         <div className="distribution-tile">
-          <h3>Rating Distribution</h3>
-          <div className="rating-distribution">
-            {[5, 4, 3, 2, 1].map((rating) => {
-              const count = analytics.ratingDistribution[rating];
-              const percentage = (count / analytics.totalReviews) * 100;
-              return (
-                <div key={rating} className="distribution-item">
-                  <div className="distribution-stars">
-                    <span className="distribution-rating">{rating}</span>
-                    <Star size={16} color="#fbbf24" />
-                  </div>
-                  <div className="distribution-progress">
-                    <div className="distribution-progress-bar" style={{ width: `${percentage}%` }}></div>
-                  </div>
-                  <span className="distribution-count">{count}</span>
-                </div>
-              );
-            })}
+          <div className="tile-header">
+            <h3>Review Analytics</h3>
+            <div className="view-toggle">
+              <button 
+                className={`toggle-btn ${viewMode === 'distribution' ? 'active' : ''}`}
+                onClick={() => setViewMode('distribution')}
+              >
+                <BarChart3 size={16} />
+                Distribution
+              </button>
+              <button 
+                className={`toggle-btn ${viewMode === 'monthly' ? 'active' : ''}`}
+                onClick={() => setViewMode('monthly')}
+              >
+                <Calendar size={16} />
+                Monthly
+              </button>
+            </div>
           </div>
-          <div className="distribution-summary">
-            <p>Total Reviews: <strong>{analytics.totalReviews}</strong></p>
-            <p>This Month: <strong>{analytics.thisMonthCount}</strong></p>
+          
+          <div className="tile-content">
+            {viewMode === 'distribution' ? (
+              renderDistributionView(analytics)
+            ) : (
+              renderMonthlyChart(analytics.monthlyData)
+            )}
           </div>
         </div>
 
@@ -326,7 +450,6 @@ const VendorReviews = () => {
               </div>
             </div>
             
-           
             <div className={`breakdown-item trend ${analytics.ratingChange > 0 ? 'positive' : analytics.ratingChange < 0 ? 'negative' : ''}`}>
               <span className="breakdown-label">Monthly Trend</span>
               <div className={`breakdown-value ${analytics.ratingChange >= 0 ? 'positive' : 'negative'}`}>
