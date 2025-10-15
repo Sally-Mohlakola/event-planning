@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "../../../firebase"; // Ensure this path is correct
 import { Search, Edit, UserX, UserCheck, Trash2 } from "lucide-react";
 import Popup from "../../general/popup/Popup.jsx";
-
 import "./AdminPlannerManagement.css";
+import BASE_URL from "../../../apiConfig";
 
 export default function PlannerManagement() {
 	const navigate = useNavigate();
@@ -34,8 +34,7 @@ export default function PlannerManagement() {
 			}
 			try {
 				const token = await getToken();
-				const apiUrl =
-					"https://us-central1-planit-sdp.cloudfunctions.net/api/admin/planners";
+				const apiUrl = `${BASE_URL}/admin/planners`;
 				const response = await fetch(apiUrl, {
 					headers: { Authorization: `Bearer ${token}` },
 				});

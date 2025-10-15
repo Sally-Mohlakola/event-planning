@@ -7,7 +7,7 @@ import Popup from "../general/popup/Popup";
 import PlannerViewEvent from "./PlannerViewEvent";
 import NewEvent from "./NewEvent";
 import PlannerAllEvents from "./PlannerAllEvents";
-
+import BASE_URL from "../../apiConfig";
 import "./PlannerCalendar.css";
 
 export default function PlannerCalender({ setActivePage, onSelectEvent }) {
@@ -15,7 +15,6 @@ export default function PlannerCalender({ setActivePage, onSelectEvent }) {
 	const [isPopupOpen, setIsPopupOpen] = useState(false);
 	const [selectedEvent, setSelectedEvent] = useState(null);
 	const [activeTab, setActiveTab] = useState("calendar");
-
 
 	// **NEW**: State to control the "Create New Event" popup's visibility
 	const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
@@ -28,12 +27,9 @@ export default function PlannerCalender({ setActivePage, onSelectEvent }) {
 				if (!user) return;
 
 				const token = await user.getIdToken(true);
-				const response = await fetch(
-					"https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events",
-					{
-						headers: { Authorization: `Bearer ${token}` },
-					}
-				);
+				const response = await fetch(`${BASE_URL}/planner/me/events`, {
+					headers: { Authorization: `Bearer ${token}` },
+				});
 
 				if (!response.ok) throw new Error("Failed to fetch events");
 
@@ -106,27 +102,30 @@ export default function PlannerCalender({ setActivePage, onSelectEvent }) {
 
 	return (
 		<section data-testid="planner-all-events" className="events-list">
+			<section className="tabs-container">
+				<section className="tabs">
+					<button
+						className={`tab-btn ${
+							activeTab === "calendar" ? "active" : ""
+						}`}
+						onClick={() => setActiveTab("calendar")}
+					>
+						Calendar View
+					</button>
+					<button
+						className={`tab-btn ${
+							activeTab === "list" ? "active" : ""
+						}`}
+						onClick={() => setActiveTab("list")}
+					>
+						List View
+					</button>
+				</section>
+			</section>
 
-            <section className="tabs-container">
-                <section className="tabs">
-                    <button 
-                        className={`tab-btn ${activeTab === "calendar" ? "active" : ""}`}
-                        onClick={() => setActiveTab("calendar")}
-                    >
-                        Calendar View
-                    </button>
-                    <button 
-                        className={`tab-btn ${activeTab === "list" ? "active" : ""}`}
-                        onClick={() => setActiveTab("list")}
-                    >
-                        List View
-                    </button>
-                </section>    
-            </section>
-
-            <section className="tab-content">
-                {activeTab === "calendar" && (
-                    <section className="calendar-view">
+			<section className="tab-content">
+				{activeTab === "calendar" && (
+					<section className="calendar-view">
 						<header className="all-events-header">
 							<h2>My Events Calendar</h2>
 							<button onClick={handleOpenCreatePopup}>
@@ -142,7 +141,10 @@ export default function PlannerCalender({ setActivePage, onSelectEvent }) {
 
 						{/* When an event is selected, render your general Popup component */}
 						{selectedEvent && (
-							<Popup isOpen={isPopupOpen} onClose={handleClosePopup}>
+							<Popup
+								isOpen={isPopupOpen}
+								onClose={handleClosePopup}
+							>
 								{/* Render PlannerViewEvent directly inside the popup */}
 								<PlannerViewEvent
 									event={selectedEvent}
@@ -152,28 +154,29 @@ export default function PlannerCalender({ setActivePage, onSelectEvent }) {
 						)}
 
 						{/* **NEW**: Popup for creating a new event */}
-						<Popup isOpen={isCreatePopupOpen} onClose={handleCloseCreatePopup}>
+						<Popup
+							isOpen={isCreatePopupOpen}
+							onClose={handleCloseCreatePopup}
+						>
 							<NewEvent
 								onSave={handleSaveNewEvent}
 								onClose={handleCloseCreatePopup}
 							/>
 						</Popup>
 					</section>
-                )}
+				)}
 			</section>
 			<section className="tab-content">
 				{activeTab === "list" && (
 					<>
 						{localStorage.setItem("activePage", "PlannerAllEvents")}
-						<PlannerAllEvents 
-						setActivePage={setActivePage}
-						onSelectEvent={onSelectEvent}
+						<PlannerAllEvents
+							setActivePage={setActivePage}
+							onSelectEvent={onSelectEvent}
 						/>
 					</>
 				)}
-
 			</section>
-			
 		</section>
 	);
 }
