@@ -1,34 +1,16 @@
-.main-container{
+.admin-report-main-container {
     overflow-y: auto;
 }
 
-.reports-page .page-header {
-    margin-bottom: 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 1.5rem;
-}
-
-.reports-page .main-title h1 {
-    font-size: 2rem;
-    color: var(--white);
-    margin: 0;
-}
-
-.reports-page .subtitle {
-    color: var(--muted);
-    margin-top: 0.5rem;
-    font-size: 1rem;
-}
-
 /* Grid for the summary cards */
-.reports-grid {
+.admin-report-reports-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 1.5rem;
 }
 
 /* Individual Report Summary Card */
-.report-summary-card {
+.admin-report-summary-card {
     background: rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 15px;
@@ -38,13 +20,13 @@
     transition: all 0.3s ease;
 }
 
-.report-summary-card:hover {
+.admin-report-summary-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-.report-summary-card .card-header {
+.admin-report-card-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -52,17 +34,17 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.card-header .header-icon {
+.admin-report-card-header .admin-report-header-icon {
     color: var(--purple-700);
 }
 
-.card-header h2 {
+.admin-report-card-header h2 {
     margin: 0;
     font-size: 1.25rem;
     color: var(--white);
 }
 
-.report-summary-card .card-body {
+.admin-report-card-body {
     padding: 1.5rem;
     flex-grow: 1;
     display: grid;
@@ -72,19 +54,20 @@
 }
 
 /* Key Performance Indicator (KPI) Metric Styling */
-.kpi-metric {
+.admin-report-kpi-metric {
     text-align: center;
-}
-
-.kpi-value {
-    display: block;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--white);
     margin: 0;
 }
 
-.kpi-label {
+.admin-report-kpi-value {
+    font-size: clamp(1.4rem, 4vw, 2.25rem);
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.1;
+    word-break: break-all;
+}
+
+.admin-report-kpi-label {
     display: block;
     font-size: 0.9rem;
     color: var(--muted);
@@ -92,13 +75,13 @@
 }
 
 /* Card Footer with Expand Button */
-.report-summary-card .card-footer {
+.admin-report-card-footer {
     padding: 1.5rem;
-    margin-top: auto; /* Pushes footer to the bottom */
+    margin-top: auto;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.card-footer button {
+.admin-report-card-footer button {
     width: 100%;
     display: inline-flex;
     align-items: center;
@@ -114,23 +97,38 @@
     transition: background-color 0.2s ease;
 }
 
-.card-footer button:hover {
+.admin-report-card-footer button:hover {
     background-color: var(--blue-700);
 }
 
-/* Popup for Detailed Reports */
-.detailed-reports-popup {
+/* Detailed Views (inside Popup) */
+.admin-report-detailed-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.admin-report-detailed-chart {
+    background: rgba(0, 0, 0, 0.1);
     padding: 1rem;
+    border-radius: 10px;
+}
+
+/* Styles for description lists used for stats */
+.admin-report-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.admin-report-stat-label {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.admin-report-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--white);
-}
-
-.detailed-reports-popup h2 {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-    color: var(--purple-700);
-}
-
-.detailed-reports-popup p {
-    font-size: 1.1rem;
-    line-height: 1.6;
+    margin-left: 0;
 }
