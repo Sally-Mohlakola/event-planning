@@ -8,8 +8,9 @@ import { uploadToVendor, exportToPNG } from "../utils/floorplanImage";
 import { ITEM_PROTOTYPES } from "../constants/floorplanItems";
 import { TEMPLATES } from "../constants/floorplanTemplates";
 import FloorplanItem from "./FloorplanItem";
-import "./PlannerFloorPlan.css";
+import "./PlannerFloorPlan.css"; // updated CSS
 
+// Buttons for adding items
 const ItemButtons = ({ addItem }) => (
   <div className="tool-buttons">
     {Object.keys(ITEM_PROTOTYPES).map((key) => (
@@ -20,6 +21,7 @@ const ItemButtons = ({ addItem }) => (
   </div>
 );
 
+// Controls for selected item
 const SelectedControls = ({
   selectedId,
   items,
@@ -150,15 +152,18 @@ const PlannerFloorPlan = ({ eventId: initialEventId }) => {
   const [isDirty, setIsDirty] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState(null);
   const containerRef = useRef(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 800 });
+
   const user = getAuth().currentUser;
 
+  // Floorplan handlers
   const {
     addItem,
     removeSelected,
     scaleSelected,
     rotateSelected,
     editItem,
-    deleteFloorplan,
+    deleteLocal,
     onPointerDownItem,
     onPointerMove,
     onPointerUp,
@@ -186,23 +191,23 @@ const PlannerFloorPlan = ({ eventId: initialEventId }) => {
       setIsDirty,
     });
 
+  // Load events
   useEffect(() => {
     const loadEvents = async () => {
       try {
         const eventsData = await fetchEvents();
         setEvents(eventsData);
-        if (!selectedEventId && eventsData.length > 0) {
-          setSelectedEventId(eventsData[0].id);
-        }
+        if (!selectedEventId && eventsData.length > 0) setSelectedEventId(eventsData[0].id);
       } catch (err) {
         console.error("Fetch events error:", err.message);
         setEvents([]);
-        alert("Failed to fetch events. Please try again.");
+        alert("Failed to fetch events.");
       }
     };
     loadEvents();
   }, []);
 
+  // Load vendors when event changes
   useEffect(() => {
     if (!selectedEventId) {
       setVendors([]);
@@ -216,81 +221,112 @@ const PlannerFloorPlan = ({ eventId: initialEventId }) => {
       } catch (err) {
         console.error("Fetch vendors error:", err.message);
         setVendors([]);
-        alert("Failed to fetch vendors. Please try again.");
+        alert("Failed to fetch vendors.");
       }
     };
     loadVendors();
   }, [selectedEventId]);
 
+  // Auto-resize canvas
+  useEffect(() => {
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      setCanvasSize({ width: rect.width, height: rect.height });
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
-    <main className="floorplan-page">
-      <header className="floorplan-header">
-        <h2>Floorplan Designer</h2>
-      </header>
+    <div className="floorplan-page">
+      {/* Topbar for event/vendor/template */}
+      <div className="floorplan-topbar">
+        <select value={selectedEventId} onChange={(e) => setSelectedEventId(e.target.value)}>
+          <option value="">Select Event</option>
+          {events.map((ev) => (
+            <option key={ev.id} value={ev.id}>
+              {ev.name || ev.id}
+            </option>
+          ))}
+        </select>
 
+        <select
+          value={selectedVendor}
+          onChange={(e) => setSelectedVendor(e.target.value)}
+          disabled={!selectedEventId}
+        >
+          <option value="">Select Vendor</option>
+          {vendors.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.businessName || v.id}
+            </option>
+          ))}
+        </select>
+
+        <select value={template} onChange={(e) => setTemplate(e.target.value)}>
+          {TEMPLATES.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Main content: canvas + sidebar */}
       <div className="floorplan-content">
-        <aside className="floorplan-sidebar">
-          <h3>Choose Event</h3>
-          <select
-            value={selectedEventId}
-            onChange={(e) => setSelectedEventId(e.target.value)}
+        {/* Canvas area */}
+        <div className="floorplan-canvas-wrap">
+          <div
+            className="floorplan-canvas"
+            ref={containerRef}
+            style={{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onTouchCancel={onTouchEnd}
           >
-            <option value="">Select an event</option>
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>
-                {event.name || event.id}
-              </option>
+            {items.map((it) => (
+              <FloorplanItem
+                key={it.id}
+                item={it}
+                selectedId={selectedId}
+                onPointerDown={onPointerDownItem}
+                containerSize={canvasSize}
+              />
             ))}
-          </select>
-
-          <h3>Choose Vendor</h3>
-          <select
-            value={selectedVendor}
-            onChange={(e) => setSelectedVendor(e.target.value)}
-            disabled={!selectedEventId}
-          >
-            <option value="">Select a vendor</option>
-            {vendors.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.businessName || v.id}
-              </option>
-            ))}
-          </select>
-
-          <h3>Template</h3>
-          <select value={template} onChange={(e) => setTemplate(e.target.value)}>
-            {TEMPLATES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-
-          <h3>Upload Background Image</h3>
-          <div className="image-upload">
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              onChange={handleImageUpload}
-            />
-            {backgroundImage && (
-              <div className="image-preview">
-                <img
-                  src={backgroundImage}
-                  alt="Background preview"
-                  style={{ maxWidth: "100%", maxHeight: "100px", marginTop: 10 }}
-                />
-                <button onClick={clearBackgroundImage} className="clear-image">
-                  Clear Image
-                </button>
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* Sidebar */}
+        <aside className="floorplan-sidebar">
+          <h3>Background Image</h3>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={handleImageUpload}
+          />
+          {backgroundImage && (
+            <div className="image-preview">
+              <img
+                src={backgroundImage}
+                alt="Preview"
+                style={{ maxWidth: "100%", maxHeight: "100px", marginTop: 10 }}
+              />
+              <button onClick={clearBackgroundImage} className="danger">
+                Clear Image
+              </button>
+            </div>
+          )}
 
           <h3>Add Items</h3>
           <ItemButtons addItem={addItem} />
 
-          <h3>Selected</h3>
+          <h3>Selected Item</h3>
           <SelectedControls
             selectedId={selectedId}
             items={items}
@@ -325,7 +361,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId }) => {
               }
               disabled={!selectedEventId || !selectedVendor}
             >
-              Send to Selected Vendor
+              Send to Vendor
             </button>
             <button onClick={saveLocal} disabled={!selectedEventId}>
               Save Draft
@@ -337,42 +373,9 @@ const PlannerFloorPlan = ({ eventId: initialEventId }) => {
               Delete Draft
             </button>
           </div>
-
-          <p className="hint">
-            Tip: Click an item to select, drag to move, Shift+drag to rotate, or
-            use two-finger rotation on touchpad.
-          </p>
         </aside>
-
-        <section className="floorplan-canvas-wrap">
-          <div
-            className="floorplan-canvas"
-            ref={containerRef}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            onTouchCancel={onTouchEnd}
-            style={{
-              background: backgroundImage
-                ? `url(${backgroundImage}) no-repeat center/cover`
-                : TEMPLATES.find((t) => t.id === template)?.color || "#fff",
-            }}
-          >
-            {items.map((it) => (
-              <FloorplanItem
-                key={it.id}
-                item={it}
-                selectedId={selectedId}
-                onPointerDown={onPointerDownItem}
-              />
-            ))}
-          </div>
-        </section>
       </div>
-    </main>
+    </div>
   );
 };
 
