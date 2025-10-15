@@ -11,20 +11,17 @@ import {
 	FileText,
 	Search,
 	X,
-	Send,
 	Edit3,
 	Download,
-	Save,
-	RefreshCw,
-	FileCheck,
 	Trash2,
 } from "lucide-react";
 import { auth } from "../../firebase";
 import "./PlannerContract.css";
 import Popup from "../general/popup/Popup.jsx";
+import PlannerSignatureView from "./PlannerSignatureView";
+import { createSignatureDetailsDocument, getUserIPAddress } from "./PlannerSigAttch.js";
 
 const API_BASE = "https://us-central1-planit-sdp.cloudfunctions.net/api";
-const API_TEST = "http://127.0.0.1:5001/planit-sdp/us-central1/api";
 
 const useDebounce = (value, delay) => {
 	const [debouncedValue, setDebouncedValue] = useState(value);
@@ -45,7 +42,6 @@ const PlannerContract = () => {
 	const [signatureData, setSignatureData] = useState({});
 	const [isSaving, setIsSaving] = useState(false);
 	const [saveStatus, setSaveStatus] = useState("");
-	const canvasRefs = useRef({});
 	const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
 	function formatDate(date) {
@@ -56,20 +52,17 @@ const PlannerContract = () => {
 			return jsDate.toLocaleString();
 		}
 
-		// Already a JS Date
 		if (date instanceof Date) {
 			return date.toLocaleString();
 		}
 
-		// String
 		if (typeof date === "string") {
 			return new Date(date).toLocaleString();
 		}
 
-		return String(date); // fallback
+		return String(date);
 	}
 
-	// Get auth token for API requests
 	const getAuthToken = async () => {
 		if (!auth.currentUser) {
 			throw new Error("User not authenticated");
@@ -77,7 +70,6 @@ const PlannerContract = () => {
 		return await auth.currentUser.getIdToken();
 	};
 
-	// Fetch all contracts for the planner
 	const fetchContracts = useCallback(async () => {
 		if (!auth.currentUser) {
 			setError("User not authenticated");
@@ -96,6 +88,7 @@ const PlannerContract = () => {
 			}
 
 			const data = await response.json();
+			console.log("Fetched contracts:", data.contracts); // Debug log
 			setContracts(data.contracts || []);
 		} catch (err) {
 			console.error("Error fetching contracts:", err);
@@ -117,67 +110,6 @@ const PlannerContract = () => {
 		return () => unsubscribe();
 	}, [fetchContracts]);
 
-	// Canvas drawing functions
-	const startDrawing = (fieldId, e) => {
-		const canvas = canvasRefs.current[fieldId];
-		if (!canvas) return;
-		const rect = canvas.getBoundingClientRect();
-		const ctx = canvas.getContext("2d");
-		ctx.beginPath();
-		canvasRefs.current[`${fieldId}_isDrawing`] = true;
-		canvasRefs.current[`${fieldId}_prevPosition`] = {
-			x: e.clientX - rect.left,
-			y: e.clientY - rect.top,
-		};
-	};
-
-	const handleSign = (fieldId, e) => {
-		if (!canvasRefs.current[`${fieldId}_isDrawing`]) return;
-		const canvas = canvasRefs.current[fieldId];
-		const rect = canvas.getBoundingClientRect();
-		const ctx = canvas.getContext("2d");
-		const currentPosition = {
-			x: e.clientX - rect.left,
-			y: e.clientY - rect.top,
-		};
-
-		ctx.strokeStyle = "#1e293b";
-		ctx.lineWidth = 2;
-		ctx.lineCap = "round";
-		ctx.lineJoin = "round";
-
-		ctx.moveTo(
-			canvasRefs.current[`${fieldId}_prevPosition`].x,
-			canvasRefs.current[`${fieldId}_prevPosition`].y
-		);
-		ctx.lineTo(currentPosition.x, currentPosition.y);
-		ctx.stroke();
-
-		canvasRefs.current[`${fieldId}_prevPosition`] = currentPosition;
-	};
-
-	const stopDrawing = (fieldId) => {
-		canvasRefs.current[`${fieldId}_isDrawing`] = false;
-		canvasRefs.current[`${fieldId}_prevPosition`] = null;
-		const canvas = canvasRefs.current[fieldId];
-		setSignatureData((prev) => ({
-			...prev,
-			[fieldId]: canvas.toDataURL(),
-		}));
-	};
-
-	const clearSignature = (fieldId) => {
-		const canvas = canvasRefs.current[fieldId];
-		const ctx = canvas.getContext("2d");
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		setSignatureData((prev) => {
-			const newData = { ...prev };
-			delete newData[fieldId];
-			return newData;
-		});
-	};
-
-	// Convert base64 signature to blob for upload
 	const dataURLtoBlob = (dataURL) => {
 		const arr = dataURL.split(',');
 		const mime = arr[0].match(/:(.*?);/)[1];
@@ -190,15 +122,12 @@ const PlannerContract = () => {
 		return new Blob([u8arr], { type: mime });
 	};
 
-	// Upload signature to backend
 	const uploadSignature = async (fieldId, dataURL, contractId, eventId) => {
 		try {
 			const token = await getAuthToken();
 			const blob = dataURLtoBlob(dataURL);
 			const formData = new FormData();
 			formData.append('signature', blob, `${fieldId}.png`);
-
-			console.log(contractId);
 
 			const response = await fetch(
 				`${API_BASE}/planner/contracts/${eventId}/${contractId}/${fieldId}/signatures/upload`,
@@ -233,9 +162,8 @@ const PlannerContract = () => {
 		}
 	};
 
-	// Save draft signatures
-	const saveDraftSignature = useCallback(async () => {
-		if (!selectedContract || Object.keys(signatureData).length === 0) {
+	const saveDraftSignature = useCallback(async (signatureDataParam) => {
+		if (!selectedContract || Object.keys(signatureDataParam).length === 0) {
 			setSaveStatus("No signatures to save");
 			return;
 		}
@@ -246,19 +174,16 @@ const PlannerContract = () => {
 		try {
 			const draftSignatures = {};
 
-			// Upload each signature
-			for (const [fieldId, dataURL] of Object.entries(signatureData)) {
+			for (const [fieldId, dataURL] of Object.entries(signatureDataParam)) {
 				const savedSignature = await uploadSignature(
 					fieldId,
 					dataURL,
 					selectedContract.id,
-					selectedContract.eventId,
-					selectedContract.vendorId
+					selectedContract.eventId
 				);
 				draftSignatures[fieldId] = savedSignature;
 			}
 
-			// Save draft to backend 
 			const token = await getAuthToken();
 			const response = await fetch(
 				`${API_BASE}/planner/contracts/${selectedContract.id}/signatures/draft`,
@@ -282,7 +207,6 @@ const PlannerContract = () => {
 
 			const result = await response.json();
 
-			// Update local state
 			setContracts((prev) =>
 				prev.map((c) =>
 					c.id === selectedContract.id
@@ -305,16 +229,15 @@ const PlannerContract = () => {
 		} finally {
 			setIsSaving(false);
 		}
-	}, [selectedContract, signatureData]);
+	}, [selectedContract]);
 
-	// Finalize and sign contract
-	const sendSignedContract = async () => {
+	const sendSignedContract = async (signatureDataParam) => {
 		if (!selectedContract) return;
 
 		const requiredFields = selectedContract.signatureFields.filter(
 			(f) => f.signerRole === "client" && f.required
 		);
-		const signedFieldIds = Object.keys(signatureData);
+		const signedFieldIds = Object.keys(signatureDataParam);
 		const missingRequired = requiredFields.filter(
 			(f) => !signedFieldIds.includes(f.id)
 		);
@@ -328,11 +251,6 @@ const PlannerContract = () => {
 			return;
 		}
 
-		const confirmSign = window.confirm(
-			"Are you sure you want to finalize and submit these signatures? This action cannot be undone."
-		);
-		if (!confirmSign) return;
-
 		setIsSaving(true);
 		setSaveStatus("Finalizing signatures...");
 
@@ -340,18 +258,28 @@ const PlannerContract = () => {
 			const finalSignatures = {};
 
 			// Upload all signatures
-			for (const [fieldId, dataURL] of Object.entries(signatureData)) {
+			for (const [fieldId, dataURL] of Object.entries(signatureDataParam)) {
 				const savedSignature = await uploadSignature(
 					fieldId,
 					dataURL,
 					selectedContract.id,
-					selectedContract.eventId,
-					selectedContract.vendorId
+					selectedContract.eventId
 				);
 				finalSignatures[fieldId] = savedSignature;
 			}
 
-			// Finalize contract on backend
+			// Get IP address for audit trail
+			const ipAddress = await getUserIPAddress();
+			
+			const signerInfo = {
+				ipAddress: ipAddress,
+				userAgent: navigator.userAgent,
+				signedAt: new Date().toISOString(),
+				signerName: selectedContract.clientName,
+				signerEmail: selectedContract.clientEmail
+			};
+
+			// Finalize the contract
 			const token = await getAuthToken();
 			const response = await fetch(
 				`${API_BASE}/planner/contracts/${selectedContract.id}/finalize`,
@@ -366,6 +294,7 @@ const PlannerContract = () => {
 						vendorId: selectedContract.vendorId,
 						signatures: finalSignatures,
 						signatureFields: selectedContract.signatureFields,
+						signerInfo: signerInfo,
 					}),
 				}
 			);
@@ -392,7 +321,32 @@ const PlannerContract = () => {
 				}
 			);
 
-			// Update local state
+			// Generate and download signature details document
+			setSaveStatus("Generating signature certificate...");
+			
+			const signatureDoc = createSignatureDetailsDocument(
+				selectedContract,
+				signatureDataParam,
+				signerInfo
+			);
+
+			// Auto-download the signature details HTML file
+			signatureDoc.download();
+
+			// Show success message with instructions
+			setTimeout(() => {
+				alert(
+					`🎉 Contract signed successfully!\n\n` +
+					`A signature details document has been downloaded.\n` +
+					`You can print it to PDF and attach it to the contract:\n\n` +
+					`1. Open the downloaded HTML file\n` +
+					`2. Press Ctrl+P (or Cmd+P on Mac)\n` +
+					`3. Select "Save as PDF"\n` +
+					`4. Attach it to the original contract`
+				);
+			}, 500);
+
+			// Update contracts list
 			setContracts((prev) =>
 				prev.map((c) =>
 					c.id === selectedContract.id
@@ -406,7 +360,7 @@ const PlannerContract = () => {
 			setSignatureData({});
 			setSaveStatus("");
 
-			alert("Contract signed successfully!");
+			// Refresh contracts
 			await fetchContracts();
 		} catch (err) {
 			console.error("Error finalizing contract:", err);
@@ -417,7 +371,6 @@ const PlannerContract = () => {
 		}
 	};
 
-	// Delete contract
 	const deleteContract = useCallback(
 		async (eventId, contractId, contractUrl, vendorId) => {
 			if (!auth.currentUser) {
@@ -444,7 +397,6 @@ const PlannerContract = () => {
 					throw new Error(`Failed to delete contract: ${response.status}`);
 				}
 
-				// Update local state
 				setContracts((prev) => prev.filter((c) => c.id !== contractId));
 				setSaveStatus("Contract deleted successfully!");
 				setTimeout(() => setSaveStatus(""), 5000);
@@ -458,7 +410,6 @@ const PlannerContract = () => {
 		[]
 	);
 
-	// Load draft signatures when opening modal
 	const loadDraftSignatures = useCallback((contract) => {
 		if (contract.signatureFields) {
 			const draftData = {};
@@ -471,7 +422,54 @@ const PlannerContract = () => {
 		}
 	}, []);
 
-	// Group contracts by event
+	// Helper function to check if contract is actually signed by client
+	const isContractSignedByClient = useCallback((contract) => {
+		// If no signature fields, it's not an e-signature contract
+		if (!contract.signatureFields || contract.signatureFields.length === 0) {
+			return false;
+		}
+
+		// Check if all client signature fields are signed
+		const clientFields = contract.signatureFields.filter(
+			field => field.signerRole === 'client'
+		);
+
+		// If no client fields, nothing to sign
+		if (clientFields.length === 0) {
+			return false;
+		}
+
+		// Check if all client fields are marked as signed
+		const allClientFieldsSigned = clientFields.every(field => field.signed === true);
+
+		// Also check workflow status
+		const workflowCompleted = contract.signatureWorkflow?.workflowStatus === 'completed';
+
+		return allClientFieldsSigned && workflowCompleted;
+	}, []);
+
+	// Helper function to get contract status display
+	const getContractStatusDisplay = useCallback((contract) => {
+		if (!contract.signatureWorkflow?.isElectronic) {
+			return { text: 'Active', class: 'active' };
+		}
+
+		const status = contract.signatureWorkflow.workflowStatus;
+
+		switch (status) {
+			case 'draft':
+				return { text: 'Draft', class: 'draft' };
+			case 'sent':
+				return { text: 'Pending Signature', class: 'pending' };
+			case 'partially_signed':
+				return { text: 'Partially Signed', class: 'partial' };
+			case 'completed':
+				return { text: 'Signed', class: 'completed' };
+			default:
+				return { text: 'Active', class: 'active' };
+		}
+	}, []);
+
 	const groupedContracts = useMemo(() => {
 		const groups = {};
 		contracts.forEach((contract) => {
@@ -487,7 +485,6 @@ const PlannerContract = () => {
 		return groups;
 	}, [contracts]);
 
-	// Filter events by search term
 	const filteredEventIds = useMemo(() => {
 		return Object.keys(groupedContracts).filter((eventId) => {
 			const event = groupedContracts[eventId];
@@ -499,10 +496,11 @@ const PlannerContract = () => {
 
 	const totalContracts = contracts.length;
 	const pendingContracts = contracts.filter(
-		(c) => c.signatureWorkflow?.workflowStatus === "sent"
+		(c) => c.signatureWorkflow?.workflowStatus === "sent" || 
+		       c.signatureWorkflow?.workflowStatus === "partially_signed"
 	).length;
 	const signedContracts = contracts.filter(
-		(c) => c.signatureWorkflow?.workflowStatus === "completed"
+		(c) => isContractSignedByClient(c)
 	).length;
 
 	const handleDownloadContract = (contractUrl, fileName) => {
@@ -532,94 +530,96 @@ const PlannerContract = () => {
 						<p>No contracts for this event.</p>
 					) : (
 						<section className="contracts-list">
-							{eventData.contracts.map((contract) => (
-								<section key={contract.id} className="contract-row">
-									<section className="contract-info">
-										<p className="file-name">
+							{eventData.contracts.map((contract) => {
+								const isSigned = isContractSignedByClient(contract);
+								const statusDisplay = getContractStatusDisplay(contract);
+								
+								return (
+									<section key={contract.id} className="contract-row">
+										<section className="contract-info">
+											<p className="file-name">
+												<button
+													className="file-name-btn"
+													onClick={() => {
+														console.log("Contract clicked:", contract); // Debug
+														setSelectedContract(contract);
+														loadDraftSignatures(contract);
+														setShowSignModal(true);
+													}}
+													title="View and sign contract"
+												>
+													{contract.fileName}
+												</button>
+												<span>
+													(
+													{contract.lastedited?.seconds
+														? new Date(
+																contract.lastedited.seconds * 1000
+														  ).toLocaleDateString()
+														: "Unknown date"}
+													)
+												</span>
+											</p>
+											<span className={`status-badge status-${statusDisplay.class}`}>
+												{statusDisplay.text}
+											</span>
+											{contract.signatureWorkflow?.isElectronic && (
+												<span
+													className={`signature-badge ${contract.signatureWorkflow.workflowStatus}`}
+												>
+													{contract.signatureWorkflow.workflowStatus.replace(
+														"_",
+														" "
+													)}
+												</span>
+											)}
+										</section>
+										<section className="contract-actions">
 											<button
-												className="file-name-btn"
+												className="sign-btn"
 												onClick={() => {
 													setSelectedContract(contract);
 													loadDraftSignatures(contract);
 													setShowSignModal(true);
 												}}
-												title="View and sign contract"
+												title={isSigned ? "Contract already signed" : "Sign contract"}
+												disabled={isSigned}
 											>
-												{contract.fileName}
+												<Edit3 size={12} />
+												{isSigned ? "Signed" : "Sign"}
 											</button>
-											<span>
-												(
-												{contract.lastedited?.seconds
-													? new Date(
-															contract.lastedited.seconds * 1000
-													  ).toLocaleDateString()
-													: "Unknown date"}
-												)
-											</span>
-										</p>
-										<span className={`status-${contract.status}`}>
-											{contract.status}
-										</span>
-										{contract.signatureWorkflow?.isElectronic && (
-											<span
-												className={`status-badge ${contract.signatureWorkflow.workflowStatus}`}
+											<button
+												className="download-btn small"
+												onClick={() =>
+													handleDownloadContract(
+														contract.contractUrl,
+														contract.fileName
+													)
+												}
+												title="Download contract"
 											>
-												{contract.signatureWorkflow.workflowStatus.replace(
-													"_",
-													" "
-												)}
-											</span>
-										)}
+												<Download size={12} />
+												Download
+											</button>
+											<button
+												className="delete-btn small"
+												onClick={() =>
+													deleteContract(
+														contract.eventId,
+														contract.id,
+														contract.contractUrl,
+														contract.vendorId
+													)
+												}
+												title="Delete contract"
+											>
+												<Trash2 size={12} />
+												Delete
+											</button>
+										</section>
 									</section>
-									<section className="contract-actions">
-										<button
-											className="sign-btn"
-											onClick={() => {
-												setSelectedContract(contract);
-												loadDraftSignatures(contract);
-												setShowSignModal(true);
-											}}
-											title="Sign contract"
-											disabled={
-												contract.signatureWorkflow?.workflowStatus === "completed"
-											}
-										>
-											<Edit3 size={12} />
-											{contract.signatureWorkflow?.workflowStatus === "completed"
-												? "Signed"
-												: "Sign"}
-										</button>
-										<button
-											className="download-btn small"
-											onClick={() =>
-												handleDownloadContract(
-													contract.contractUrl,
-													contract.fileName
-												)
-											}
-											title="Download contract"
-										>
-											<Download size={12} />
-											Download
-										</button>
-										<button
-											className="delete-btn small"
-											onClick={() =>
-												deleteContract(
-													contract.eventId,
-													contract.id,
-													contract.contractUrl,
-													contract.vendorId
-												)
-											}
-											title="Delete contract"
-										>
-											<Trash2 size={12} />
-											Delete
-										</button>
-									</section>
-								</section>
-							))}
+								);
+							})}
 						</section>
 					)}
 				</section>
@@ -663,7 +663,7 @@ const PlannerContract = () => {
 						<span>Total Contracts: {totalContracts}</span>
 					</section>
 					<section className="stat-item pending-stat">
-						<span>Pending Contracts: {pendingContracts}</span>
+						<span>Pending Signatures: {pendingContracts}</span>
 					</section>
 					<section className="stat-item signed-stat">
 						<span>Signed Contracts: {signedContracts}</span>
@@ -708,6 +708,8 @@ const PlannerContract = () => {
 					<p>No events found matching "{debouncedSearchTerm}"</p>
 				</section>
 			)}
+			
+			{/* Signature Modal */}
 			<Popup
 				isOpen={showSignModal}
 				onClose={() => {
@@ -718,203 +720,26 @@ const PlannerContract = () => {
 				}}
 			>
 				{selectedContract && (
-					<section className="sign-modal">
-						<section className="modal-header">
-							<h3 id="modal-title">
-								{selectedContract.signatureWorkflow?.workflowStatus === "completed"
-									? "View Signed Contract: "
-									: "Sign Contract: "}
-								{selectedContract.fileName}
-							</h3>
-							<section className="document-version-info">
-								<span className="original-doc-indicator">
-									<FileText size={16} />
-									Contract document
-								</span>
-							</section>
-							<section className="modal-status">
-								{saveStatus && (
-									<span
-										className={`save-status ${
-											saveStatus.includes("Failed") ? "error" : "success"
-										}`}
-									>
-										{saveStatus}
-									</span>
-								)}
-								{isSaving && (
-									<span className="processing-indicator">
-										<RefreshCw size={16} className="spinning" />
-										Processing...
-									</span>
-								)}
-							</section>
-						</section>
-						<section className="contract-viewer">
-							<iframe
-								src={`${selectedContract.contractUrl}#toolbar=1&navpanes=0&scrollbar=1`}
-								style={{
-									width: "100%",
-									height: "500px",
-									border: "none",
-								}}
-								title="Contract Preview"
-							/>
-							{selectedContract.signatureFields
-								.filter((field) => field.signerRole === "client")
-								.map((field) => (
-									<section
-										key={field.id}
-										className="signature-field-overlay"
-										style={{
-											position: "absolute",
-											left: field.position.x,
-											top: field.position.y,
-											width: field.position.width,
-											height: field.position.height,
-											border: field.signed
-												? "2px solid #10b981"
-												: "2px dashed #2563eb",
-											backgroundColor: field.signed
-												? "rgba(16, 185, 129, 0.1)"
-												: "rgba(37, 99, 235, 0.1)",
-											zIndex: 10,
-										}}
-									>
-										{field.signed ? (
-											<section className="signed-indicator">
-												<img
-													src={field.signatureData}
-													alt="Signed"
-													style={{
-														width: "100%",
-														height: "100%",
-														objectFit: "contain",
-													}}
-												/>
-											</section>
-										) : (
-											<canvas
-												ref={(el) => (canvasRefs.current[field.id] = el)}
-												width={field.position.width}
-												height={field.position.height}
-												onMouseDown={(e) => startDrawing(field.id, e)}
-												onMouseMove={(e) => handleSign(field.id, e)}
-												onMouseUp={() => stopDrawing(field.id)}
-												onMouseLeave={() => stopDrawing(field.id)}
-												style={{
-													border: "1px solid #ccc",
-													borderRadius: "4px",
-												}}
-											/>
-										)}
-										<section
-											className="signature-field-label"
-											style={{
-												position: "absolute",
-												top: "-24px",
-												color: field.signed ? "#10b981" : "#2563eb",
-												fontWeight: field.signed ? "bold" : "normal",
-											}}
-										>
-											{field.label} {field.required && "*"}{" "}
-											{field.signed && "✓"}
-										</section>
-										{!field.signed && (
-											<button
-												className="clear-signature-btn"
-												onClick={() => clearSignature(field.id)}
-												style={{
-													position: "absolute",
-													top: "-10px",
-													right: "-10px",
-													width: "20px",
-													height: "20px",
-													borderRadius: "50%",
-													background: "#dc2626",
-													color: "white",
-													border: "none",
-													cursor: "pointer",
-												}}
-											>
-												<X size={10} />
-											</button>
-										)}
-									</section>
-								))}
-						</section>
-						<section className="signature-actions">
-							{selectedContract.signatureWorkflow?.workflowStatus !== "completed" && (
-								<>
-									<button
-										className="save-draft-btn"
-										onClick={saveDraftSignature}
-										disabled={isSaving || Object.keys(signatureData).length === 0}
-									>
-										{isSaving ? (
-											<RefreshCw size={16} className="spinning" />
-										) : (
-											<Save size={16} />
-										)}
-										Save Draft
-									</button>
-									<button
-										className="sign-btn"
-										onClick={sendSignedContract}
-										disabled={isSaving}
-									>
-										{isSaving ? (
-											<RefreshCw size={16} className="spinning" />
-										) : (
-											<Send size={16} />
-										)}
-										Finalize & Submit
-									</button>
-								</>
-							)}
-							{selectedContract.signatureWorkflow?.workflowStatus === "completed" && (
-								<section className="signed-contract-info">
-									<span className="completion-status">
-										<FileCheck size={16} />
-										Contract completed and signed on{" "}
-										{new Date(selectedContract.signedAt).toLocaleDateString()}
-									</span>
-									<button
-										className="download-btn"
-										onClick={() =>
-											handleDownloadContract(
-												selectedContract.contractUrl,
-												selectedContract.fileName
-											)
-										}
-									>
-										<Download size={16} />
-										Download Contract
-									</button>
-								</section>
-							)}
-							<button
-								className="delete-btn"
-								onClick={() => {
-									deleteContract(
-										selectedContract.eventId,
-										selectedContract.id,
-										selectedContract.contractUrl,
-										selectedContract.vendorId
-									);
-									setShowSignModal(false);
-									setSelectedContract(null);
-									setSignatureData({});
-									setSaveStatus("");
-								}}
-							>
-								<Trash2 size={16} />
-								Delete Contract
-							</button>
-						</section>
-					</section>
+					<PlannerSignatureView
+						contract={selectedContract}
+						onFinalize={sendSignedContract}
+						onSaveDraft={saveDraftSignature}
+						onClose={() => {
+							setShowSignModal(false);
+							setSelectedContract(null);
+							setSignatureData({});
+							setSaveStatus("");
+						}}
+					/>
 				)}
 			</Popup>
+
+			{/* Save Status Toast */}
+			{saveStatus && (
+				<div className="toast-notification">
+					{saveStatus}
+				</div>
+			)}
 		</section>
 	);
 };

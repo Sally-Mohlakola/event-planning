@@ -256,13 +256,7 @@ export default function PlannerSchedules() {
 
   // Check if schedule is PDF or items list
   const isSchedulePDF = (schedule) => {
-    return schedule.pdfUrl || (schedule.type === 'pdf' && !schedule.items);
-  };
-
-  const handlePDFView = (pdfUrl) => {
-    if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
-    }
+    return schedule.url;
   };
 
   const handleEventSelect = async (event) => {
@@ -294,18 +288,15 @@ export default function PlannerSchedules() {
     }));
   };
 
-  const handleCreateSchedule = (type) => {
-    if (type === 'manual') {
-      setShowCreateScheduleModal(true);
-    } else if (type === 'upload') {
-      setShowCreateScheduleModal(true);
-    }
+  const handleCreateSchedule = () => {
+    setShowCreateScheduleModal(true);
   };
 
   const handleScheduleCreate = async (type) => {
-    if (!selectedEvent || !newScheduleTitle.trim()) return;
+    if (!selectedEvent) return;
 
     if (type === 'manual') {
+      if(!newScheduleTitle.trim()) return;
       const result = await addSchedule(selectedEvent.id, newScheduleTitle);
       if (result) {
         const newSchedule = { 
@@ -346,7 +337,7 @@ export default function PlannerSchedules() {
         showNotification('error', 'Please enter a schedule title first');
         return;
       }
-      const result = await uploadSchedulePDF(selectedEvent.id, file, {title: selectedPdf.name});
+      const result = await uploadSchedulePDF(selectedEvent.id, file, {title: newScheduleTitle});
       if (result) {
         // Refresh schedules
         const fetchedSchedules = await fetchSchedules(selectedEvent.id);
@@ -368,6 +359,9 @@ export default function PlannerSchedules() {
     }
     event.target.value = '';
     setNewScheduleTitle('');
+    setSelectedPdf(null);
+    setShowCreateScheduleModal(false);
+
     
   };
 
@@ -751,18 +745,20 @@ function getCurrentTimeString() {
                               <section className="ps-pdf-schedule">
                                 <FileText className="ps-pdf-icon" />
                                 <section className="ps-pdf-info">
-                                  <h4>PDF Schedule</h4>
-                                  <p>This schedule is stored as a PDF document</p>
+                                  <h4>PDF Schedule Document</h4>
+                                  <p>Click the link below to view the schedule PDF:</p>
+                                  <a 
+                                    href={schedule.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="ps-pdf-link"
+                                  >
+                                    <ExternalLink className="ps-icon" />
+                                    Open PDF Schedule: {schedule.scheduleTitle || 'Schedule Document'}
+                                  </a>
                                 </section>
-                                <button
-                                  onClick={() => handlePDFView(schedule.pdfUrl)}
-                                  className="ps-btn ps-btn-secondary"
-                                >
-                                  <ExternalLink className="ps-icon" />
-                                  View PDF
-                                </button>
                               </section>
-                            ) : (
+                            )  : (
                               <>
                                 <section className="ps-schedule-actions">
                                   <button 
@@ -973,7 +969,6 @@ function getCurrentTimeString() {
                 </button>
                 <button
                   onClick={() => handleScheduleCreate('upload')}
-                  disabled={!newScheduleTitle.trim()}
                   className="ps-create-option"
                 >
                   <Upload className="ps-create-icon" />
