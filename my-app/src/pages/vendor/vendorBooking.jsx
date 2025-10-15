@@ -15,9 +15,9 @@ import {
 } from "lucide-react";
 import { auth } from "../../firebase";
 import { getAuth } from "firebase/auth";
-import BASE_URL from "../../apiConfig";
 import "./vendorBooking.css";
 import ChatComponent from "../planner/ChatComponent.jsx";
+import BASE_URL from "../../../apiConfig";
 
 // ---------- Format Date ----------
 function formatDate(date) {
@@ -117,7 +117,13 @@ const VendorBooking = ({ setActivePage }) => {
 
 		fetchBookings();
 	}, []);
-
+	const getOverallBookingStatus = (vendorServices) => {
+		if (!vendorServices || vendorServices.length === 0) return "pending";
+		const statuses = vendorServices.map((s) => s.status || "pending");
+		if (statuses.every((s) => s === "accepted")) return "accepted";
+		if (statuses.some((s) => s === "rejected")) return "rejected";
+		return "pending";
+	};
 	// ---------- Update Vendor Status ----------
 	const updateVendorStatus = async (eventId, vendorId, newStatus) => {
 		if (!auth.currentUser) {
@@ -142,7 +148,7 @@ const VendorBooking = ({ setActivePage }) => {
 			const token = await user.getIdToken();
 
 			const res = await fetch(
-				`https://us-central1-planit-sdp.cloudfunctions.net/api/event/${eventId}/vendor/${vendorId}/status`,
+				`${BASE_URL}/event/${eventId}/vendor/${vendorId}/status`,
 				{
 					method: "PUT",
 					headers: {
