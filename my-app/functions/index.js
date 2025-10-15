@@ -2853,9 +2853,8 @@ app.put('/admin/me', authenticate, async (req, res) => {
 
     await db.collection('Admin').doc(req.uid).update({ fullName,
       phone,
-      email,
       ...(profilePicURL && { profilePic: profilePicURL }),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: 'admin.firestore.FieldValue.serverTimestamp()',
     });
 
     res.json({ message: 'Profile updated successfully' });
@@ -3072,7 +3071,7 @@ app.post('/contracts/:contractId/signature-fields', authenticate, async (req, re
  */
 app.get('/admin/vendors', authenticate, async (req, res) => {
   try {
-    const snapshot = await db.collection('Vendor').get();
+    const snapshot = await db.collection('Vendor').where('status', '==', 'approved').get();
     if (snapshot.empty) {
       return res.json([]);
     }

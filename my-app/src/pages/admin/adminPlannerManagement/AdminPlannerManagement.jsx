@@ -5,6 +5,7 @@ import { Search, Edit, UserX, UserCheck, Trash2 } from "lucide-react";
 import Popup from "../../general/popup/Popup.jsx";
 import "./AdminPlannerManagement.css";
 import BASE_URL from "../../../apiConfig";
+import LoadingSpinner from "../../general/loadingspinner/LoadingSpinner.jsx";
 
 export default function PlannerManagement() {
 	const navigate = useNavigate();
@@ -70,10 +71,6 @@ export default function PlannerManagement() {
 		setIsPopupOpen(true);
 	};
 
-	const handleEdit = (plannerId) => {
-		alert(`Navigating to edit page for planner ${plannerId}`);
-	};
-
 	const handleUpdateStatus = async (plannerId, newStatus) => {
 		// ... (Logic to update status via API)
 		// This function would be similar to the one in your VendorApplications component
@@ -82,7 +79,7 @@ export default function PlannerManagement() {
 	if (isLoading)
 		return (
 			<main className="main-container">
-				<h3>Loading Planners...</h3>
+				<LoadingSpinner text="Loading planners..." />
 			</main>
 		);
 	if (error)
@@ -95,27 +92,15 @@ export default function PlannerManagement() {
 	return (
 		<main className="main-container planner-management-page">
 			<header className="page-header">
-				<div className="main-title">
-					<h3>Planner Management</h3>
-				</div>
-				<section className="filters-section">
-					<div className="search-bar">
-						<Search size={20} />
-						<input
-							type="text"
-							placeholder="Search by planner name..."
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-						/>
-					</div>
-					<select
-						value={statusFilter}
-						onChange={(e) => setStatusFilter(e.target.value)}
-					>
-						<option value="all">All Statuses</option>
-						<option value="active">Active</option>
-						<option value="suspended">Suspended</option>
-					</select>
+				<h3>Planner Management</h3>
+				<section className="search-bar">
+					<Search size={20} />
+					<input
+						type="text"
+						placeholder="Search by planner name..."
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+					/>
 				</section>
 			</header>
 
@@ -180,14 +165,6 @@ export default function PlannerManagement() {
 								</p>
 							</div>
 						</section>
-						<footer className="planner-modal-footer">
-							<button
-								className="btn-edit"
-								onClick={() => handleEdit(selectedPlanner.id)}
-							>
-								<Edit size={16} /> Edit Planner Details
-							</button>
-						</footer>
 					</div>
 				)}
 			</Popup>
