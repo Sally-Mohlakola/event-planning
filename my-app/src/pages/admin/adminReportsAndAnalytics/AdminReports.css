@@ -11,7 +11,7 @@
 
 /* Individual Report Summary Card */
 .admin-report-summary-card {
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 15px;
     display: flex;
@@ -47,31 +47,41 @@
 .admin-report-card-body {
     padding: 1.5rem;
     flex-grow: 1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    justify-content: center;
 }
 
 /* Key Performance Indicator (KPI) Metric Styling */
 .admin-report-kpi-metric {
     text-align: center;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.admin-report-kpi-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .admin-report-kpi-value {
-    font-size: clamp(1.4rem, 4vw, 2.25rem);
+    margin-top: 0.5rem;
+    font-size: clamp(1.75rem, 5vw, 2.75rem);
     font-weight: 700;
     color: var(--white);
-    line-height: 1.1;
+    line-height: 1;
     word-break: break-all;
 }
 
 .admin-report-kpi-label {
-    display: block;
     font-size: 0.9rem;
     color: var(--muted);
-    margin-top: 0.25rem;
 }
 
 /* Card Footer with Expand Button */

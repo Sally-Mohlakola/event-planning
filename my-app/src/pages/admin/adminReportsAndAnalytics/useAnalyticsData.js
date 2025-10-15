@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { auth } from "../../../firebase";
+import BASE_URL from "../../../apiConfig";
 
 const getToken = () =>
     auth.currentUser
@@ -20,10 +21,10 @@ export const useAnalyticsData = () => {
             try {
                 const token = await getToken();
                 const [summaryRes, eventsRes] = await Promise.all([
-                    fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/admin/analytics/platform-summary", {
+                    fetch(`${BASE_URL}/admin/analytics/platform-summary`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
-                    fetch("https://us-central1-planit-sdp.cloudfunctions.net/api/admin/events", {
+                    fetch(`${BASE_URL}/admin/events`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
                 ]);

@@ -11,7 +11,6 @@ import {
 	Calendar,
 	Users,
 	BarChart as BarIcon,
-	PieChart as PieIcon,
 	DollarSign,
 	UserCheck,
 } from "lucide-react";
@@ -161,7 +160,7 @@ const AdminReports = () => {
 					</section>
 					<footer className="admin-report-card-footer">
 						<button onClick={() => handleExpandReports("Planners")}>
-							<PieIcon size={16} /> Expand Planner Reports
+							<BarIcon size={16} /> Expand Planner Reports
 						</button>
 					</footer>
 				</article>
