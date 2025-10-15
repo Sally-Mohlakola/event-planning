@@ -14,15 +14,14 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { auth } from "../../firebase";
-import "./vendorBooking.css";
 import { getAuth } from "firebase/auth";
+import "./vendorBooking.css";
 import ChatComponent from "../planner/ChatComponent.jsx";
 
 // ---------- Format Date ----------
 function formatDate(date) {
   if (!date) return "";
 
-  // Firestore timestamp
   if (
     typeof date === "object" &&
     typeof date._seconds === "number" &&
@@ -32,18 +31,19 @@ function formatDate(date) {
     return jsDate.toLocaleString();
   }
 
-  // Already a JS Date
-  if (date instanceof Date) {
-    return date.toLocaleString();
-  }
+  if (date instanceof Date) return date.toLocaleString();
+  if (typeof date === "string") return new Date(date).toLocaleString();
 
-  // String
-  if (typeof date === "string") {
-    return new Date(date).toLocaleString();
-  }
-
-  return String(date); // fallback
+  return String(date);
 }
+
+// ---------- Format Budget ----------
+const formatBudget = (budget) => {
+  if (budget === undefined || budget === null || budget === 0) return "Not confirmed";
+  const amount = Number(budget);
+  if (isNaN(amount)) return "Not confirmed";
+  return `R ${amount.toLocaleString("en-ZA")}`;
+};
 
 const VendorBooking = ({ setActivePage }) => {
   const [filter, setFilter] = useState("all");
@@ -63,19 +63,20 @@ const VendorBooking = ({ setActivePage }) => {
 
   //-------- Fetch Bookings--------
   useEffect(() => {
-    const fetchBookings = async () => {
-      const auth = getAuth();
-            let user = auth.currentUser;
-            while (!user) {
-                await new Promise((res) => setTimeout(res, 50)); // wait 50ms
-              user = auth.currentUser;
-            }
-             vendorId = user.uid;
-      if (!user) {
-        setError("User not authenticated");
-        setLoading(false);
-        return;
-      }
+   const fetchBookings = async () => {
+  const auth = getAuth();
+  let user = auth.currentUser;
+  while (!user) {
+    await new Promise((res) => setTimeout(res, 50));
+    user = auth.currentUser;
+  }
+  vendorId = user.uid;
+
+  if (!user) {
+    setError("User not authenticated");
+    setLoading(false);
+    return;
+  }
 
       try {
               const token = await user.getIdToken();
@@ -99,27 +100,20 @@ const VendorBooking = ({ setActivePage }) => {
           contractUploaded: false, // placeholder
         }));
 
-        setBookings(formattedBookings);
-      } catch (err) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setBookings(formattedBookings);
+  } catch (err) {
+    console.error(err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     fetchBookings();
   }, []);
 
-  // -------- Status Functions --------
-  const getOverallBookingStatus = (vendorServices) => {
-    if (!vendorServices || vendorServices.length === 0) return "pending";
-    const statuses = vendorServices.map((s) => s.status || "pending");
-    if (statuses.every((s) => s === "accepted")) return "accepted";
-    if (statuses.some((s) => s === "rejected")) return "rejected";
-    return "pending";
-  };
-
+  // ---------- Update Vendor Status ----------
   const updateVendorStatus = async (eventId, vendorId, newStatus) => {
     if (!auth.currentUser) {
       alert("User not authenticated");
@@ -161,9 +155,9 @@ const VendorBooking = ({ setActivePage }) => {
 
       if (!res.ok) throw new Error(data.message || `Failed (HTTP ${res.status})`);
 
-      // Update local state
-      setBookings((prev) =>
-        prev.map((booking) =>
+      // Update state and persist to localStorage
+      setBookings((prev) => {
+        const updated = prev.map((booking) =>
           booking.eventId === eventId
             ? {
                 ...booking,
@@ -172,15 +166,18 @@ const VendorBooking = ({ setActivePage }) => {
                   status: newStatus,
                 })),
                 overallStatus: getOverallBookingStatus(
-                  booking.vendorServices.map((service) => ({
-                    ...service,
-                    status: newStatus,
-                  }))
+                  booking.vendorServices.map((service) => ({ ...service, status: newStatus }))
                 ),
               }
             : booking
-        )
-      );
+        );
+
+        const persisted = loadPersistedStatuses();
+        persisted[eventId] = newStatus;
+        savePersistedStatuses(persisted);
+
+        return updated;
+      });
     } catch (err) {
       console.error(err);
       alert(`Failed to update status: ${err.message}`);
@@ -189,7 +186,7 @@ const VendorBooking = ({ setActivePage }) => {
     }
   };
 
-  // -------- Event & Chat Handlers --------
+  // ---------- Event & Chat Handlers ----------
   const handleViewEvent = (booking) => {
     setSelectedEvent(booking);
     setShowEventModal(true);
@@ -217,11 +214,7 @@ const VendorBooking = ({ setActivePage }) => {
 
   const handleAcceptBooking = async (booking) => {
     if (!booking.contractUploaded) {
-      if (
-        window.confirm(
-          "You need to upload a contract before accepting this booking. Go to contracts page?"
-        )
-      ) {
+      if (window.confirm("You need to upload a contract before accepting this booking. Go to contracts page?")) {
         handleUploadContract(booking.eventId);
       }
       return;
@@ -230,7 +223,7 @@ const VendorBooking = ({ setActivePage }) => {
     await updateVendorStatus(booking.eventId, vendorId, "accepted");
   };
 
-  // -------- Filtering --------
+  // ---------- Filtering ----------
   const filteredBookings =
     filter === "all"
       ? bookings
@@ -265,10 +258,6 @@ const VendorBooking = ({ setActivePage }) => {
         <p>View, manage, and update your event bookings in one place.</p>
       </header>
 
-    {showChat && (<ChatComponent eventId={chatEventId} plannerId={chatPlannerId} vendorId={vendorId} 
-      currentUser={{id:vendorId, name: chatVendorName, type: "vendor"}} otherUser={{id:chatPlannerId, name: chatEventName, type: "planner"}}
-      closeChat={onCloseChat}/>)}
-
       <div className="filters">
         <Filter size={20} />
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
@@ -281,15 +270,11 @@ const VendorBooking = ({ setActivePage }) => {
 
       <div className="booking-list">
         {filteredBookings.map((booking) => (
-          <div
-            key={booking.eventId}
-            className={`booking-card ${booking.overallStatus}`}
-          >
+          <div key={booking.eventId} className={`booking-card ${booking.overallStatus}`}>
             <div className="booking-header">
               <h2>{booking.eventName || "Unnamed Event"}</h2>
               <span className={`status-badge status-${booking.overallStatus}`}>
-                {booking.overallStatus.charAt(0).toUpperCase() +
-                  booking.overallStatus.slice(1)}
+                {booking.overallStatus.charAt(0).toUpperCase() + booking.overallStatus.slice(1)}
               </span>
             </div>
 
@@ -312,7 +297,7 @@ const VendorBooking = ({ setActivePage }) => {
               </div>
               <div className="detail-row">
                 <DollarSign size={16} />
-                <span>Budget: R{booking.budget || "__TBC__"}</span>
+                <span>Budget: {formatBudget(booking.budget)}</span>
               </div>
             </div>
 
@@ -322,59 +307,29 @@ const VendorBooking = ({ setActivePage }) => {
                 {booking.vendorServices.map((service) => (
                   <div key={service.serviceId} className="service-item">
                     <span className="service-name">{service.serviceName}</span>
-                    <span
-                      className={`service-status status-${service.status || "pending"}`}
-                    >
+                    <span className={`service-status status-${service.status || "pending"}`}>
                       {(service.status || "pending").charAt(0).toUpperCase() +
                         (service.status || "pending").slice(1)}
                     </span>
                     {service.lastUpdated && (
-                      <span className="service-updated">
-                        Last updated: {formatDate(service.lastUpdated)}
-                      </span>
+                      <span className="service-updated">Last updated: {formatDate(service.lastUpdated)}</span>
                     )}
                     <div className="service-actions">
                       <button
                         className="approve-btn small"
-                        onClick={() =>
-                          updateVendorStatus(
-                            booking.eventId,
-                            vendorId,
-                            "accepted"
-                          )
-                        }
-                        disabled={
-                          service.status === "accepted" ||
-                          isUpdating === `${booking.eventId}-${vendorId}`
-                        }
+                        onClick={() => updateVendorStatus(booking.eventId, vendorId, "accepted")}
+                        disabled={service.status === "accepted" || isUpdating === `${booking.eventId}-${vendorId}`}
                         title="Accept this service"
                       >
-                        {isUpdating === `${booking.eventId}-${vendorId}` ? (
-                          "..."
-                        ) : (
-                          <CheckCircle size={14} />
-                        )}
+                        {isUpdating === `${booking.eventId}-${vendorId}` ? "..." : <CheckCircle size={14} />}
                       </button>
                       <button
                         className="reject-btn small"
-                        onClick={() =>
-                          updateVendorStatus(
-                            booking.eventId,
-                            vendorId,
-                            "rejected"
-                          )
-                        }
-                        disabled={
-                          service.status === "rejected" ||
-                          isUpdating === `${booking.eventId}-${vendorId}`
-                        }
+                        onClick={() => updateVendorStatus(booking.eventId, vendorId, "rejected")}
+                        disabled={service.status === "rejected" || isUpdating === `${booking.eventId}-${vendorId}`}
                         title="Reject this service"
                       >
-                        {isUpdating === `${booking.eventId}-${vendorId}` ? (
-                          "..."
-                        ) : (
-                          <XCircle size={14} />
-                        )}
+                        {isUpdating === `${booking.eventId}-${vendorId}` ? "..." : <XCircle size={14} />}
                       </button>
                     </div>
                   </div>
@@ -383,36 +338,22 @@ const VendorBooking = ({ setActivePage }) => {
             </div>
 
             <div className="booking-actions">
-              <button
-                className="view-details-btn"
-                onClick={() => handleViewEvent(booking)}
-              >
+              <button className="view-details-btn" onClick={() => handleViewEvent(booking)}>
                 <Eye size={16} /> View Details
               </button>
 
-              <button
-                className="chat-btn"
-                onClick={() => handleOpenChat(booking)}
-              >
+              <button className="chat-btn" onClick={() => handleOpenChat(booking)}>
                 <MessageCircle size={16} /> Chat
               </button>
 
-              <button
-                className="upload-contract-btn"
-                onClick={() => handleUploadContract(booking.eventId)}
-              >
-                <Upload size={16} />{" "}
-                {booking.contractUploaded ? "View Contract" : "Upload Contract"}
+              <button className="upload-contract-btn" onClick={() => handleUploadContract(booking.eventId)}>
+                <Upload size={16} /> {booking.contractUploaded ? "View Contract" : "Upload Contract"}
               </button>
 
               <button
-                className={`accept-booking-btn ${
-                  !booking.contractUploaded ? "disabled" : ""
-                }`}
+                className={`accept-booking-btn ${!booking.contractUploaded ? "disabled" : ""}`}
                 onClick={() => handleAcceptBooking(booking)}
-                disabled={
-                  !booking.contractUploaded || booking.overallStatus === "accepted"
-                }
+                disabled={!booking.contractUploaded || booking.overallStatus === "accepted"}
               >
                 {!booking.contractUploaded ? (
                   <>
