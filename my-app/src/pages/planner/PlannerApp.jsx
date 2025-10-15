@@ -20,7 +20,7 @@ import "./PlannerApp.css";
 import PlannerViewEvent from "./PlannerViewEvent";
 import PlannerReview from "./PlannerReview";
 import PlannerContract from "./PlannerContract";
-import PlannerFloorPlan from "./PlannerFloorPlan";
+import PlannerFloorPlan from "./components/PlannerFloorPlan";
 import PlannerSchedules from "./PlannerSchedules";
 import PlannerCalendar from "./PlannerCalendar";
 

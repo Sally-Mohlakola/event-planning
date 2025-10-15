@@ -1,6 +1,7 @@
 const express = require("express");
 
-module.exports = function apiKeyAuth(EXTERNAL_API_KEY) {
+// --- Middleware for API key authentication ---
+function apiKeyAuth(EXTERNAL_API_KEY) {
   return (req, res, next) => {
     const providedKey = req.header("x-api-key");
 
@@ -14,9 +15,9 @@ module.exports = function apiKeyAuth(EXTERNAL_API_KEY) {
 
     next();
   };
-};
+}
 
-
+// --- Main exported router ---
 module.exports = (db, bucket, EXTERNAL_API_KEY) => {
   const router = express.Router();
 

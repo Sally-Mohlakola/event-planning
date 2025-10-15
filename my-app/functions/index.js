@@ -2646,7 +2646,7 @@ app.delete('/admin/events/:eventId', async (req, res) => {
 });
 
 
-const publicRoutes = require("./public.js")(db, bucket, EXTERNAL_API_KEY);
+const publicRoutes = require("./publicRoutes.js")(db, bucket, EXTERNAL_API_KEY);
 app.use("/public", publicRoutes);
 
 
