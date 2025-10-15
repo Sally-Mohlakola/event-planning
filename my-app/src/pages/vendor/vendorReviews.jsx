@@ -148,9 +148,10 @@ const VendorReviews = () => {
 			try {
 				const auth = getAuth();
 				let user = auth.currentUser;
-				while (!user)
-					(await new Promise((res) => setTimeout(res, 50))) &&
-						(user = auth.currentUser);
+				while (!user) {
+					await new Promise((res) => setTimeout(res, 50));
+					user = auth.currentUser;
+				}
 				const token = await user.getIdToken();
 
 				const res = await fetch(`${BASE_URL}/analytics/${vendorId}`, {
@@ -159,16 +160,25 @@ const VendorReviews = () => {
 						"Content-Type": "application/json",
 					},
 				});
+
+				// Handle 404 case by creating empty analytics
+				if (res.status === 404) {
+					setReviews([]);
+					return;
+				}
+
 				if (!res.ok) throw new Error("Failed to fetch reviews");
 
 				const data = await res.json();
 				setReviews(data.reviews || []);
 			} catch (err) {
+				console.error("Error fetching reviews:", err);
 				setError(err.message);
 			} finally {
 				setLoading(false);
 			}
 		};
+
 		fetchReviews();
 	}, [vendorId]);
 
@@ -508,7 +518,36 @@ const VendorReviews = () => {
 			</div>
 		);
 	if (error) return <p className="error">{error}</p>;
-	if (!reviews.length) return <p>No reviews found.</p>;
+
+	// Replace simple "No reviews" message with informative component
+	if (!reviews || reviews.length === 0) {
+		return (
+			<section className="vendor-reviews-page">
+				<div className="review-page-title">
+					<h2>Vendor Reviews</h2>
+					<p>Review, analyze, and respond to reviews about your services.</p>
+				</div>
+
+				<div className="no-reviews-container">
+					<div className="no-reviews-content">
+						<h3>No Reviews Yet</h3>
+						<p>
+							You haven't received any reviews yet. Reviews will appear here after clients rate your services.
+						</p>
+						<div className="no-reviews-tips">
+							<h4>Tips to get your first reviews:</h4>
+							<ul>
+								<li>Complete your first event booking</li>
+								<li>Provide excellent service to your clients</li>
+								<li>Follow up with clients after events</li>
+								<li>Ensure all your services are listed correctly</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</section>
+		);
+	}
 
 	const analytics = calculateAnalytics();
 
