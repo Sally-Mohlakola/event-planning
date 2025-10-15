@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import "./vendorReviews.css";
+import BASE_URL from "../../apiConfig";
 
 // Updated StarRating component with filled stars
 const StarRating = ({ rating, size = 16 }) => (
@@ -152,15 +153,12 @@ const VendorReviews = () => {
 						(user = auth.currentUser);
 				const token = await user.getIdToken();
 
-				const res = await fetch(
-					`https://us-central1-planit-sdp.cloudfunctions.net/api/analytics/${vendorId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`,
-							"Content-Type": "application/json",
-						},
-					}
-				);
+				const res = await fetch(`${BASE_URL}/analytics/${vendorId}`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+						"Content-Type": "application/json",
+					},
+				});
 				if (!res.ok) throw new Error("Failed to fetch reviews");
 
 				const data = await res.json();

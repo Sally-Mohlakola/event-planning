@@ -5,7 +5,6 @@ import { Search, Edit } from "lucide-react";
 import Popup from "../../general/popup/Popup.jsx";
 import "./AdminVendorManagement.css";
 import AdminVendorApplications from "./AdminVendorApplications.jsx";
-import BASE_URL from "../../../apiConfig";
 
 function AdminVendorManagement() {
 	const navigate = useNavigate();
@@ -34,7 +33,8 @@ function AdminVendorManagement() {
 			}
 			try {
 				const token = await getToken();
-				const apiUrl = `${BASE_URL}/admin/vendors`;
+				const apiUrl =
+					"https://us-central1-planit-sdp.cloudfunctions.net/api/admin/vendors";
 				const response = await fetch(apiUrl, {
 					headers: { Authorization: `Bearer ${token}` },
 				});

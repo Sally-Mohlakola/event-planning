@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { auth } from "../../../firebase";
 import Popup from "../../general/popup/Popup.jsx";
 import "./AdminVendorApplications.css";
-import BASE_URL from "../../../apiConfig";
 
 function AdminVendorApplications() {
 	const [applications, setApplications] = useState([]);
@@ -12,15 +11,19 @@ function AdminVendorApplications() {
 	const [isPopupOpen, setIsPopupOpen] = useState(false);
 	const [selectedVendor, setSelectedVendor] = useState(null);
 
+	// Fetch pending applications when the component mounts
 	useEffect(() => {
 		const fetchApplications = async () => {
 			try {
-				const apiUrl = `${BASE_URL}/admin/vendor-applications`;
+				const apiUrl =
+					"https://us-central1-planit-sdp.cloudfunctions.net/api/admin/vendor-applications";
 
-				const response = await fetch(apiUrl);
+				const response = await fetch(apiUrl); // No auth headers needed for local testing
 
 				if (!response.ok) {
-					throw new Error("Failed to fetch applications");
+					throw new Error(
+						"Failed to fetch applications. Is the emulator running?"
+					);
 				}
 				const data = await response.json();
 				setApplications(data);
@@ -35,7 +38,7 @@ function AdminVendorApplications() {
 
 	const handleUpdateStatus = async (vendorId, status) => {
 		try {
-			const apiUrl = `${BASE_URL}/admin/vendor-applications/${vendorId}`;
+			const apiUrl = `https://us-central1-planit-sdp.cloudfunctions.net/api/admin/vendor-applications/${vendorId}`;
 
 			const response = await fetch(apiUrl, {
 				method: "PUT",
