@@ -6,15 +6,9 @@ import { useFloorplanHandlers } from "../hooks/useFloorplanHandlers";
 import { useFloorplanStorage } from "../hooks/useFloorplanStorage";
 import { uploadToVendor, exportToPNG } from "../utils/floorplanImage";
 import { ITEM_PROTOTYPES } from "../constants/floorplanItems";
+import { TEMPLATES } from "../constants/floorplanTemplates";
 import FloorplanItem from "./FloorplanItem";
 import "./PlannerFloorPlan.css";
-
-const TEMPLATES = [
-  { id: "blank", name: "Blank", color: "#ffffff" },
-  { id: "banquet", name: "Banquet (rect rows)", color: "#f8fafc" },
-  { id: "theatre", name: "Theatre (rows)", color: "#fbf7ff" },
-  { id: "cocktail", name: "Cocktail (open)", color: "#fff8f0" },
-];
 
 const ItemButtons = ({ addItem }) => (
   <div className="tool-buttons">
@@ -33,41 +27,117 @@ const SelectedControls = ({
   scaleSelected,
   rotateSelected,
   removeSelected,
-}) => (
-  <div className="selected-controls">
-    <div className="id-selection">
-      <label htmlFor="selected-id">Selected ID:</label>
-      <select
-        id="selected-id"
-        value={selectedId || ""}
-        onChange={(e) => setSelectedId(e.target.value || null)}
-      >
-        <option value="">—</option>
-        {items.map((it) => (
-          <option key={it.id} value={it.id}>
-            {it.id} ({it.type.replace(/_/g, " ")})
-          </option>
-        ))}
-      </select>
-    </div>
+  editItem,
+}) => {
+  const selectedItem = items.find((it) => it.id === selectedId);
+  const [editValues, setEditValues] = useState({
+    type: selectedItem?.type || "",
+    w: selectedItem?.w || 50,
+    h: selectedItem?.h || 50,
+    rotation: selectedItem?.rotation || 0,
+  });
 
-    {selectedId && (
-      <div className="control-buttons">
-        <div className="scale-controls">
-          <button onClick={() => scaleSelected(0.9)}>Scale Down</button>
-          <button onClick={() => scaleSelected(1.1)}>Scale Up</button>
-        </div>
-        <div className="rotate-controls">
-          <button onClick={() => rotateSelected(-15)}>Rotate -15°</button>
-          <button onClick={() => rotateSelected(15)}>Rotate +15°</button>
-        </div>
-        <button className="danger" onClick={removeSelected}>
-          Remove
-        </button>
+  useEffect(() => {
+    if (selectedItem) {
+      setEditValues({
+        type: selectedItem.type,
+        w: selectedItem.w,
+        h: selectedItem.h,
+        rotation: selectedItem.rotation,
+      });
+    }
+  }, [selectedId, selectedItem]);
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditValues((prev) => ({ ...prev, [name]: name === "type" ? value : Number(value) }));
+  };
+
+  const applyEdit = () => {
+    if (!selectedId) return;
+    editItem(selectedId, { ...editValues });
+  };
+
+  return (
+    <div className="selected-controls">
+      <div className="id-selection">
+        <label htmlFor="selected-id">Selected ID:</label>
+        <select
+          id="selected-id"
+          value={selectedId || ""}
+          onChange={(e) => setSelectedId(e.target.value || null)}
+        >
+          <option value="">—</option>
+          {items.map((it) => (
+            <option key={it.id} value={it.id}>
+              {it.id} ({it.type.replace(/_/g, " ")})
+            </option>
+          ))}
+        </select>
       </div>
-    )}
-  </div>
-);
+
+      {selectedId && selectedItem && (
+        <div className="control-buttons">
+          <div className="scale-controls">
+            <button onClick={() => scaleSelected(0.9)}>Scale Down</button>
+            <button onClick={() => scaleSelected(1.1)}>Scale Up</button>
+          </div>
+          <div className="rotate-controls">
+            <button onClick={() => rotateSelected(-15)}>Rotate -15°</button>
+            <button onClick={() => rotateSelected(15)}>Rotate +15°</button>
+          </div>
+          <button className="danger" onClick={removeSelected}>
+            Remove
+          </button>
+
+          <div className="edit-controls">
+            <h4>Edit Item</h4>
+            <label>
+              Type:
+              <select name="type" value={editValues.type} onChange={handleEditChange}>
+                {Object.keys(ITEM_PROTOTYPES).map((key) => (
+                  <option key={key} value={ITEM_PROTOTYPES[key].type}>
+                    {ITEM_PROTOTYPES[key].type.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Width:
+              <input
+                type="number"
+                name="w"
+                value={editValues.w}
+                onChange={handleEditChange}
+                min={8}
+              />
+            </label>
+            <label>
+              Height:
+              <input
+                type="number"
+                name="h"
+                value={editValues.h}
+                onChange={handleEditChange}
+                min={8}
+              />
+            </label>
+            <label>
+              Rotation:
+              <input
+                type="number"
+                name="rotation"
+                value={editValues.rotation}
+                onChange={handleEditChange}
+              />
+            </label>
+            <button onClick={applyEdit}>Apply Changes</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const PlannerFloorPlan = ({ eventId: initialEventId }) => {
   const [events, setEvents] = useState([]);
@@ -87,6 +157,8 @@ const PlannerFloorPlan = ({ eventId: initialEventId }) => {
     removeSelected,
     scaleSelected,
     rotateSelected,
+    editItem,
+    deleteFloorplan,
     onPointerDownItem,
     onPointerMove,
     onPointerUp,
@@ -226,6 +298,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId }) => {
             scaleSelected={scaleSelected}
             rotateSelected={rotateSelected}
             removeSelected={removeSelected}
+            editItem={editItem}
           />
 
           <h3>Save / Upload</h3>
@@ -259,6 +332,9 @@ const PlannerFloorPlan = ({ eventId: initialEventId }) => {
             </button>
             <button onClick={loadLocal} disabled={!selectedEventId}>
               Load Draft
+            </button>
+            <button onClick={deleteLocal} disabled={!selectedEventId} className="danger">
+              Delete Draft
             </button>
           </div>
 

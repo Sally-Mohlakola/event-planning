@@ -87,5 +87,26 @@ export function useFloorplanStorage({
     }
   };
 
-  return { handleImageUpload, clearBackgroundImage, saveLocal, loadLocal };
+
+  const deleteLocal = () => {
+    if (!selectedEventId) {
+      alert("Please select an event to delete the draft.");
+      return;
+    }
+    const key = `floorplan-${selectedEventId}`;
+    if (!localStorage.getItem(key)) {
+      alert("No saved draft found to delete.");
+      return;
+    }
+    localStorage.removeItem(key);
+    alert("Draft deleted from local storage.");
+    // Optionally, clear current state too:
+    setItems([]);
+    setTemplate(TEMPLATES[0].id);
+    setBackgroundImage(null);
+    setIsDirty(false);
+  };
+
+  return { handleImageUpload, clearBackgroundImage, saveLocal, loadLocal, deleteLocal };
 }
+
