@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { Edit, Mail, Phone } from "lucide-react";
 import "./AdminProfile.css";
+import BASE_URL from "../../../apiConfig";
 
 const AdminProfile = () => {
 	const navigate = useNavigate();
@@ -19,10 +19,9 @@ const AdminProfile = () => {
 		setLoading(true);
 		try {
 			const token = await auth.currentUser.getIdToken();
-			const res = await fetch(
-				"https://us-central1-planit-sdp.cloudfunctions.net/api/admin/me",
-				{ headers: { Authorization: `Bearer ${token}` } }
-			);
+			const res = await fetch(`${BASE_URL}/admin/me`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
 			if (res.status === 403)
 				throw new Error("Access Forbidden: You are not an admin.");
 			if (!res.ok) throw new Error("Failed to fetch admin profile");

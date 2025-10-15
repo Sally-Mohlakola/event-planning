@@ -7,7 +7,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -99,7 +99,7 @@
 }
 
 .review-close-btn:hover {
-  background-color: #f3f4f6;
+  background: #f3f4f6;
   color: #1f2937;
 }
 
@@ -110,7 +110,7 @@
   }
   
   .review-close-btn:hover {
-    background-color: #4b5563;
+    background: #4b5563;
     color: #f9fafb;
   }
 }
@@ -122,7 +122,7 @@
 .vendor-review-info {
   margin-bottom: 24px;
   padding: 16px;
-  background-color: #f9fafb;
+  background: #f9fafb;
   border-radius: 8px;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -130,7 +130,7 @@
 /* Dark mode vendor info */
 @media (prefers-color-scheme: dark) {
   .vendor-review-info {
-    background-color: #4b5563;
+    background: #4b5563;
   }
 }
 
@@ -227,6 +227,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-right: 1rem ;
 }
 
 .review-text-section label {
@@ -252,7 +253,7 @@
   font-family: inherit;
   resize: vertical;
   transition: all 0.2s;
-  background-color: white;
+  background: white;
   color: #1f2937;
 }
 
@@ -265,7 +266,7 @@
 /* Dark mode textarea */
 @media (prefers-color-scheme: dark) {
   .review-text-section textarea {
-    background-color: #4b5563;
+    background: #4b5563;
     border-color: #6b7280;
     color: #f9fafb;
   }
@@ -296,7 +297,7 @@
 }
 
 .review-error {
-  background-color: #fef2f2;
+  background: #fef2f2;
   border: 1px solid #fecaca;
   color: #dc2626;
   padding: 12px;
@@ -309,7 +310,7 @@
 /* Dark mode error */
 @media (prefers-color-scheme: dark) {
   .review-error {
-    background-color: #7f1d1d;
+    background: #7f1d1d;
     border-color: #dc2626;
     color: #fca5a5;
   }
@@ -334,22 +335,22 @@
 }
 
 .cancel-review-btn {
-  background-color: #f3f4f6;
+  background: #f3f4f6;
   color: #374151;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .cancel-review-btn:hover:not(:disabled) {
-  background-color: #e5e7eb;
+  background: #e5e7eb;
 }
 
 .submit-review-btn {
-  background-color: #2563eb;
+  background: #2563eb;
   color: white;
 }
 
 .submit-review-btn:hover:not(:disabled) {
-  background-color: #1d4ed8;
+  background: #1d4ed8;
 }
 
 .submit-review-btn:disabled,
@@ -361,20 +362,20 @@
 /* Dark mode buttons */
 @media (prefers-color-scheme: dark) {
   .cancel-review-btn {
-    background-color: #4b5563;
+    background: #4b5563;
     color: #f9fafb;
   }
   
   .cancel-review-btn:hover:not(:disabled) {
-    background-color: #6b7280;
+    background: #6b7280;
   }
   
   .submit-review-btn {
-    background-color: #3b82f6;
+    background: #3b82f6;
   }
   
   .submit-review-btn:hover:not(:disabled) {
-    background-color: #2563eb;
+    background: #2563eb;
   }
 }
 

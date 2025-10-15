@@ -2,64 +2,63 @@
 import React, { useState } from "react";
 import { getAuth } from "firebase/auth";
 import "./PlannerReviewVendor.css";
+import BASE_URL from "../../apiConfig";
+import { Star } from "lucide-react";
 
-const API_BASE = "https://us-central1-planit-sdp.cloudfunctions.net/api";
-const API_TEST = "http://127.0.0.1:5001/planit-sdp/us-central1/api";
-
-export default function PlannerReviewVendor({ 
-  vendorId, 
-  vendorName, 
-  eventId, 
-  serviceName,
-  onClose, 
-  onReviewSubmitted 
+export default function PlannerReviewVendor({
+	vendorId,
+	vendorName,
+	eventId,
+	serviceName,
+	onClose,
+	onReviewSubmitted,
 }) {
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [reviewText, setReviewText] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
+	const [rating, setRating] = useState(0);
+	const [hoverRating, setHoverRating] = useState(0);
+	const [reviewText, setReviewText] = useState("");
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (rating === 0) {
-      setError("Please select a rating");
-      return;
-    }
-    
-    if (reviewText.trim().length < 10) {
-      setError("Review must be at least 10 characters");
-      return;
-    }
+	const handleSubmit = async (e) => {
+		e.preventDefault();
 
-    setIsSubmitting(true);
-    setError("");
+		if (rating === 0) {
+			setError("Please select a rating");
+			return;
+		}
 
-    try {
-      const auth = getAuth();
-      const token = await auth.currentUser.getIdToken();
+		if (reviewText.trim().length < 10) {
+			setError("Review must be at least 10 characters");
+			return;
+		}
 
-      const response = await fetch(
-        `${API_BASE}/planner/vendors/${vendorId}/reviews`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            rating,
-            review: reviewText,
-            eventId,
-            serviceName
-          }),
-        }
-      );
+		setIsSubmitting(true);
+		setError("");
 
-      if (!response.ok) {
-        throw new Error("Failed to submit review");
-      }
+		try {
+			const auth = getAuth();
+			const token = await auth.currentUser.getIdToken();
+
+			const response = await fetch(
+				`${BASE_URL}/planner/vendors/${vendorId}/reviews`,
+				{
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${token}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						rating,
+						review: reviewText,
+						eventId,
+						serviceName,
+					}),
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error("Failed to submit review");
+			}
 
       const result = await response.json();
       
@@ -90,24 +89,26 @@ export default function PlannerReviewVendor({
     }
   };
 
-  return (
-    <section className="review-vendor-overlay" onClick={onClose}>
-      <section 
-        className="review-vendor-modal" 
-        onClick={(e) => e.stopPropagation()}
-      >
-        <section className="review-modal-header">
-          <h2>Review Vendor</h2>
-          <button className="review-close-btn" onClick={onClose}>
-            ×
-          </button>
-        </section>
+	return (
+		<section className="review-vendor-overlay" onClick={onClose}>
+			<section
+				className="review-vendor-modal"
+				onClick={(e) => e.stopPropagation()}
+			>
+				<section className="review-modal-header">
+					<h2>Review Vendor</h2>
+					<button className="review-close-btn" onClick={onClose}>
+						×
+					</button>
+				</section>
 
-        <section className="review-modal-body">
-          <section className="vendor-review-info">
-            <h3>{vendorName}</h3>
-            {serviceName && <p className="service-name">{serviceName}</p>}
-          </section>
+				<section className="review-modal-body">
+					<section className="vendor-review-info">
+						<h3>{vendorName}</h3>
+						{serviceName && (
+							<p className="service-name">{serviceName}</p>
+						)}
+					</section>
 
           <form onSubmit={handleSubmit} className="review-form">
             <section className="rating-section">
@@ -125,7 +126,7 @@ export default function PlannerReviewVendor({
                     onMouseLeave={() => setHoverRating(0)}
                     aria-label={`Rate ${star} star${star !== 1 ? 's' : ''}`}
                   >
-                    ★
+                    <Star/>
                   </button>
                 ))}
               </section>
