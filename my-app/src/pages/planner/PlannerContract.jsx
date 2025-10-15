@@ -516,14 +516,21 @@ const PlannerContract = () => {
 		return groups;
 	}, [contracts]);
 
-	const filteredEventIds = useMemo(() => {
-		return Object.keys(groupedContracts).filter((eventId) => {
-			const event = groupedContracts[eventId];
-			return event.eventName
-				.toLowerCase()
-				.includes(debouncedSearchTerm.toLowerCase());
-		});
-	}, [groupedContracts, debouncedSearchTerm]);
+const filteredEventIds = useMemo(() => {
+    return Object.keys(groupedContracts).filter((eventId) => {
+        const event = groupedContracts[eventId];
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        
+        // Search by event name or contracts within the event
+        const eventNameMatch = event.eventName.toLowerCase().includes(searchLower);
+        const contractMatch = event.contracts.some(contract => 
+            contract.fileName.toLowerCase().includes(searchLower) ||
+            contract.vendorName?.toLowerCase().includes(searchLower)
+        );
+        
+        return eventNameMatch || contractMatch;
+    });
+}, [groupedContracts, debouncedSearchTerm]);
 
 	const totalContracts = contracts.length;
 	const pendingContracts = contracts.filter(
@@ -546,7 +553,7 @@ const PlannerContract = () => {
 
 	const EventCard = React.memo(({ eventId, eventData }) => {
 		return (
-			<section className="event-card">
+			<section className="event-card-planner-contract">
 				<section className="event-info">
 					<p>
 						<FileText size={16} /> {eventData.eventName}
@@ -610,14 +617,14 @@ const PlannerContract = () => {
 												</span>
 											</p>
 											<span
-												className={`status-badge status-${statusDisplay.class}`}
+												className={`status-badge-planner-contract status-${statusDisplay.class}`}
 											>
 												{statusDisplay.text}
 											</span>
 											{contract.signatureWorkflow
 												?.isElectronic && (
 												<span
-													className={`signature-badge ${contract.signatureWorkflow.workflowStatus}`}
+													className={`signature-badge-planner-contract ${contract.signatureWorkflow.workflowStatus}`}
 												>
 													{contract.signatureWorkflow.workflowStatus.replace(
 														"_",
@@ -713,29 +720,29 @@ const PlannerContract = () => {
 	}
 
 	return (
-		<section className="events-page">
+		<section className="contracts-page-planner-contract">
 			<header>
 				<h1>Contract Management</h1>
 				<p>Manage vendor contracts for your events.</p>
 				<section className="stats-summary">
-					<section className="stat-item">
+					<section className="stat-item-planner-contract">
 						<FileText size={20} />
 						<span>Total Contracts: {totalContracts}</span>
 					</section>
-					<section className="stat-item pending-stat">
+					<section className="stat-item-planner-contract pending-stat-planner-contract">
 						<span>Pending Signatures: {pendingContracts}</span>
 					</section>
-					<section className="stat-item signed-stat">
+					<section className="stat-item-planner-contract signed-stat-planner-contract">
 						<span>Signed Contracts: {signedContracts}</span>
 					</section>
 				</section>
-				<section className="search-container">
+				<section className="search-container-planner-contract">
 					<input
 						type="text"
 						placeholder="Search by event name..."
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
-						className="search-input"
+						className="search-input-planner-contract"
 					/>
 					{searchTerm && (
 						<button
@@ -747,12 +754,12 @@ const PlannerContract = () => {
 					)}
 				</section>
 			</header>
-			<section className="events-section">
-				<h2 className="section-title">
+			<section className="events-section-planner-contract">
+				<h2 className="section-title-planner-contract">
 					<Calendar size={20} />
 					Your Events ({filteredEventIds.length})
 				</h2>
-				<section className="events-list">
+				<section className="events-list-planner-contract">
 					{filteredEventIds.map((eventId) => (
 						<EventCard
 							key={eventId}
