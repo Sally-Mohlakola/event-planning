@@ -1,9 +1,84 @@
 /* ===== Vendor Floorplan Page ===== */
+
+/* ===== Tiles Grid with Scrollbar ===== */
+.tiles-grid.minimized {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  max-height: 70vh; /* Limit height to enable scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
+  padding-right: 0.5rem; /* Space for scrollbar */
+}
+
+/* Custom scrollbar styling */
+.tiles-grid.minimized::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tiles-grid.minimized::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.tiles-grid.minimized::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.tiles-grid.minimized::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar */
+.tiles-grid.minimized {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Ensure the page layout accommodates the scrollable area */
 .floorplan-page {
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 1rem 1.5rem; /* Reduced top padding from 1.5rem to 1rem */
+  padding: 1rem -0.75rem;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full viewport height */
+}
+
+/* Header section stays fixed at top */
+.floorplan-page header {
+  text-align: left;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+/* Controls row stays fixed */
+.controls-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0; /* Prevent controls from shrinking */
+}
+
+/* Tiles grid takes remaining space and scrolls */
+.tiles-grid.minimized {
+  flex: 1; /* Take remaining vertical space */
+  min-height: 0; /* Important for flex child scrolling */
+}
+
+.floorplan-page {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: -2rem -1rem; /* Reduced top padding from 1.5rem to 1rem */
   box-sizing: border-box;
   font-family: "Inter", sans-serif;
 }
@@ -11,7 +86,7 @@
 .floorplan-page header {
   text-align: left;
   margin-bottom: 1.5rem; /* Reduced from 2rem */
-  margin-top: -0.5rem; /* Pulls the header up */
+  margin-top: 1rem; /* Pulls the header up */
 }
 
 .floorplan-page h1 {
