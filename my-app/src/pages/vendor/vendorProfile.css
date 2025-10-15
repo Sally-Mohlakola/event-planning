@@ -749,3 +749,446 @@
     min-height: 80px;
   }
 }
+
+/* Add to existing vendorProfile.css */
+
+/* Enhanced Description Section with Border */
+.description-section {
+  margin-top: 1.5rem;
+}
+
+.description-section h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.75rem 0;
+}
+
+.description-content {
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  background: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.description-content:hover {
+  border-color: #d1d5db;
+  background: #f8fafc;
+}
+
+.description-content p {
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Enhanced Summary Cards with Real Data */
+.summary-change {
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+/* Loading States for Real Data */
+.summary-value.loading {
+  color: #d1d5db;
+  background: #d1d5db;
+  border-radius: 0.25rem;
+  min-width: 60px;
+  height: 2rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Responsive adjustments for new layout */
+@media (max-width: 768px) {
+  .description-content {
+    padding: 1rem;
+  }
+  
+  .description-section h4 {
+    font-size: 1rem;
+  }
+  
+  .description-content p {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .description-content {
+    padding: 0.75rem;
+  }
+  
+  .description-content p {
+    font-size: 0.85rem;
+  }
+}
+
+/* Popup Notifications Styles */
+.popup-notifications-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+  width: 100%;
+}
+
+.popup-notification {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e5e7eb;
+  transform: translateX(400px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.popup-notification.visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.popup-notification.hidden {
+  transform: translateX(400px);
+  opacity: 0;
+}
+
+.popup-notification.success {
+  border-left: 4px solid #10b981;
+}
+
+.popup-notification.error {
+  border-left: 4px solid #ef4444;
+}
+
+.popup-notification.warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.popup-notification.info {
+  border-left: 4px solid #3b82f6;
+}
+
+.notification-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  position: relative;
+  background: white;
+}
+
+.notification-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  border-radius: 50%;
+  padding: 4px;
+}
+
+.popup-notification.success .notification-icon {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.popup-notification.error .notification-icon {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.popup-notification.warning .notification-icon {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.popup-notification.info .notification-icon {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.notification-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1f2937;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.notification-message {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-close:hover {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.notification-progress {
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  width: 100%;
+  transform: scaleX(1);
+  transform-origin: left;
+  animation: progressShrink linear forwards;
+}
+
+.popup-notification.success .notification-progress {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.popup-notification.error .notification-progress {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.popup-notification.warning .notification-progress {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.popup-notification.info .notification-progress {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+@keyframes progressShrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Hover effects for notifications */
+.popup-notification:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+.popup-notification.visible:hover {
+  transform: translateX(0) translateY(-2px);
+}
+
+/* Responsive notifications */
+@media (max-width: 768px) {
+  .popup-notifications-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .popup-notification {
+    border-left-width: 3px;
+  }
+  
+  .notification-content {
+    padding: 12px;
+  }
+  
+  .notification-title {
+    font-size: 0.9rem;
+  }
+  
+  .notification-message {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .popup-notifications-container {
+    top: 5px;
+    right: 5px;
+    left: 5px;
+  }
+  
+  .notification-content {
+    padding: 10px;
+    gap: 8px;
+  }
+}
+
+/* Delete Confirmation Modal Styles */
+.delete-confirm-modal {
+  max-width: 450px;
+  width: 90%;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.delete-confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-bottom: 1px solid #fecaca;
+}
+
+.delete-confirm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #ef4444;
+  border-radius: 50%;
+  color: white;
+  flex-shrink: 0;
+}
+
+.delete-confirm-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.delete-confirm-body {
+  padding: 24px;
+}
+
+.delete-confirm-body p {
+  margin: 0 0 12px 0;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.delete-confirm-body p:last-child {
+  margin-bottom: 0;
+}
+
+.delete-warning-text {
+  color: #ef4444 !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: #fef2f2;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 3px solid #ef4444;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.delete-confirm-actions .btn-secondary {
+  flex: 1;
+  justify-content: center;
+  background: white;
+  border: 2px solid #d1d5db;
+  color: #374151;
+}
+
+.delete-confirm-actions .btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-delete-confirm {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-delete-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive delete modal */
+@media (max-width: 480px) {
+  .delete-confirm-modal {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .delete-confirm-header {
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  
+  .delete-confirm-body {
+    padding: 20px;
+  }
+  
+  .delete-confirm-actions {
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px 20px;
+  }
+}
