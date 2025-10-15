@@ -1,16 +1,20 @@
 // src/vendor/VendorReviews.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { auth } from "../../firebase";
-import { Star, StarHalf, ChevronDown } from "lucide-react";
+import { Star, StarHalf, ChevronDown, TrendingUp, TrendingDown } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import "./vendorReviews.css";
 
+// Updated StarRating component with filled stars
 const StarRating = ({ rating, size = 16 }) => (
   <div className="star-rating">
     {[1, 2, 3, 4, 5].map((i) => {
-      if (i <= Math.floor(rating)) return <Star key={i} size={size} color="#fbbf24" />;
-      else if (i - rating <= 0.5) return <StarHalf key={i} size={size} color="#fbbf24" />;
-      else return <Star key={i} size={size} color="#d1d5db" />;
+      if (i <= Math.floor(rating)) 
+        return <Star key={i} size={size} color="#fbbf24" fill="#fbbf24" />;
+      else if (i - rating <= 0.5) 
+        return <StarHalf key={i} size={size} color="#fbbf24" fill="#fbbf24" />;
+      else 
+        return <Star key={i} size={size} color="#9d9fa4ff" fill="#f9fafbff" />;
     })}
   </div>
 );
@@ -107,6 +111,59 @@ const VendorReviews = () => {
     fetchReviews();
   }, [vendorId]);
 
+  // Calculate analytics
+  const calculateAnalytics = useCallback(() => {
+    if (!reviews.length) return null;
+
+    const overallRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
+    const totalReviews = reviews.length;
+
+    // Calculate this month's average
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonthReviews = reviews.filter(review => {
+      const reviewDate = getReviewDate(review);
+      return reviewDate >= thisMonthStart;
+    });
+    const thisMonthRating = thisMonthReviews.length > 0 
+      ? thisMonthReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / thisMonthReviews.length 
+      : 0;
+
+    // Calculate last month's average for comparison
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const lastMonthReviews = reviews.filter(review => {
+      const reviewDate = getReviewDate(review);
+      return reviewDate >= lastMonthStart && reviewDate <= lastMonthEnd;
+    });
+    const lastMonthRating = lastMonthReviews.length > 0 
+      ? lastMonthReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / lastMonthReviews.length 
+      : 0;
+
+    // Calculate rating change
+    const ratingChange = lastMonthRating > 0 ? thisMonthRating - lastMonthRating : 0;
+    const ratingChangePercent = lastMonthRating > 0 ? (ratingChange / lastMonthRating) * 100 : 0;
+
+    // Rating distribution
+    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    reviews.forEach((r) => {
+      const rating = Math.floor(r.rating || 0);
+      if (rating >= 1 && rating <= 5) ratingDistribution[rating]++;
+    });
+
+    return {
+      overallRating,
+      totalReviews,
+      thisMonthRating,
+      lastMonthRating,
+      ratingChange,
+      ratingChangePercent,
+      ratingDistribution,
+      thisMonthCount: thisMonthReviews.length,
+      lastMonthCount: lastMonthReviews.length
+    };
+  }, [reviews, getReviewDate]);
+
   // Sort reviews when sortOption or reviews change
   useEffect(() => {
     if (!reviews.length) {
@@ -120,7 +177,7 @@ const VendorReviews = () => {
       
       switch (sortOption) {
         case "newest":
-          return dateB - dateA; // Most recent first
+          return dateB - dateA; // Newest first
         case "oldest":
           return dateA - dateB; // Oldest first
         case "most-critical":
@@ -178,14 +235,7 @@ const VendorReviews = () => {
   if (error) return <p className="error">{error}</p>;
   if (!reviews.length) return <p>No reviews found.</p>;
 
-  const overallRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
-  const totalReviews = reviews.length;
-
-  const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  reviews.forEach((r) => {
-    const rating = Math.floor(r.rating || 0);
-    if (rating >= 1 && rating <= 5) ratingDistribution[rating]++;
-  });
+  const analytics = calculateAnalytics();
 
   return (
     <section className="vendor-reviews-page">
@@ -215,85 +265,147 @@ const VendorReviews = () => {
         </div>
       </div>
 
-      <div className="overall-rating">
-        <p>Overall Rating</p>
-        <h1>{overallRating.toFixed(1)}</h1>
-        <p className="total-reviews">{totalReviews} review(s)</p>
-      </div>
+      {/* Top Section - Two Tiles */}
+      <div className="reviews-top-section">
+        {/* Left Tile - Rating Distribution */}
+        <div className="distribution-tile">
+          <h3>Rating Distribution</h3>
+          <div className="rating-distribution">
+            {[5, 4, 3, 2, 1].map((rating) => {
+              const count = analytics.ratingDistribution[rating];
+              const percentage = (count / analytics.totalReviews) * 100;
+              return (
+                <div key={rating} className="distribution-item">
+                  <div className="distribution-stars">
+                    <span className="distribution-rating">{rating}</span>
+                    <Star size={16} color="#fbbf24" />
+                  </div>
+                  <div className="distribution-progress">
+                    <div className="distribution-progress-bar" style={{ width: `${percentage}%` }}></div>
+                  </div>
+                  <span className="distribution-count">{count}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="distribution-summary">
+            <p>Total Reviews: <strong>{analytics.totalReviews}</strong></p>
+            <p>This Month: <strong>{analytics.thisMonthCount}</strong></p>
+          </div>
+        </div>
 
-      <div className="rating-distribution">
-        {[5, 4, 3, 2, 1].map((rating) => {
-          const count = ratingDistribution[rating];
-          const percentage = (count / totalReviews) * 100;
-          return (
-            <div key={rating} className="distribution-item">
-              <div className="distribution-stars">
-                <span className="distribution-rating">{rating}</span>
-                <Star size={16} color="#fbbf24" />
+        {/* Right Tile - Average Rating */}
+        <div className="rating-tile">
+          <h3>Average Rating</h3>
+          <div className="rating-circle">
+            <div className="rating-circle-main">
+              <div className="rating-circle-container">
+                <h1>{analytics.overallRating.toFixed(1)}</h1>
+                <div className="star-rating-small">
+                  <StarRating rating={analytics.overallRating} size={14} />
+                </div>
+                <p className="total-reviews">{analytics.totalReviews} total</p>
               </div>
-              <div className="distribution-progress">
-                <div className="distribution-progress-bar" style={{ width: `${percentage}%` }}></div>
-              </div>
-              <span className="distribution-count">{count}</span>
             </div>
-          );
-        })}
+          </div>
+          
+          <div className="rating-breakdown">
+            <div className="breakdown-item">
+              <span className="breakdown-label">This Month</span>
+              <div className="breakdown-value">
+                <span className="rating-number">{analytics.thisMonthRating.toFixed(1)}</span>
+                <StarRating rating={analytics.thisMonthRating} size={12} />
+              </div>
+            </div>
+            
+            <div className="breakdown-item">
+              <span className="breakdown-label">Last Month</span>
+              <div className="breakdown-value">
+                <span className="rating-number">{analytics.lastMonthRating.toFixed(1)}</span>
+                <StarRating rating={analytics.lastMonthRating} size={12} />
+              </div>
+            </div>
+            
+           
+            <div className={`breakdown-item trend ${analytics.ratingChange > 0 ? 'positive' : analytics.ratingChange < 0 ? 'negative' : ''}`}>
+              <span className="breakdown-label">Monthly Trend</span>
+              <div className={`breakdown-value ${analytics.ratingChange >= 0 ? 'positive' : 'negative'}`}>
+                {analytics.ratingChange !== 0 ? (
+                  <>
+                    {analytics.ratingChange >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                    <span className="trend-value">
+                      {Math.abs(analytics.ratingChange).toFixed(1)} 
+                      {analytics.ratingChangePercent !== 0 && ` (${Math.abs(analytics.ratingChangePercent).toFixed(1)}%)`}
+                    </span>
+                  </>
+                ) : (
+                  <span className="trend-value stable">No change</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="review-list">
-        {filteredReviews.map((review) => {
-          const isBlank = review.reply === "_blank_";
-          const reviewDate = review.timeOfReview || review.createdAt || review.date;
+      {/* Bottom Section - Scrollable Review List */}
+      <div className="reviews-bottom-section">
+        <div className="review-list-scroll-container">
+          <div className="review-list">
+            {filteredReviews.map((review) => {
+              const isBlank = review.reply === "_blank_";
+              const reviewDate = review.timeOfReview || review.createdAt || review.date;
 
-          return (
-            <div key={review.id} className="review-card">
-              <div className="review-header">
-                <p className="review-time">{convertFirebaseTimestamp(reviewDate)}</p>
-                <StarRating rating={review.rating} />
-              </div>
+              return (
+                <div key={review.id} className="review-card">
+                  <div className="review-header">
+                    <p className="review-time">{convertFirebaseTimestamp(reviewDate)}</p>
+                    <StarRating rating={review.rating} />
+                  </div>
 
-              <p className="review-comment">{review.review}</p>
+                  <p className="review-comment">{review.review}</p>
 
-              {/* Display existing reply */}
-              {review.reply && !review.editingReply && !isBlank && (
-                <div className="review-replies">
-                  <div className="reply">
-                    <span className="reply-author">Your Reply:</span>
-                    <p className="reply-text">{review.reply}</p>
-                    <div className="review-reply-actions">
-                      <button onClick={() => setReviews((prev) => prev.map((r) => r.id === review.id ? { ...r, editingReply: true, replyInput: r.reply } : r))}>Edit</button>
-                      <button onClick={() => handleDeleteReply(review.id)}>Delete</button>
+                  {/* Display existing reply */}
+                  {review.reply && !review.editingReply && !isBlank && (
+                    <div className="review-replies">
+                      <div className="reply">
+                        <span className="reply-author">Your Reply:</span>
+                        <p className="reply-text">{review.reply}</p>
+                        <div className="review-reply-actions">
+                          <button onClick={() => setReviews((prev) => prev.map((r) => r.id === review.id ? { ...r, editingReply: true, replyInput: r.reply } : r))}>Edit</button>
+                          <button onClick={() => handleDeleteReply(review.id)}>Delete</button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {/* Reply form */}
-              {(review.editingReply || !review.reply || isBlank) && (
-                <div className="reply-form">
-                  <input
-                    type="text"
-                    placeholder="Write a reply..."
-                    value={review.replyInput || ""}
-                    onChange={(e) =>
-                      setReviews((prev) =>
-                        prev.map((r) =>
-                          r.id === review.id
-                            ? { ...r, replyInput: e.target.value, editingReply: true, reply: r.reply === "_blank_" ? null : r.reply }
-                            : r
-                        )
-                      )
-                    }
-                  />
-                  <div className="review-reply-actions">
-                    <button onClick={() => handleReply(review.id, review.replyInput)} disabled={!review.replyInput?.trim()}>Send</button>
-                    <button onClick={() => setReviews((prev) => prev.map((r) => r.id === review.id ? { ...r, editingReply: false, replyInput: "" } : r))}>Cancel</button>
-                  </div>
+                  {/* Reply form */}
+                  {(review.editingReply || !review.reply || isBlank) && (
+                    <div className="reply-form">
+                      <input
+                        type="text"
+                        placeholder="Write a reply..."
+                        value={review.replyInput || ""}
+                        onChange={(e) =>
+                          setReviews((prev) =>
+                            prev.map((r) =>
+                              r.id === review.id
+                                ? { ...r, replyInput: e.target.value, editingReply: true, reply: r.reply === "_blank_" ? null : r.reply }
+                                : r
+                            )
+                          )
+                        }
+                      />
+                      <div className="review-reply-actions">
+                        <button onClick={() => handleReply(review.id, review.replyInput)} disabled={!review.replyInput?.trim()}>Send</button>
+                        <button onClick={() => setReviews((prev) => prev.map((r) => r.id === review.id ? { ...r, editingReply: false, replyInput: "" } : r))}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );
