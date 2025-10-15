@@ -148,9 +148,10 @@ const VendorReviews = () => {
 			try {
 				const auth = getAuth();
 				let user = auth.currentUser;
-				while (!user)
-					(await new Promise((res) => setTimeout(res, 50))) &&
-						(user = auth.currentUser);
+				while (!user) {
+					await new Promise((res) => setTimeout(res, 50));
+					user = auth.currentUser;
+				}
 				const token = await user.getIdToken();
 
 				const res = await fetch(`${BASE_URL}/analytics/${vendorId}`, {
@@ -159,55 +160,27 @@ const VendorReviews = () => {
 						"Content-Type": "application/json",
 					},
 				});
+
+				// Handle 404 case by creating empty analytics
+				if (res.status === 404) {
+					setReviews([]);
+					return;
+				}
+
 				if (!res.ok) throw new Error("Failed to fetch reviews");
-  // Fetch reviews using the same analytics API as VendorDashboard
-  useEffect(() => {
-    const fetchReviews = async () => {
-      if (!vendorId) return;
-      
-      setLoading(true);
-      try {
-        const auth = getAuth();
-        let user = auth.currentUser;
-        while (!user) {
-          await new Promise((res) => setTimeout(res, 50));
-          user = auth.currentUser;
-        }
-        const token = await user.getIdToken();
 
-        const res = await fetch(
-          `https://us-central1-planit-sdp.cloudfunctions.net/api/analytics/${vendorId}`,
-          { 
-            headers: { 
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json"
-            } 
-          }
-        );
+				const data = await res.json();
+				setReviews(data.reviews || []);
+			} catch (err) {
+				console.error("Error fetching reviews:", err);
+				setError(err.message);
+			} finally {
+				setLoading(false);
+			}
+		};
 
-        if (res.status === 404) {
-          setReviews([]);
-          setAnalytics({});
-          return;
-        }
-
-        if (!res.ok) throw new Error("Failed to fetch reviews");
-
-        const data = await res.json();
-        console.log("Analytics API response:", data);
-        
-        setAnalytics(data);
-        setReviews(data.reviews || []);
-      } catch (err) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReviews();
-  }, [vendorId]);
+		fetchReviews();
+	}, [vendorId]);
 
 	// Calculate analytics
 	const calculateAnalytics = useCallback(() => {
@@ -417,51 +390,164 @@ const VendorReviews = () => {
 		}
 	};
 
-  // Use the same timestamp conversion function
-  const formatTime = (timestamp) => {
-    return convertFirebaseTimestamp(timestamp);
-  };
+	// Render monthly chart
+	const renderMonthlyChart = useCallback((monthlyData) => {
+		if (!monthlyData || monthlyData.length === 0) {
+			return (
+				<div className="no-monthly-data">
+					<p>No monthly data available</p>
+					<small>
+						Data will appear as reviews are received over time
+					</small>
+				</div>
+			);
+		}
 
-  if (loading) return (
-    <div className="loading-screen">
-      <div className="spinner"></div>
-      <p>Loading your reviews...</p>
-    </div>
-  );
+		const maxCount = Math.max(...monthlyData.map((m) => m.count));
+		const maxRating = 5; // Maximum possible rating
 
-  if (error) return (
-    <div className="error-container">
-      <p className="error">Error: {error}</p>
-      <button onClick={() => window.location.reload()}>Try Again</button>
-    </div>
-  );
+		return (
+			<div className="monthly-chart">
+				<div className="chart-bars">
+					{monthlyData.map((month, index) => {
+						const monthName = new Date(
+							month.date
+						).toLocaleDateString("en-US", { month: "short" });
+						const countPercentage = (month.count / maxCount) * 100;
+						const ratingPercentage =
+							(month.averageRating / maxRating) * 100;
 
-  if (!reviews.length) {
-    return (
-      <section className="vendor-reviews-page">
-        <section className="review-page-title">
-          <h2>Vendor Reviews</h2>
-          <p>Review, analyze, and respond to reviews about your services.</p>
-        </section>
+						return (
+							<div key={index} className="chart-bar-container">
+								<div className="chart-bar-group">
+									<div className="chart-bar-label">
+										{monthName}
+									</div>
+									<div className="chart-bars-wrapper">
+										<div
+											className="chart-bar-count"
+											style={{
+												height: `${countPercentage}%`,
+											}}
+										>
+											<span className="chart-bar-value">
+												{month.count}
+											</span>
+										</div>
+										<div
+											className="chart-bar-rating"
+											style={{
+												height: `${ratingPercentage}%`,
+											}}
+										>
+											<span className="chart-bar-value">
+												{month.averageRating.toFixed(1)}
+											</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						);
+					})}
+				</div>
+				<div className="chart-legend">
+					<div className="legend-item">
+						<div className="legend-color count"></div>
+						<span>Reviews Count</span>
+					</div>
+					<div className="legend-item">
+						<div className="legend-color rating"></div>
+						<span>Avg Rating</span>
+					</div>
+				</div>
+			</div>
+		);
+	}, []);
 
-        <div className="no-reviews-container">
-          <div className="no-reviews-content">
-            <h3>No Reviews Yet</h3>
-            <p>You haven't received any reviews yet. Reviews will appear here after clients rate your services.</p>
-            <div className="no-reviews-tips">
-              <h4>Tips to get your first reviews:</h4>
-              <ul>
-                <li>Complete your first event booking</li>
-                <li>Provide excellent service to your clients</li>
-                <li>Follow up with clients after events</li>
-                <li>Encourage satisfied clients to leave reviews</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
+	// Render distribution view
+	const renderDistributionView = useCallback((analytics) => {
+		return (
+			<>
+				<div className="rating-distribution">
+					{[5, 4, 3, 2, 1].map((rating) => {
+						const count = analytics.ratingDistribution[rating];
+						const percentage =
+							(count / analytics.totalReviews) * 100;
+						return (
+							<div key={rating} className="distribution-item">
+								<div className="distribution-stars">
+									<span className="distribution-rating">
+										{rating}
+									</span>
+									<Star
+										size={16}
+										color="#fbbf24"
+										fill="#fbbf24"
+									/>
+								</div>
+								<div className="distribution-progress">
+									<div
+										className="distribution-progress-bar"
+										style={{ width: `${percentage}%` }}
+									></div>
+								</div>
+								<span className="distribution-count">
+									{count}
+								</span>
+							</div>
+						);
+					})}
+				</div>
+				<div className="distribution-summary">
+					<p>
+						Total Reviews: <strong>{analytics.totalReviews}</strong>
+					</p>
+					<p>
+						This Month: <strong>{analytics.thisMonthCount}</strong>
+					</p>
+				</div>
+			</>
+		);
+	}, []);
+
+	if (loading)
+		return (
+			<div className="loading-screen">
+				<div className="spinner"></div>
+				<p>Loading your reviews...</p>
+			</div>
+		);
+	if (error) return <p className="error">{error}</p>;
+
+	// Replace simple "No reviews" message with informative component
+	if (!reviews || reviews.length === 0) {
+		return (
+			<section className="vendor-reviews-page">
+				<div className="review-page-title">
+					<h2>Vendor Reviews</h2>
+					<p>Review, analyze, and respond to reviews about your services.</p>
+				</div>
+
+				<div className="no-reviews-container">
+					<div className="no-reviews-content">
+						<h3>No Reviews Yet</h3>
+						<p>
+							You haven't received any reviews yet. Reviews will appear here after clients rate your services.
+						</p>
+						<div className="no-reviews-tips">
+							<h4>Tips to get your first reviews:</h4>
+							<ul>
+								<li>Complete your first event booking</li>
+								<li>Provide excellent service to your clients</li>
+								<li>Follow up with clients after events</li>
+								<li>Ensure all your services are listed correctly</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</section>
+		);
+	}
 
 	const analytics = calculateAnalytics();
 
