@@ -102,15 +102,13 @@ const VendorReviews = () => {
       
       setLoading(true);
       try {
-
         const auth = getAuth();
-      let user = auth.currentUser;
-      while (!user) {
-      		await new Promise((res) => setTimeout(res, 50)); // wait 50ms
-      	user = auth.currentUser;
-    	}
-      const token = await user.getIdToken();
-
+        let user = auth.currentUser;
+        while (!user) {
+          await new Promise((res) => setTimeout(res, 50));
+          user = auth.currentUser;
+        }
+        const token = await user.getIdToken();
 
         const res = await fetch(
           `https://us-central1-planit-sdp.cloudfunctions.net/api/analytics/${vendorId}`,
@@ -122,13 +120,18 @@ const VendorReviews = () => {
           }
         );
 
+        if (res.status === 404) {
+          setReviews([]);
+          setAnalytics({});
+          return;
+        }
+
         if (!res.ok) throw new Error("Failed to fetch reviews");
 
         const data = await res.json();
         console.log("Analytics API response:", data);
         
         setAnalytics(data);
-        // Use the reviews from analytics data, same as VendorDashboard
         setReviews(data.reviews || []);
       } catch (err) {
         console.error(err);
@@ -228,8 +231,39 @@ const VendorReviews = () => {
     </div>
   );
 
-  if (error) return <p className="error">{error}</p>;
-  if (!reviews.length) return <p>No reviews found.</p>;
+  if (error) return (
+    <div className="error-container">
+      <p className="error">Error: {error}</p>
+      <button onClick={() => window.location.reload()}>Try Again</button>
+    </div>
+  );
+
+  if (!reviews.length) {
+    return (
+      <section className="vendor-reviews-page">
+        <section className="review-page-title">
+          <h2>Vendor Reviews</h2>
+          <p>Review, analyze, and respond to reviews about your services.</p>
+        </section>
+
+        <div className="no-reviews-container">
+          <div className="no-reviews-content">
+            <h3>No Reviews Yet</h3>
+            <p>You haven't received any reviews yet. Reviews will appear here after clients rate your services.</p>
+            <div className="no-reviews-tips">
+              <h4>Tips to get your first reviews:</h4>
+              <ul>
+                <li>Complete your first event booking</li>
+                <li>Provide excellent service to your clients</li>
+                <li>Follow up with clients after events</li>
+                <li>Encourage satisfied clients to leave reviews</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   // Calculate analytics same as VendorDashboard
   const overallRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
