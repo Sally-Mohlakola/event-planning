@@ -314,7 +314,7 @@
 /* --- DARK MODE SUPPORT --- */
 @media (prefers-color-scheme: dark) {
   .vendor-marketplace {
-    background-color: #111827;
+    background-color: #11182f;
   }
 
   .marketplace-title {

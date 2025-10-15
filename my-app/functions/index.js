@@ -2131,7 +2131,6 @@ app.get('/planner/my-reviews', authenticate, async (req, res) => {
 
     const reviewsSnapshot = await db.collection('Reviews')
       .where('plannerId', '==', plannerId)
-      .orderBy('createdAt', 'desc')
       .get();
 
     const reviews = reviewsSnapshot.docs.map(doc => ({
