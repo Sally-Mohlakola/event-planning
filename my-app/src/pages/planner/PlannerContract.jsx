@@ -4,7 +4,6 @@ import React, {
 	useMemo,
 	useCallback,
 	useRef,
-	useRef,
 } from "react";
 import {
 	Calendar,
