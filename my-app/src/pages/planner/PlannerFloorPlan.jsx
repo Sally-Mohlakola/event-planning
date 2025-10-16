@@ -12,10 +12,10 @@ import { v4 as uuidv4 } from "uuid";
 import "./PlannerFloorPlan.css";
 
 const TEMPLATES = [
-	{ id: "blank", name: "Blank", color: "#ffffff" },
-	{ id: "banquet", name: "Banquet (rect rows)", color: "#f8fafc" },
-	{ id: "theatre", name: "Theatre (rows)", color: "#fbf7ff" },
-	{ id: "cocktail", name: "Cocktail (open)", color: "#fff8f0" },
+	{ id: "blank", name: "Blank", color: "#ffffff", darkColor: "#1f2937" },
+	{ id: "banquet", name: "Banquet (rect rows)", color: "#f8fafc", darkColor: "#374151" },
+	{ id: "theatre", name: "Theatre (rows)", color: "#fbf7ff", darkColor: "#4c1d95" },
+	{ id: "cocktail", name: "Cocktail (open)", color: "#fff8f0", darkColor: "#7c2d12" },
 ];
 
 const ITEM_PROTOTYPES = {
@@ -25,6 +25,7 @@ const ITEM_PROTOTYPES = {
 		h: 80,
 		shape: "round",
 		color: "#eab308",
+		darkColor: "#d97706",
 	},
 	table_square: {
 		type: "table",
@@ -32,6 +33,7 @@ const ITEM_PROTOTYPES = {
 		h: 80,
 		shape: "square",
 		color: "#f97316",
+		darkColor: "#ea580c",
 	},
 	table_large: {
 		type: "table",
@@ -39,15 +41,31 @@ const ITEM_PROTOTYPES = {
 		h: 80,
 		shape: "rect",
 		color: "#f97316",
+		darkColor: "#ea580c",
 	},
-	chair: { type: "chair", w: 22, h: 22, shape: "round", color: "#60a5fa" },
-	stage: { type: "stage", w: 300, h: 80, shape: "rect", color: "#6b7280" },
+	chair: { 
+		type: "chair", 
+		w: 22, 
+		h: 22, 
+		shape: "round", 
+		color: "#60a5fa",
+		darkColor: "#3b82f6",
+	},
+	stage: { 
+		type: "stage", 
+		w: 300, 
+		h: 80, 
+		shape: "rect", 
+		color: "#6b7280",
+		darkColor: "#4b5563",
+	},
 	light_small: {
 		type: "light",
 		w: 20,
 		h: 20,
 		shape: "round",
 		color: "#fef08a",
+		darkColor: "#fde047",
 	},
 	light_medium: {
 		type: "light",
@@ -55,6 +73,7 @@ const ITEM_PROTOTYPES = {
 		h: 30,
 		shape: "round",
 		color: "#fef08a",
+		darkColor: "#fde047",
 	},
 	light_large: {
 		type: "light",
@@ -62,14 +81,23 @@ const ITEM_PROTOTYPES = {
 		h: 40,
 		shape: "round",
 		color: "#fef08a",
+		darkColor: "#fde047",
 	},
-	piano: { type: "piano", w: 120, h: 60, shape: "rect", color: "#000000" },
+	piano: { 
+		type: "piano", 
+		w: 120, 
+		h: 60, 
+		shape: "rect", 
+		color: "#000000",
+		darkColor: "#ffffff",
+	},
 	dance_floor: {
 		type: "dance_floor",
 		w: 200,
 		h: 200,
 		shape: "square",
 		color: "#d1d5db",
+		darkColor: "#6b7280",
 	},
 	drink_bar: {
 		type: "drink_bar",
@@ -77,6 +105,7 @@ const ITEM_PROTOTYPES = {
 		h: 50,
 		shape: "rect",
 		color: "#7f1d1d",
+		darkColor: "#fecaca",
 	},
 	cake_table: {
 		type: "cake_table",
@@ -84,6 +113,7 @@ const ITEM_PROTOTYPES = {
 		h: 60,
 		shape: "square",
 		color: "#fbcfe8",
+		darkColor: "#db2777",
 	},
 	head_table: {
 		type: "head_table",
@@ -91,6 +121,7 @@ const ITEM_PROTOTYPES = {
 		h: 60,
 		shape: "rect",
 		color: "#db2777",
+		darkColor: "#fbcfe8",
 	},
 	walkway_carpet: {
 		type: "walkway_carpet",
@@ -98,6 +129,7 @@ const ITEM_PROTOTYPES = {
 		h: 40,
 		shape: "rect",
 		color: "#b91c1c",
+		darkColor: "#fecaca",
 	},
 	catering_stand: {
 		type: "catering_stand",
@@ -105,6 +137,7 @@ const ITEM_PROTOTYPES = {
 		h: 50,
 		shape: "rect",
 		color: "#15803d",
+		darkColor: "#bbf7d0",
 	},
 	exit_door: {
 		type: "exit_door",
@@ -112,6 +145,7 @@ const ITEM_PROTOTYPES = {
 		h: 30,
 		shape: "rect",
 		color: "#dc2626",
+		darkColor: "#fca5a5",
 	},
 };
 
@@ -129,8 +163,10 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 	const [selectedId, setSelectedId] = useState(null);
 	const [isDirty, setIsDirty] = useState(false);
 	const [backgroundImage, setBackgroundImage] = useState(null);
+	const [darkMode, setDarkMode] = useState(false);
 	const containerRef = useRef(null);
-	const user = getAuth().currentUser;
+	const auth = getAuth();
+	const user = auth.currentUser;
 
 	const dragRef = useRef({
 		dragging: false,
@@ -145,16 +181,31 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 		touchAngle: 0,
 	});
 
+	// Check system preference for dark mode
+	useEffect(() => {
+		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+		setDarkMode(mediaQuery.matches);
+		
+		const handleChange = (e) => setDarkMode(e.matches);
+		mediaQuery.addEventListener('change', handleChange);
+		
+		return () => mediaQuery.removeEventListener('change', handleChange);
+	}, []);
+
+	// Toggle dark mode
+	const toggleDarkMode = () => {
+		setDarkMode(!darkMode);
+	};
+
 	// Fetch planner's events
 	useEffect(() => {
 		const fetchEvents = async () => {
 			let user = auth.currentUser;
 			while (!user) {
-				await new Promise((res) => setTimeout(res, 50)); // wait 50ms
+				await new Promise((res) => setTimeout(res, 50));
 				user = auth.currentUser;
 			}
 			try {
-				const auth = getAuth();
 				const user = auth.currentUser;
 				if (!user) {
 					console.warn("No authenticated user, skipping event fetch");
@@ -162,9 +213,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 					return;
 				}
 				const token = await user.getIdToken(true);
-				console.log(
-					"Fetching events from https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events"
-				);
+				console.log("Fetching events...");
 				const res = await fetch(
 					`https://us-central1-planit-sdp.cloudfunctions.net/api/planner/me/events`,
 					{
@@ -176,11 +225,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 				);
 				if (!res.ok) {
 					const text = await res.text();
-					console.error(
-						`Fetch events failed with status ${
-							res.status
-						}: ${text.slice(0, 100)}...`
-					);
+					console.error(`Fetch events failed: ${res.status}`);
 					throw new Error(`HTTP error! status: ${res.status}`);
 				}
 				const data = await res.json();
@@ -192,7 +237,6 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 			} catch (err) {
 				console.error("Fetch events error:", err.message);
 				setEvents([]);
-				alert("Failed to fetch events. Please try again.");
 			}
 		};
 		fetchEvents();
@@ -207,7 +251,6 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 		}
 		const fetchVendors = async () => {
 			try {
-				const auth = getAuth();
 				const user = auth.currentUser;
 				const token = user ? await user.getIdToken(true) : "";
 				console.log(`Fetching vendors for event ${selectedEventId}`);
@@ -222,11 +265,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 				);
 				if (!res.ok) {
 					const text = await res.text();
-					console.error(
-						`Fetch vendors failed with status ${
-							res.status
-						}: ${text.slice(0, 100)}...`
-					);
+					console.error(`Fetch vendors failed: ${res.status}`);
 					throw new Error(`HTTP error! status: ${res.status}`);
 				}
 				const data = await res.json();
@@ -239,7 +278,6 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 			} catch (err) {
 				console.error("Fetch vendors error:", err.message);
 				setVendors([]);
-				alert("Failed to fetch vendors. Please try again.");
 			}
 		};
 		fetchVendors();
@@ -263,7 +301,7 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 			return;
 		}
 
-		const maxSize = 5 * 1024 * 1024; // 5MB
+		const maxSize = 5 * 1024 * 1024;
 		if (file.size > maxSize) {
 			alert(
 				"File is too large. Please upload an image smaller than 5MB."
@@ -275,14 +313,9 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 		reader.onload = (event) => {
 			setBackgroundImage(event.target.result);
 			setIsDirty(true);
-			console.log("Image uploaded:", {
-				type: file.type,
-				size: file.size,
-			});
 		};
 		reader.onerror = () => {
 			alert("Failed to read the image file.");
-			console.error("Image read error");
 		};
 		reader.readAsDataURL(file);
 	};
@@ -346,42 +379,6 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 			startY: mouseY,
 			initialAngle,
 			touchAngle: 0,
-		};
-	};
-
-	const onTouchStart = (e) => {
-		if (e.touches.length !== 2) return;
-		e.preventDefault();
-		const container = containerRef.current;
-		if (!container) return;
-		container.setPointerCapture(e.touches[0].identifier);
-		const rect = container.getBoundingClientRect();
-		const touch1 = {
-			x: e.touches[0].clientX - rect.left,
-			y: e.touches[0].clientY - rect.top,
-		};
-		const touch2 = {
-			x: e.touches[1].clientX - rect.left,
-			y: e.touches[1].clientY - rect.top,
-		};
-		const it = items.find((i) => i.id === selectedId);
-		if (!it) return;
-
-		const dx = touch2.x - touch1.x;
-		const dy = touch2.y - touch1.y;
-		const initialAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-		dragRef.current = {
-			dragging: false,
-			rotating: true,
-			id: selectedId,
-			offsetX: 0,
-			offsetY: 0,
-			pointerId: e.touches[0].identifier,
-			startX: (touch1.x + touch2.x) / 2,
-			startY: (touch1.y + touch2.y) / 2,
-			initialAngle,
-			touchAngle: initialAngle,
 		};
 	};
 
@@ -514,86 +511,6 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 		}
 	};
 
-	const onTouchMove = (e) => {
-		if (
-			e.touches.length !== 2 ||
-			!dragRef.current.rotating ||
-			dragRef.current.id !== selectedId
-		)
-			return;
-		e.preventDefault();
-		const container = containerRef.current;
-		if (!container) return;
-		const rect = container.getBoundingClientRect();
-		const touch1 = {
-			x: e.touches[0].clientX - rect.left,
-			y: e.touches[0].clientY - rect.top,
-		};
-		const touch2 = {
-			x: e.touches[1].clientX - rect.left,
-			y: e.touches[1].clientY - rect.top,
-		};
-
-		const dx = touch2.x - touch1.x;
-		const dy = touch2.y - touch1.y;
-		const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-		const deltaAngle =
-			(currentAngle - dragRef.current.touchAngle + 360) % 360;
-		const it = items.find((i) => i.id === selectedId);
-		if (!it) return;
-
-		const newRotation = ((it.rotation || 0) + deltaAngle + 360) % 360;
-
-		setItems((prev) =>
-			prev.map((item) =>
-				item.id === selectedId
-					? {
-							...item,
-							rotation: newRotation,
-							x: Math.max(
-								calculateBoundingHalf(
-									item.w,
-									item.h,
-									newRotation,
-									"w"
-								),
-								Math.min(
-									rect.width -
-										calculateBoundingHalf(
-											item.w,
-											item.h,
-											newRotation,
-											"w"
-										),
-									item.x
-								)
-							),
-							y: Math.max(
-								calculateBoundingHalf(
-									item.w,
-									item.h,
-									newRotation,
-									"h"
-								),
-								Math.min(
-									rect.height -
-										calculateBoundingHalf(
-											item.w,
-											item.h,
-											newRotation,
-											"h"
-										),
-									item.y
-								)
-							),
-					  }
-					: item
-			)
-		);
-		dragRef.current.touchAngle = currentAngle;
-		setIsDirty(true);
-	};
-
 	const onPointerUp = (e) => {
 		if (dragRef.current.id && dragRef.current.pointerId === e.pointerId) {
 			dragRef.current = {
@@ -609,21 +526,6 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 				touchAngle: 0,
 			};
 		}
-	};
-
-	const onTouchEnd = () => {
-		dragRef.current = {
-			dragging: false,
-			rotating: false,
-			id: null,
-			offsetX: 0,
-			offsetY: 0,
-			pointerId: null,
-			startX: 0,
-			startY: 0,
-			initialAngle: 0,
-			touchAngle: 0,
-		};
 	};
 
 	const calculateBoundingHalf = (w, h, rotation, dim) => {
@@ -723,7 +625,6 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 		canvas.height = Math.round(rect.height * scale);
 		const ctx = canvas.getContext("2d");
 
-		// Draw background (template or uploaded image)
 		if (backgroundImage) {
 			const img = new Image();
 			img.src = backgroundImage;
@@ -757,8 +658,8 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 	};
 
 	const drawCanvasContent = (ctx, scale) => {
-		// Draw grid
-		ctx.strokeStyle = "#e6e6e6";
+		// Draw grid - adjust color based on dark mode
+		ctx.strokeStyle = darkMode ? "#374151" : "#e6e6e6";
 		ctx.lineWidth = 1;
 		const gridStep = 25 * scale;
 		for (let x = 0; x < ctx.canvas.width; x += gridStep) {
@@ -785,7 +686,10 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 			ctx.save();
 			ctx.translate(x, y);
 			ctx.rotate(rotation);
-			ctx.fillStyle = it.color || "#999";
+			
+			// Use dark mode colors if available
+			const itemColor = darkMode && it.darkColor ? it.darkColor : it.color;
+			ctx.fillStyle = itemColor || "#999";
 
 			if (it.shape === "round") {
 				ctx.beginPath();
@@ -796,17 +700,18 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 			}
 
 			if (it.type !== "chair" && it.type !== "light") {
-				ctx.fillStyle = [
-					"piano",
-					"stage",
-					"drink_bar",
-					"walkway_carpet",
-					"catering_stand",
-					"exit_door",
-					"head_table",
-				].includes(it.type)
-					? "#fff"
-					: "#000";
+				// Adjust text color for better contrast in dark mode
+				const needsLightText = [
+					"piano", "stage", "drink_bar", "walkway_carpet", 
+					"catering_stand", "exit_door", "head_table"
+				].includes(it.type);
+				
+				if (darkMode) {
+					ctx.fillStyle = needsLightText ? "#ffffff" : "#000000";
+				} else {
+					ctx.fillStyle = needsLightText ? "#ffffff" : "#000000";
+				}
+				
 				const fontSize = (Math.min(it.w, it.h) < 50 ? 10 : 12) * scale;
 				ctx.font = `${fontSize}px sans-serif`;
 				ctx.textAlign = "center";
@@ -834,23 +739,14 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 		}
 
 		try {
-			const auth = getAuth();
 			const user = auth.currentUser;
 			if (!user) {
-				console.error("No authenticated user");
 				alert("Please log in to upload the floorplan.");
 				return;
 			}
 
 			const { base64Data, mimeType, fileName } =
 				await createFloorplanBlob();
-			console.log("Preparing floorplan upload:", {
-				eventId: selectedEventId,
-				vendorId: selectedVendor,
-				base64Length: base64Data.length,
-				mimeType,
-				fileName,
-			});
 
 			// Convert base64 to Blob
 			const byteCharacters = atob(base64Data);
@@ -865,7 +761,6 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 			const storage = getStorage();
 			const storageFileName = `Floorplans/${selectedEventId}/${selectedVendor}/${uuidv4()}-${fileName}`;
 			const storageRef = ref(storage, storageFileName);
-			console.log("Uploading to Storage:", storageFileName);
 
 			await uploadBytes(storageRef, blob, {
 				contentType: mimeType,
@@ -874,10 +769,8 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 					uploadedAt: new Date().toISOString(),
 				},
 			});
-			console.log("File uploaded to Storage");
 
 			const floorplanUrl = await getDownloadURL(storageRef);
-			console.log("File URL:", floorplanUrl);
 
 			// Save to Firestore
 			const db = getFirestore();
@@ -888,39 +781,26 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 				"Floorplans",
 				selectedVendor
 			);
-			console.log("Checking Firestore document:", floorplanRef.path);
 
 			const docSnap = await getDoc(floorplanRef);
 			if (!docSnap.exists()) {
-				console.log("Creating new Firestore document");
 				await setDoc(floorplanRef, {
 					floorplanUrl,
 					uploadedAt: new Date(),
 					uploadedBy: user.uid,
 				});
-				console.log(
-					`Created new floorplan document for eventId=${selectedEventId}, vendorId=${selectedVendor}`
-				);
 			} else {
-				console.log("Updating existing Firestore document");
 				await updateDoc(floorplanRef, {
 					floorplanUrl,
 					uploadedAt: new Date(),
 					uploadedBy: user.uid,
 				});
-				console.log(
-					`Updated floorplan document for eventId=${selectedEventId}, vendorId=${selectedVendor}`
-				);
 			}
 
 			alert("Floorplan uploaded successfully");
 			setIsDirty(false);
 		} catch (err) {
-			console.error("Upload error:", err.message, err.stack, {
-				eventId: selectedEventId,
-				vendorId: selectedVendor,
-				user: user ? { uid: user.uid, email: user.email } : "No user",
-			});
+			console.error("Upload error:", err);
 			alert("Upload failed: " + err.message);
 		}
 	};
@@ -980,285 +860,248 @@ const PlannerFloorPlan = ({ eventId: initialEventId, setActivePage }) => {
 		}
 	};
 
+	// Get current template color based on dark mode
+	const getTemplateColor = () => {
+		const tpl = TEMPLATES.find((t) => t.id === template) || TEMPLATES[0];
+		return darkMode ? (tpl.darkColor || tpl.color) : tpl.color;
+	};
+
+	// Get item color based on dark mode
+	const getItemColor = (item) => {
+		return darkMode ? (item.darkColor || item.color) : item.color;
+	};
+
 	return (
-		<main className="floorplan-page">
+		<div className={`floorplan-page ${darkMode ? 'dark-mode' : ''}`}>
 			<header className="floorplan-header">
+				<button 
+					className="back-button"
+					onClick={() => setActivePage?.("dashboard")}
+				>
+					← Back
+				</button>
 				<h2>Floorplan Designer</h2>
+				<button 
+					className="dark-mode-toggle"
+					onClick={toggleDarkMode}
+					title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+				>
+					{darkMode ? '☀️' : '🌙'}
+				</button>
 			</header>
 
 			<div className="floorplan-content">
 				<aside className="floorplan-sidebar">
-					<h3>Choose Event</h3>
-					<select
-						data-testid="event-selector"
-						value={selectedEventId}
-						onChange={(e) => setSelectedEventId(e.target.value)}
-						className="event-select"
-					>
-						<option value="">Select an event</option>
-						{events.map((event) => (
-							<option key={event.id} value={event.id}>
-								{event.name || event.id}
-							</option>
-						))}
-					</select>
-
-					<h3>Choose Vendor</h3>
-					<select
-						data-testid="vendor-selector"
-						value={selectedVendor}
-						onChange={(e) => setSelectedVendor(e.target.value)}
-						className="vendor-select"
-						disabled={!selectedEventId}
-					>
-						<option value="">Select a vendor</option>
-						{vendors.map((v) => (
-							<option key={v.id} value={v.id}>
-								{v.businessName || v.id}
-							</option>
-						))}
-					</select>
-
-					<h3>Template</h3>
-					<select
-						value={template}
-						onChange={(e) => setTemplate(e.target.value)}
-					>
-						{TEMPLATES.map((t) => (
-							<option value={t.id} key={t.id}>
-								{t.name}
-							</option>
-						))}
-					</select>
-
-					<h3>Upload Background Image</h3>
-					<div className="image-upload">
-						<input
-							type="file"
-							accept="image/jpeg,image/png,image/gif,image/webp"
-							onChange={handleImageUpload}
-						/>
-						{backgroundImage && (
-							<div className="image-preview">
-								<img
-									src={backgroundImage}
-									alt="Background preview"
-									style={{
-										maxWidth: "100%",
-										maxHeight: "100px",
-										marginTop: "10px",
-									}}
-								/>
-								<button
-									onClick={clearBackgroundImage}
-									className="clear-image"
-								>
-									Clear Image
-								</button>
-							</div>
-						)}
+					<div className="sidebar-section">
+						<h3>Choose Event</h3>
+						<select
+							data-testid="event-selector"
+							value={selectedEventId}
+							onChange={(e) => setSelectedEventId(e.target.value)}
+							className="event-select"
+						>
+							<option value="">Select an event</option>
+							{events.map((event) => (
+								<option key={event.id} value={event.id}>
+									{event.name || event.id}
+								</option>
+							))}
+						</select>
 					</div>
 
-					<h3>Add Items</h3>
-					<div className="tool-buttons">
-						<button onClick={() => addItem("table_small")}>
-							Add Small Round Table
-						</button>
-						<button onClick={() => addItem("table_square")}>
-							Add Square Table
-						</button>
-						<button onClick={() => addItem("table_large")}>
-							Add Rectangle Table
-						</button>
-						<button onClick={() => addItem("chair")}>
-							Add Chair
-						</button>
-						<button onClick={() => addItem("stage")}>
-							Add Stage
-						</button>
-						<button onClick={() => addItem("light_small")}>
-							Add Small Light Fixture
-						</button>
-						<button onClick={() => addItem("light_medium")}>
-							Add Medium Light Fixture
-						</button>
-						<button onClick={() => addItem("light_large")}>
-							Add Large Light Fixture
-						</button>
-						<button onClick={() => addItem("piano")}>
-							Add Piano
-						</button>
-						<button onClick={() => addItem("dance_floor")}>
-							Add Dance Floor
-						</button>
-						<button onClick={() => addItem("drink_bar")}>
-							Add Drink Bar
-						</button>
-						<button onClick={() => addItem("cake_table")}>
-							Add Cake Table
-						</button>
-						<button onClick={() => addItem("head_table")}>
-							Add Head Table
-						</button>
-						<button onClick={() => addItem("walkway_carpet")}>
-							Add Walkway Carpet
-						</button>
-						<button onClick={() => addItem("catering_stand")}>
-							Add Catering Stand
-						</button>
-						<button onClick={() => addItem("exit_door")}>
-							Add Exit Door
-						</button>
-					</div>
-
-					<h3>Selected</h3>
-					<div className="selected-controls">
-						<div className="id-selection">
-							<label htmlFor="selected-id">Selected ID:</label>
-							<select
-								id="selected-id"
-								value={selectedId || ""}
-								onChange={(e) =>
-									setSelectedId(e.target.value || null)
-								}
-							>
-								<option value="">—</option>
-								{items.map((it) => (
-									<option key={it.id} value={it.id}>
-										{it.id} (
-										{it.type
-											.replace(/_/g, " ")
-											.replace(/\b\w/g, (l) =>
-												l.toUpperCase()
-											)}
-										)
-									</option>
-								))}
-							</select>
-						</div>
-						{selectedId && (
-							<div className="control-buttons">
-								<div className="scale-controls">
-									<button
-										onClick={() => scaleSelected(0.9)}
-										disabled={!selectedId}
-									>
-										Scale Down
-									</button>
-									<button
-										onClick={() => scaleSelected(1.1)}
-										disabled={!selectedId}
-									>
-										Scale Up
-									</button>
-								</div>
-								<div className="rotate-controls">
-									<button
-										onClick={() => rotateSelected(-15)}
-										disabled={!selectedId}
-									>
-										Rotate -15°
-									</button>
-									<button
-										onClick={() => rotateSelected(15)}
-										disabled={!selectedId}
-									>
-										Rotate +15°
-									</button>
-								</div>
-								<button
-									className="danger"
-									onClick={removeSelected}
-									disabled={!selectedId}
-								>
-									Remove
-								</button>
-							</div>
-						)}
-					</div>
-
-					<h3>Save / Upload</h3>
-					<div className="save-controls">
-						<button
-							onClick={exportToPNG}
+					<div className="sidebar-section">
+						<h3>Choose Vendor</h3>
+						<select
+							data-testid="vendor-selector"
+							value={selectedVendor}
+							onChange={(e) => setSelectedVendor(e.target.value)}
+							className="vendor-select"
 							disabled={!selectedEventId}
 						>
-							Download PNG
-						</button>
-						<button
-							onClick={uploadToVendor}
-							disabled={!selectedEventId || !selectedVendor}
-						>
-							Send to Selected Vendor
-						</button>
-						<button onClick={saveLocal} disabled={!selectedEventId}>
-							Save Draft
-						</button>
-						<button onClick={loadLocal} disabled={!selectedEventId}>
-							Load Draft
-						</button>
+							<option value="">Select a vendor</option>
+							{vendors.map((v) => (
+								<option key={v.id} value={v.id}>
+									{v.businessName || v.id}
+								</option>
+							))}
+						</select>
 					</div>
 
-					<p className="hint">
-						Tip: Click an item to select, drag to move, Shift+drag
-						to rotate, or use two-finger rotation on touchpad.
-					</p>
+					<div className="sidebar-section">
+						<h3>Template</h3>
+						<select
+							value={template}
+							onChange={(e) => setTemplate(e.target.value)}
+						>
+							{TEMPLATES.map((t) => (
+								<option value={t.id} key={t.id}>
+									{t.name}
+								</option>
+							))}
+						</select>
+					</div>
+
+					<div className="sidebar-section">
+						<h3>Background Image</h3>
+						<div className="image-upload">
+							<input
+								type="file"
+								accept="image/jpeg,image/png,image/gif,image/webp"
+								onChange={handleImageUpload}
+							/>
+							{backgroundImage && (
+								<div className="image-preview">
+									<img
+										src={backgroundImage}
+										alt="Background preview"
+									/>
+									<button
+										onClick={clearBackgroundImage}
+										className="clear-image"
+									>
+										Clear Image
+									</button>
+								</div>
+							)}
+						</div>
+					</div>
+
+					<div className="sidebar-section">
+						<h3>Add Items</h3>
+						<div className="tool-buttons">
+							{Object.entries(ITEM_PROTOTYPES).map(([key, item]) => (
+								<button 
+									key={key} 
+									onClick={() => addItem(key)}
+									className="tool-btn"
+									style={{
+										backgroundColor: getItemColor(item),
+										color: darkMode ? '#1f2937' : '#000000'
+									}}
+								>
+									Add {item.type.replace(/_/g, ' ')}
+								</button>
+							))}
+						</div>
+					</div>
+
+					<div className="sidebar-section">
+						<h3>Selected Item</h3>
+						<div className="selected-controls">
+							<div className="id-selection">
+								<select
+									value={selectedId || ""}
+									onChange={(e) =>
+										setSelectedId(e.target.value || null)
+									}
+								>
+									<option value="">— Select Item —</option>
+									{items.map((it) => (
+										<option key={it.id} value={it.id}>
+											{it.id} ({it.type})
+										</option>
+									))}
+								</select>
+							</div>
+							{selectedId && (
+								<div className="control-buttons">
+									<div className="button-group">
+										<button onClick={() => scaleSelected(0.9)}>
+											Scale Down
+										</button>
+										<button onClick={() => scaleSelected(1.1)}>
+											Scale Up
+										</button>
+									</div>
+									<div className="button-group">
+										<button onClick={() => rotateSelected(-15)}>
+											Rotate -15°
+										</button>
+										<button onClick={() => rotateSelected(15)}>
+											Rotate +15°
+										</button>
+									</div>
+									<button
+										className="danger"
+										onClick={removeSelected}
+									>
+										Remove Item
+									</button>
+								</div>
+							)}
+						</div>
+					</div>
+
+					<div className="sidebar-section">
+						<h3>Save & Export</h3>
+						<div className="save-controls">
+							<button onClick={exportToPNG}>
+								Download PNG
+							</button>
+							<button
+								onClick={uploadToVendor}
+								disabled={!selectedEventId || !selectedVendor}
+							>
+								Send to Vendor
+							</button>
+							<button onClick={saveLocal}>
+								Save Draft
+							</button>
+							<button onClick={loadLocal}>
+								Load Draft
+							</button>
+						</div>
+					</div>
+
+					<div className="sidebar-hint">
+						<p></p>
+					</div>
 				</aside>
 
-				<section className="floorplan-canvas-wrap">
-					<div
-						className="floorplan-canvas"
-						ref={containerRef}
-						onPointerMove={onPointerMove}
-						onPointerUp={onPointerUp}
-						onPointerCancel={onPointerUp}
-						onTouchStart={onTouchStart}
-						onTouchMove={onTouchMove}
-						onTouchEnd={onTouchEnd}
-						onTouchCancel={onTouchEnd}
-						style={{
-							background: backgroundImage
-								? `url(${backgroundImage}) no-repeat center/cover`
-								: TEMPLATES.find((t) => t.id === template)
-										?.color || "#fff",
-						}}
-					>
-						{items.map((it) => (
-							<div
-								key={it.id}
-								className={`fp-item ${
-									selectedId === it.id ? "selected" : ""
-								} ${it.type} ${
-									it.shape === "round" ? "round" : ""
-								}`}
-								style={{
-									left: `${it.x}px`,
-									top: `${it.y}px`,
-									width: `${it.w}px`,
-									height: `${it.h}px`,
-									background: it.color,
-									transform: `translate(-50%, -50%) rotate(${
-										it.rotation || 0
-									}deg)`,
-									transformOrigin: "center center",
-								}}
-								onPointerDown={(e) =>
-									onPointerDownItem(e, it.id)
-								}
-							>
-								<div className="fp-label">
-									{it.type
-										.replace(/_/g, " ")
-										.replace(/\b\w/g, (l) =>
-											l.toUpperCase()
-										)}
+				<main className="floorplan-main">
+					<div className="canvas-container">
+						<div
+							className="floorplan-canvas"
+							ref={containerRef}
+							onPointerMove={onPointerMove}
+							onPointerUp={onPointerUp}
+							onPointerCancel={onPointerUp}
+							style={{
+								background: backgroundImage
+									? `url(${backgroundImage}) no-repeat center/contain`
+									: getTemplateColor(),
+							}}
+						>
+							{items.map((it) => (
+								<div
+									key={it.id}
+									className={`fp-item ${
+										selectedId === it.id ? "selected" : ""
+									} ${it.shape === "round" ? "round" : ""}`}
+									style={{
+										left: `${it.x}px`,
+										top: `${it.y}px`,
+										width: `${it.w}px`,
+										height: `${it.h}px`,
+										backgroundColor: getItemColor(it),
+										transform: `translate(-50%, -50%) rotate(${
+											it.rotation || 0
+										}deg)`,
+									}}
+									onPointerDown={(e) =>
+										onPointerDownItem(e, it.id)
+									}
+								>
+									<span className="fp-label">
+										{it.type.replace(/_/g, ' ')}
+									</span>
 								</div>
-							</div>
-						))}
+							))}
+						</div>
 					</div>
-				</section>
+				</main>
 			</div>
-		</main>
+		</div>
 	);
 };
 
