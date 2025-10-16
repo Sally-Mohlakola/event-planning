@@ -3,10 +3,13 @@ import React, {
 	useState,
 	useMemo,
 	useCallback,
+	useRef,
 } from "react";
 import {
 	Calendar,
+	User,
 	FileText,
+	Search,
 	X,
 	Edit3,
 	Download,
@@ -95,7 +98,7 @@ const PlannerContract = () => {
 			}
 
 			const data = await response.json();
-			console.log("Fetched contracts:", data.contracts); // Debug log
+			console.log("Fetched contracts:", data.contracts);
 			setContracts(data.contracts || []);
 		} catch (err) {
 			console.error("Error fetching contracts:", err);
@@ -118,21 +121,60 @@ const PlannerContract = () => {
 	}, [fetchContracts]);
 
 	const dataURLtoBlob = (dataURL) => {
-		const arr = dataURL.split(",");
-		const mime = arr[0].match(/:(.*?);/)[1];
-		const bstr = atob(arr[1]);
-		let n = bstr.length;
-		const u8arr = new Uint8Array(n);
-		while (n--) {
-			u8arr[n] = bstr.charCodeAt(n);
+		try {
+			// Handle case where dataURL might already be a blob or URL
+			if (!dataURL || typeof dataURL !== 'string') {
+				throw new Error('Invalid data URL');
+			}
+
+			const arr = dataURL.split(",");
+			
+			// Extract MIME type from the data URL
+			const mimeMatch = arr[0].match(/:(.*?);/);
+			const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+			
+			// Handle both standard data URLs and base64 data
+			const bstr = atob(arr[1]);
+			let n = bstr.length;
+			const u8arr = new Uint8Array(n);
+			while (n--) {
+				u8arr[n] = bstr.charCodeAt(n);
+			}
+			return new Blob([u8arr], { type: mime });
+		} catch (error) {
+			console.error('Error converting data URL to blob:', error);
+			throw new Error('Failed to process signature image: ' + error.message);
 		}
-		return new Blob([u8arr], { type: mime });
 	};
 
 	const uploadSignature = async (fieldId, dataURL, contractId, eventId) => {
 		try {
 			const token = await getAuthToken();
+			
+			// Debug: Log what we're receiving
+			console.log('Uploading signature for fieldId:', fieldId);
+			console.log('Data URL type:', typeof dataURL);
+			console.log('Data URL preview:', dataURL ? dataURL.substring(0, 100) : 'null');
+			
+			// Validate data URL before converting
+			if (!dataURL || typeof dataURL !== 'string') {
+				throw new Error('Invalid signature data format: data is not a string');
+			}
+
+			// Check if it's a proper data URL
+			if (!dataURL.includes('data:image')) {
+				console.error('Invalid data URL format. Expected data:image/..., got:', dataURL.substring(0, 50));
+				throw new Error('Invalid signature data format: not a proper image data URL');
+			}
+
 			const blob = dataURLtoBlob(dataURL);
+			
+			if (!blob || blob.size === 0) {
+				throw new Error('Signature blob is empty');
+			}
+
+			console.log('Blob created successfully, size:', blob.size);
+
 			const formData = new FormData();
 			formData.append("signature", blob, `${fieldId}.png`);
 
@@ -146,7 +188,10 @@ const PlannerContract = () => {
 			);
 
 			if (!response.ok) {
-				throw new Error(`Upload failed: ${response.status}`);
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(
+					errorData.error || `Upload failed with status ${response.status}`
+				);
 			}
 
 			const data = await response.json();
@@ -274,17 +319,35 @@ const PlannerContract = () => {
 		try {
 			const finalSignatures = {};
 
-			// Upload all signatures
-			for (const [fieldId, dataURL] of Object.entries(
-				signatureDataParam
-			)) {
-				const savedSignature = await uploadSignature(
-					fieldId,
-					dataURL,
-					selectedContract.id,
-					selectedContract.eventId
-				);
-				finalSignatures[fieldId] = savedSignature;
+			// Upload all signatures - handle both canvas data URLs and text fields
+			for (const [fieldId, data] of Object.entries(signatureDataParam)) {
+				// Find the field to check its type
+				const field = selectedContract.signatureFields.find(f => f.id === fieldId);
+				
+				// Only upload canvas signatures (signature and initial types with image data)
+				if (field && field.type === 'signature' && data && typeof data === 'string' && data.includes('data:image')) {
+					const savedSignature = await uploadSignature(
+						fieldId,
+						data,
+						selectedContract.id,
+						selectedContract.eventId
+					);
+					finalSignatures[fieldId] = savedSignature;
+				} else {
+					// For non-canvas fields (text, date, checkbox, initials as text), just store the data
+					finalSignatures[fieldId] = {
+						url: data, // Store the text/checkbox value directly
+						metadata: {
+							fieldId,
+							signerId: auth.currentUser.uid,
+							signerRole: "client",
+							contractId: selectedContract.id,
+							eventId: selectedContract.eventId,
+							signedAt: new Date().toISOString(),
+							userAgent: navigator.userAgent,
+						},
+					};
+				}
 			}
 
 			// Get IP address for audit trail
@@ -342,13 +405,20 @@ const PlannerContract = () => {
 				}
 			);
 
-			// Generate and download signature details document
+			// Generate and download signature details document with BOTH vendor and client signatures
 			setSaveStatus("Generating signature certificate...");
+
+			// FIXED: Extract vendor signature from selectedContract
+			// The vendor signature is stored in the contract when the vendor signs it
+			const vendorSignature = selectedContract.vendorSignature || null;
+
+			console.log('Vendor signature data:', vendorSignature); // Debug log
 
 			const signatureDoc = createSignatureDetailsDocument(
 				selectedContract,
 				signatureDataParam,
-				signerInfo
+				signerInfo,
+				vendorSignature // Pass the vendor signature here
 			);
 
 			// Auto-download the signature details HTML file
@@ -357,7 +427,7 @@ const PlannerContract = () => {
 			// Show success message with instructions
 			setTimeout(() => {
 				alert(
-					`🎉 Contract signed successfully!\n\n` +
+					`Successfully signed!\n\n` +
 						`A signature details document has been downloaded.\n` +
 						`You can print it to PDF and attach it to the contract:\n\n` +
 						`1. Open the downloaded HTML file\n` +
@@ -447,9 +517,7 @@ const PlannerContract = () => {
 		}
 	}, []);
 
-	// Helper function to check if contract is actually signed by client
 	const isContractSignedByClient = useCallback((contract) => {
-		// If no signature fields, it's not an e-signature contract
 		if (
 			!contract.signatureFields ||
 			contract.signatureFields.length === 0
@@ -457,29 +525,24 @@ const PlannerContract = () => {
 			return false;
 		}
 
-		// Check if all client signature fields are signed
 		const clientFields = contract.signatureFields.filter(
 			(field) => field.signerRole === "client"
 		);
 
-		// If no client fields, nothing to sign
 		if (clientFields.length === 0) {
 			return false;
 		}
 
-		// Check if all client fields are marked as signed
 		const allClientFieldsSigned = clientFields.every(
 			(field) => field.signed === true
 		);
 
-		// Also check workflow status
 		const workflowCompleted =
 			contract.signatureWorkflow?.workflowStatus === "completed";
 
 		return allClientFieldsSigned && workflowCompleted;
 	}, []);
 
-	// Helper function to get contract status display
 	const getContractStatusDisplay = useCallback((contract) => {
 		if (!contract.signatureWorkflow?.isElectronic) {
 			return { text: "Active", class: "active" };
@@ -516,21 +579,14 @@ const PlannerContract = () => {
 		return groups;
 	}, [contracts]);
 
-const filteredEventIds = useMemo(() => {
-    return Object.keys(groupedContracts).filter((eventId) => {
-        const event = groupedContracts[eventId];
-        const searchLower = debouncedSearchTerm.toLowerCase();
-        
-        // Search by event name or contracts within the event
-        const eventNameMatch = event.eventName.toLowerCase().includes(searchLower);
-        const contractMatch = event.contracts.some(contract => 
-            contract.fileName.toLowerCase().includes(searchLower) ||
-            contract.vendorName?.toLowerCase().includes(searchLower)
-        );
-        
-        return eventNameMatch || contractMatch;
-    });
-}, [groupedContracts, debouncedSearchTerm]);
+	const filteredEventIds = useMemo(() => {
+		return Object.keys(groupedContracts).filter((eventId) => {
+			const event = groupedContracts[eventId];
+			return event.eventName
+				.toLowerCase()
+				.includes(debouncedSearchTerm.toLowerCase());
+		});
+	}, [groupedContracts, debouncedSearchTerm]);
 
 	const totalContracts = contracts.length;
 	const pendingContracts = contracts.filter(
@@ -553,7 +609,7 @@ const filteredEventIds = useMemo(() => {
 
 	const EventCard = React.memo(({ eventId, eventData }) => {
 		return (
-			<section className="event-card-planner-contract">
+			<section className="event-card">
 				<section className="event-info">
 					<p>
 						<FileText size={16} /> {eventData.eventName}
@@ -586,10 +642,6 @@ const filteredEventIds = useMemo(() => {
 												<button
 													className="file-name-btn"
 													onClick={() => {
-														console.log(
-															"Contract clicked:",
-															contract
-														); // Debug
 														setSelectedContract(
 															contract
 														);
@@ -617,14 +669,14 @@ const filteredEventIds = useMemo(() => {
 												</span>
 											</p>
 											<span
-												className={`status-badge-planner-contract status-${statusDisplay.class}`}
+												className={`status-badge status-${statusDisplay.class}`}
 											>
 												{statusDisplay.text}
 											</span>
 											{contract.signatureWorkflow
 												?.isElectronic && (
 												<span
-													className={`signature-badge-planner-contract ${contract.signatureWorkflow.workflowStatus}`}
+													className={`signature-badge ${contract.signatureWorkflow.workflowStatus}`}
 												>
 													{contract.signatureWorkflow.workflowStatus.replace(
 														"_",
@@ -720,29 +772,30 @@ const filteredEventIds = useMemo(() => {
 	}
 
 	return (
-		<section className="contracts-page-planner-contract">
+		<section className="events-page">
 			<header>
 				<h1>Contract Management</h1>
 				<p>Manage vendor contracts for your events.</p>
 				<section className="stats-summary">
-					<section className="stat-item-planner-contract">
+					<section className="stat-item">
 						<FileText size={20} />
 						<span>Total Contracts: {totalContracts}</span>
 					</section>
-					<section className="stat-item-planner-contract pending-stat-planner-contract">
+					<section className="stat-item pending-stat">
 						<span>Pending Signatures: {pendingContracts}</span>
 					</section>
-					<section className="stat-item-planner-contract signed-stat-planner-contract">
+					<section className="stat-item signed-stat">
 						<span>Signed Contracts: {signedContracts}</span>
 					</section>
 				</section>
-				<section className="search-container-planner-contract">
+				<section className="search-container">
+					<Search size={20} />
 					<input
 						type="text"
 						placeholder="Search by event name..."
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
-						className="search-input-planner-contract"
+						className="search-input"
 					/>
 					{searchTerm && (
 						<button
@@ -754,12 +807,12 @@ const filteredEventIds = useMemo(() => {
 					)}
 				</section>
 			</header>
-			<section className="events-section-planner-contract">
-				<h2 className="section-title-planner-contract">
+			<section className="events-section">
+				<h2 className="section-title">
 					<Calendar size={20} />
 					Your Events ({filteredEventIds.length})
 				</h2>
-				<section className="events-list-planner-contract">
+				<section className="events-list">
 					{filteredEventIds.map((eventId) => (
 						<EventCard
 							key={eventId}
@@ -775,7 +828,6 @@ const filteredEventIds = useMemo(() => {
 				</section>
 			)}
 
-			{/* Signature Modal */}
 			<Popup
 				isOpen={showSignModal}
 				onClose={() => {
@@ -800,7 +852,6 @@ const filteredEventIds = useMemo(() => {
 				)}
 			</Popup>
 
-			{/* Save Status Toast */}
 			{saveStatus && (
 				<div className="toast-notification">{saveStatus}</div>
 			)}
