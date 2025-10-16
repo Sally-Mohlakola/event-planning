@@ -30,7 +30,6 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import "./VendorContract.css";
 import Popup from "../general/popup/Popup.jsx";
-import BASE_URL from "../../apiConfig";
 
 // Custom debounce hook
 const useDebounce = (value, delay) => {
@@ -69,14 +68,14 @@ const VendorContract = ({ setActivePage }) => {
 	const cacheTTL = 5 * 60 * 1000;
 
 	const vendorId = auth.currentUser?.uid;
-
+	
 	// Function to fetch services for a client (placeholder URL)
 	const fetchClientServices = useCallback(async (eventId, vendorId) => {
 		if (!auth.currentUser) return [];
 		setLoadingServices(true);
 		try {
 			const token = await auth.currentUser.getIdToken();
-			const url = `${BASE_URL}/${vendorId}/${eventId}/services-for-contract`;
+			const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/${vendorId}/${eventId}/services-for-contract`;
 			const res = await fetch(url, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
@@ -117,7 +116,7 @@ const VendorContract = ({ setActivePage }) => {
 			try {
 				const token = await auth.currentUser.getIdToken();
 				// Placeholder URL - replace with actual API endpoint
-				const url = `${BASE_URL}/${vendorId}/${eventId}/update-final-prices`;
+				const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/${vendorId}/${eventId}/update-final-prices`;
 				const res = await fetch(url, {
 					method: "POST",
 					headers: {
@@ -146,7 +145,7 @@ const VendorContract = ({ setActivePage }) => {
 		try {
 			const token = await auth.currentUser.getIdToken();
 			// Placeholder URL - replace with actual API endpoint
-			const url = `${BASE_URL}/${eventId}/${vendorId}/contract-prices-final`;
+			const url = `https://us-central1-planit-sdp.cloudfunctions.net/api/${eventId}/${vendorId}/contract-prices-final`;
 			const res = await fetch(url, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
@@ -217,7 +216,8 @@ const VendorContract = ({ setActivePage }) => {
 		}
 		try {
 			const token = await auth.currentUser.getIdToken();
-			const url = `${BASE_URL}/vendor/bookings`;
+			const url =
+				"https://us-central1-planit-sdp.cloudfunctions.net/api/vendor/bookings";
 			const res = await fetch(url, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
@@ -344,10 +344,9 @@ const VendorContract = ({ setActivePage }) => {
 		const handleStorageChange = () => {
 			loadContractsFromFirestore();
 		};
-
-		window.addEventListener("contractUpdated", handleStorageChange);
-		return () =>
-			window.removeEventListener("contractUpdated", handleStorageChange);
+		
+		window.addEventListener('contractUpdated', handleStorageChange);
+		return () => window.removeEventListener('contractUpdated', handleStorageChange);
 	}, [loadContractsFromFirestore]);
 
 	// Group contracts by eventId for multiple contracts per client
@@ -780,8 +779,8 @@ const VendorContract = ({ setActivePage }) => {
 	// Function to handle signature setup - Navigate to separate page
 	const handleSetupSignatures = (contract) => {
 		// Store contract data in localStorage for the signature page to access
-		localStorage.setItem("contractForSignature", JSON.stringify(contract));
-		setActivePage("setup-signature");
+		localStorage.setItem('contractForSignature', JSON.stringify(contract));
+		setActivePage('setup-signature');
 	};
 
 	const filteredClients = useMemo(() => {
