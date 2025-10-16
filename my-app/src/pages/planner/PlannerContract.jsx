@@ -8,9 +8,7 @@ import React, {
 import {
 	Calendar,
 	User,
-	User,
 	FileText,
-	Search,
 	Search,
 	X,
 	Edit3,
