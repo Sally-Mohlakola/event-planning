@@ -3,10 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import LocationPicker from "./LocationPicker";
 import "./NewEvent.css";
-
-const API_TEST ="http://127.0.0.1:5001/planit-sdp/us-central1/api";
-const API_BASE="https://us-central1-planit-sdp.cloudfunctions.net/api";
-
+import BASE_URL from "../../apiConfig";
 
 export default function NewEvent({ setActivePage }) {
 	const [inputs, setInputs] = useState({
@@ -20,7 +17,7 @@ export default function NewEvent({ setActivePage }) {
 
 	const [locationData, setLocationData] = useState({
 		coordinates: null,
-		address: ""
+		address: "",
 	});
 
 	const now = new Date();
@@ -136,28 +133,27 @@ export default function NewEvent({ setActivePage }) {
 				location: locationData.address,
 				locationCoordinates: {
 					lat: locationData.coordinates.lat,
-					lng: locationData.coordinates.lng
-				}
+					lng: locationData.coordinates.lng,
+				},
 			};
 
-			const res = await fetch(
-				`${API_BASE}/event/apply`,
-				{
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${token}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(eventData),
-				}
-			);
+			const res = await fetch(`${BASE_URL}/event/apply`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(eventData),
+			});
 
 			const data = await res.json();
 
 			if (!res.ok) {
 				// Check for location conflict error
 				if (res.status === 409) {
-					throw new Error(data.message || "Location conflict detected");
+					throw new Error(
+						data.message || "Location conflict detected"
+					);
 				}
 				throw new Error(data.message || "Failed to create event");
 			}
@@ -244,9 +240,7 @@ export default function NewEvent({ setActivePage }) {
 
 				<section className="form-group">
 					<label>Location *</label>
-					<LocationPicker
-						onLocationChange={handleLocationChange}
-					/>
+					<LocationPicker onLocationChange={handleLocationChange} />
 				</section>
 
 				<section className="form-group">
