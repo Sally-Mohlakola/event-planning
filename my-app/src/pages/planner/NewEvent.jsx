@@ -177,6 +177,8 @@ export default function NewEvent({ setActivePage }) {
 			<section className="intro">
 				<h1 className="newevent-title">Create New Event</h1>
 				<p className="newevent-subtitle">Tell us about your event</p>
+				<p className="newevent-subtitle">or</p>
+				<p className="newevent-subtitle link" onClick={() => { setActivePage("import"); }}>Import from BronzeFury</p>
 			</section>
 
 			<form className="event-form" onSubmit={handleSubmit}>
@@ -264,6 +266,7 @@ export default function NewEvent({ setActivePage }) {
 						))}
 					</select>
 				</section>
+
 
 				<button
 					type="submit"

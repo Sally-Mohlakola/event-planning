@@ -1302,7 +1302,6 @@ useEffect(() => {
 							<section className="guests-section">
 								<section className="guests-header">
 									<h3>Guest List</h3>
-                                    <button className="add-guest-btn" onClick={() => setShowBronzeFuryPopup(true)}>+ Add Guests from BronzeFury</button>
 									<button
 										className="add-guest-btn"
 										onClick={() =>
